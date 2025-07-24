@@ -1,0 +1,31 @@
+{
+  "grid": {
+    "rows": 50,
+    "cols": 30,
+    "cell_size": 60,
+    "padding": 5
+  },
+  "sizing": {
+    "node_radius_fraction": 0.07,
+    "foot_height_fraction": 0.06,
+    "eyes_width_fraction": 0.60,
+    "mouth_width_rest": 0.35,
+    "mouth_width_excited": 0.45
+  },
+  "positioning": {
+    "eye_y_fraction": 0.333,
+    "mouth_y_fraction": 0.667,
+    "node_y_fraction": 0.667,
+    "eye_max_height_fraction": 0.4,
+    "mouth_max_height_fraction": 0.3
+  },
+  "styling": {
+    "stroke_width": 1,
+    "outline_color": "#231F20"
+  },
+  "output": {
+    "svg_filename": "agents_sheet.svg",
+    "csv_filename": "agents_config.csv",
+    "css_filename": "agents_sprite.css"
+  }
+}

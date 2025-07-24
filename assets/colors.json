@@ -1,0 +1,8 @@
+{
+  "palette": [
+    "#A47E69", "#CFA991", "#E99987", "#F7C0A9", "#FFC2E2", "#F34B65", "#FA709A",
+    "#F7AB39", "#F7CF47", "#ADCC7E", "#A2AD47", "#7CAB6A", "#37759C", "#6EDCD9",
+    "#92D6CC", "#C7EDE5", "#8C6BB1", "#A297DE", "#D4C2FF", "#9FA7A6"
+  ],
+  "description": "Color palette for door agents. Body and node colors are always different."
+}

@@ -1,0 +1,10 @@
+{
+  "excited_chance": 0.20,
+  "feet_match_body_chance": 0.30,
+  "mouth_indices": {
+    "rest_range": [0, 5],
+    "excited_range": [6, 7],
+    "description": "rest_range uses indices 0-5 (mouths 1-6), excited_range uses indices 6-7 (mouths 7-8)"
+  },
+  "description": "Probability settings for randomization during generation"
+}

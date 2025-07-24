@@ -1,0 +1,15 @@
+{
+  "shapes": [
+    {"width": 6, "height": 7, "name": "tall_wide"},
+    {"width": 6, "height": 6, "name": "wide_square"},
+    {"width": 6, "height": 5, "name": "wide_medium"},
+    {"width": 6, "height": 4, "name": "wide_short"},
+    {"width": 6, "height": 3, "name": "wide_tiny"},
+    {"width": 5, "height": 7, "name": "medium_tall"},
+    {"width": 5, "height": 6, "name": "medium_wide"},
+    {"width": 5, "height": 5, "name": "square"},
+    {"width": 5, "height": 4, "name": "medium_short"},
+    {"width": 5, "height": 3, "name": "medium_tiny"}
+  ],
+  "description": "Available body shapes as width x height in tiles. Tallest shape (height 7) determines scaling."
+}
