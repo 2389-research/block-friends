@@ -1,0 +1,113 @@
+/* Door Agent Sprite Sheet CSS */
+/* Generated sprite sheet: 600×600 pixels, 60×60px cells */
+
+.sprite {
+    display: inline-block;
+    width: 60px;
+    height: 60px;
+    background-image: url('agents_sheet.svg');
+    background-repeat: no-repeat;
+    background-size: 600px 600px;
+}
+
+/* Individual agent positions */
+.agent-0 { background-position: -0px -0px; }
+.agent-1 { background-position: -60px -0px; }
+.agent-2 { background-position: -120px -0px; }
+.agent-3 { background-position: -180px -0px; }
+.agent-4 { background-position: -240px -0px; }
+.agent-5 { background-position: -300px -0px; }
+.agent-6 { background-position: -360px -0px; }
+.agent-7 { background-position: -420px -0px; }
+.agent-8 { background-position: -480px -0px; }
+.agent-9 { background-position: -540px -0px; }
+.agent-10 { background-position: -0px -60px; }
+.agent-11 { background-position: -60px -60px; }
+.agent-12 { background-position: -120px -60px; }
+.agent-13 { background-position: -180px -60px; }
+.agent-14 { background-position: -240px -60px; }
+.agent-15 { background-position: -300px -60px; }
+.agent-16 { background-position: -360px -60px; }
+.agent-17 { background-position: -420px -60px; }
+.agent-18 { background-position: -480px -60px; }
+.agent-19 { background-position: -540px -60px; }
+.agent-20 { background-position: -0px -120px; }
+.agent-21 { background-position: -60px -120px; }
+.agent-22 { background-position: -120px -120px; }
+.agent-23 { background-position: -180px -120px; }
+.agent-24 { background-position: -240px -120px; }
+.agent-25 { background-position: -300px -120px; }
+.agent-26 { background-position: -360px -120px; }
+.agent-27 { background-position: -420px -120px; }
+.agent-28 { background-position: -480px -120px; }
+.agent-29 { background-position: -540px -120px; }
+.agent-30 { background-position: -0px -180px; }
+.agent-31 { background-position: -60px -180px; }
+.agent-32 { background-position: -120px -180px; }
+.agent-33 { background-position: -180px -180px; }
+.agent-34 { background-position: -240px -180px; }
+.agent-35 { background-position: -300px -180px; }
+.agent-36 { background-position: -360px -180px; }
+.agent-37 { background-position: -420px -180px; }
+.agent-38 { background-position: -480px -180px; }
+.agent-39 { background-position: -540px -180px; }
+.agent-40 { background-position: -0px -240px; }
+.agent-41 { background-position: -60px -240px; }
+.agent-42 { background-position: -120px -240px; }
+.agent-43 { background-position: -180px -240px; }
+.agent-44 { background-position: -240px -240px; }
+.agent-45 { background-position: -300px -240px; }
+.agent-46 { background-position: -360px -240px; }
+.agent-47 { background-position: -420px -240px; }
+.agent-48 { background-position: -480px -240px; }
+.agent-49 { background-position: -540px -240px; }
+.agent-50 { background-position: -0px -300px; }
+.agent-51 { background-position: -60px -300px; }
+.agent-52 { background-position: -120px -300px; }
+.agent-53 { background-position: -180px -300px; }
+.agent-54 { background-position: -240px -300px; }
+.agent-55 { background-position: -300px -300px; }
+.agent-56 { background-position: -360px -300px; }
+.agent-57 { background-position: -420px -300px; }
+.agent-58 { background-position: -480px -300px; }
+.agent-59 { background-position: -540px -300px; }
+.agent-60 { background-position: -0px -360px; }
+.agent-61 { background-position: -60px -360px; }
+.agent-62 { background-position: -120px -360px; }
+.agent-63 { background-position: -180px -360px; }
+.agent-64 { background-position: -240px -360px; }
+.agent-65 { background-position: -300px -360px; }
+.agent-66 { background-position: -360px -360px; }
+.agent-67 { background-position: -420px -360px; }
+.agent-68 { background-position: -480px -360px; }
+.agent-69 { background-position: -540px -360px; }
+.agent-70 { background-position: -0px -420px; }
+.agent-71 { background-position: -60px -420px; }
+.agent-72 { background-position: -120px -420px; }
+.agent-73 { background-position: -180px -420px; }
+.agent-74 { background-position: -240px -420px; }
+.agent-75 { background-position: -300px -420px; }
+.agent-76 { background-position: -360px -420px; }
+.agent-77 { background-position: -420px -420px; }
+.agent-78 { background-position: -480px -420px; }
+.agent-79 { background-position: -540px -420px; }
+.agent-80 { background-position: -0px -480px; }
+.agent-81 { background-position: -60px -480px; }
+.agent-82 { background-position: -120px -480px; }
+.agent-83 { background-position: -180px -480px; }
+.agent-84 { background-position: -240px -480px; }
+.agent-85 { background-position: -300px -480px; }
+.agent-86 { background-position: -360px -480px; }
+.agent-87 { background-position: -420px -480px; }
+.agent-88 { background-position: -480px -480px; }
+.agent-89 { background-position: -540px -480px; }
+.agent-90 { background-position: -0px -540px; }
+.agent-91 { background-position: -60px -540px; }
+.agent-92 { background-position: -120px -540px; }
+.agent-93 { background-position: -180px -540px; }
+.agent-94 { background-position: -240px -540px; }
+.agent-95 { background-position: -300px -540px; }
+.agent-96 { background-position: -360px -540px; }
+.agent-97 { background-position: -420px -540px; }
+.agent-98 { background-position: -480px -540px; }
+.agent-99 { background-position: -540px -540px; }

@@ -68,20 +68,23 @@ OUT = Path("out"); OUT.mkdir(exist_ok=True)
 
 # ───────────────────── SVG PART UTILITIES ───────────────────
 def parse_defs(folder):
-    """return [(x0,y0,w,h,svg_text), …] sorted numerically by filename"""
+    """return [(x0,y0,w,h,svg_text,offset_y,z_order), …] sorted numerically by filename"""
     defs = []
     for f in sorted(folder.glob("*.svg"), key=lambda p: int(p.stem)):
         root = ET.parse(f).getroot()
         x0,y0,w,h = map(float, root.get("viewBox").split())
         content = "".join(ET.tostring(c, encoding="unicode") for c in root)
-        defs.append((x0,y0,w,h,content))
+        offset_y = float(root.get("data-offset-y", 0))  # default to 0 if not specified
+        z_order = root.get("data-z-order", "behind")  # default to "behind" if not specified
+        defs.append((x0,y0,w,h,content,offset_y,z_order))
     return defs
 
 EYES   = parse_defs(ASSETS/"eyes")
 MOUTHS = parse_defs(ASSETS/"mouths")
+HAIRS  = parse_defs(ASSETS/"hair")
 
 # ────────────────────── AGENT GENERATOR ─────────────────────
-def agent_svg(shape, ei, excited, return_config=False):
+def agent_svg(shape, ei, excited, hi=None, return_config=False):
     w_tiles, h_tiles = shape
     # body size scaled so tallest shape (tile 7) exactly fills BOX-foot_h
     scale = (BOX - BOX*FOOT_H_FRAC) / 7
@@ -101,7 +104,7 @@ def agent_svg(shape, ei, excited, return_config=False):
     feet_fill = body_fill if random.random() < FEET_MATCH_BODY_CHANCE else node_fill
 
     # ---- eyes ----
-    ex0,ey0,ew,eh,eyes_svg = EYES[ei]
+    ex0,ey0,ew,eh,eyes_svg,_,_ = EYES[ei]
     eyes_w = body_w * EYES_W_FRAC
     se     = eyes_w / ew
     eyes_h = eh * se
@@ -122,7 +125,7 @@ def agent_svg(shape, ei, excited, return_config=False):
         mi = random.randint(EXC_RANGE[0], EXC_RANGE[1])
     else:
         mi = random.randint(REST_RANGE[0], REST_RANGE[1])
-    mx0,my0,mw,mh,mouth_svg = MOUTHS[mi]
+    mx0,my0,mw,mh,mouth_svg,_,_ = MOUTHS[mi]
     mw_ratio = MOUTH_W_EXC if excited else MOUTH_W_REST
     mouth_w  = body_w * mw_ratio
     sm       = mouth_w / mw
@@ -154,6 +157,23 @@ def agent_svg(shape, ei, excited, return_config=False):
     fy = PAD + BOX - foot_h     # bottom-aligned in 50×50 box
 
     g = []
+    
+    # Prepare hair rendering info if present
+    hair_element = None
+    if hi is not None:
+        hx0,hy0,hw,hh,hair_svg,hair_offset_y,hair_z_order = HAIRS[hi]
+        # Hair positioned at top of body, full width
+        hair_w = body_w
+        sh = hair_w / hw
+        hair_h = hh * sh
+        hair_x = bx0
+        hair_y = by0 - hair_h + hair_offset_y  # positioned above body with SVG-defined offset
+        hair_element = f'<g color="{body_fill}" transform="translate({hair_x},{hair_y}) scale({sh}) translate({-hx0}, {-hy0})">{hair_svg}</g>'
+        
+        # Render hair behind body if specified
+        if hair_z_order == "behind":
+            g.append(hair_element)
+    
     # body + divider
     g.append(f'<rect x="{bx0}" y="{by0}" width="{body_w}" height="{body_h}" '
              f'fill="{body_fill}" stroke="{OUTLINE}" stroke-width="{STROKE}"/>')
@@ -174,11 +194,18 @@ def agent_svg(shape, ei, excited, return_config=False):
     g.append(f'<g transform="translate({mouth_x},{mouth_y}) scale({sm}) '
              f'translate({-mx0}, {-my0})">{mouth_svg}</g>')
     
+    # Render hair in front of body if specified
+    if hair_element and hi is not None:
+        _,_,_,_,_,_,hair_z_order = HAIRS[hi]
+        if hair_z_order == "front":
+            g.append(hair_element)
+    
     if return_config:
         config = {
             'body_shape': f"{w_tiles}x{h_tiles}",
             'eye_index': ei + 1,  # 1-indexed for user friendliness
             'mouth_index': mi + 1,  # 1-indexed for user friendliness
+            'hair_index': hi + 1 if hi is not None else None,  # 1-indexed for user friendliness
             'excited': excited,
             'body_color': body_fill,
             'node_color': node_fill,
@@ -198,8 +225,9 @@ for r in range(ROWS):
         shape   = random.choice(BODY_SHAPES)
         ei      = random.randrange(len(EYES))
         excited = random.random() < EXCITED_CHANCE
+        hi      = 0  # Force hair #1 for tweaking
         
-        svg_content, agent_config = agent_svg(shape, ei, excited, return_config=True)
+        svg_content, agent_config = agent_svg(shape, ei, excited, hi, return_config=True)
         agent_config['agent_id'] = agent_id
         agent_config['row'] = r
         agent_config['col'] = c
@@ -224,7 +252,7 @@ svg_path.write_text(sheet_svg)
 # Write agent configuration CSV
 with open(csv_path, 'w', newline='') as csvfile:
     fieldnames = ['agent_id', 'row', 'col', 'x', 'y', 'body_shape', 'eye_index', 
-                  'mouth_index', 'excited', 'body_color', 'node_color', 'feet_color', 
+                  'mouth_index', 'hair_index', 'excited', 'body_color', 'node_color', 'feet_color', 
                   'feet_match_body']
     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
     writer.writeheader()
