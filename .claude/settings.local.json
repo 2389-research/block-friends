@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__socialmedia__create_post",
+      "mcp__private-journal__process_thoughts",
+      "Bash(uv run:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": []
+  }
+}

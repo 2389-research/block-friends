@@ -1,4 +1,27 @@
 {
+  "colors": {
+    "WALNUT": "#A47E69",
+    "ALMOND": "#CFA991", 
+    "SALMON": "#E99987",
+    "PEACH": "#F7C0A9",
+    "CATNOSE": "#FFC2E2",
+    "LAVA": "#F34B65",
+    "WATERMELON": "#FA709A",
+    "TANGERINE": "#F7AB39",
+    "MANGO": "#F7CF47",
+    "MINT": "#ADCC7E",
+    "OLIVE": "#A2AD47",
+    "LEAF": "#7CAB6A",
+    "SLATE": "#37759C",
+    "TEAL": "#6EDCD9",
+    "AQUA": "#92D6CC",
+    "SKY": "#C7EDE5",
+    "VIOLET": "#8C6BB1",
+    "LAVENDER": "#A297DE",
+    "LILAC": "#D4C2FF",
+    "CONCRETE": "#9FA7A6",
+    "COAL": "#231F20"
+  },
   "palette": [
     "#A47E69", "#CFA991", "#E99987", "#F7C0A9", "#FFC2E2", "#F34B65", "#FA709A",
     "#F7AB39", "#F7CF47", "#ADCC7E", "#A2AD47", "#7CAB6A", "#37759C", "#6EDCD9",
