@@ -1,5 +1,5 @@
-<svg width="27" height="14" viewBox="0 0 27 14" fill="none" xmlns="http://www.w3.org/2000/svg" data-offset-y="1.5" data-z-order="behind">
+<svg width="27" height="14" viewBox="0 0 27 14" fill="none" xmlns="http://www.w3.org/2000/svg" data-position-y="7%" data-anchor="bottom" data-z-order="behind">
   <!-- Cat ears - will be filled with body color -->
-<path d="M1.5498 13.30993C1.5498 13.30993 4.22976 6.38994 5.37976 6.00994C6.52976 5.629943 11.1298 12.92993 11.1298 12.92993L1.5498 13.30993Z" fill="currentColor" stroke="#231F20" stroke-width="0.5" stroke-miterlimit="10"/>
-<path d="M16.4902 13.30993C16.4902 13.30993 19.1702 6.38994 20.3302 6.00994C21.4702 5.629943 26.0702 12.92993 26.0702 12.92993L16.4902 13.30993Z" fill="currentColor" stroke="#231F20" stroke-width="0.5" stroke-miterlimit="10"/>
+<path d="M1.5498 13.30993C1.5498 13.30993 4.22976 6.38994 5.37976 6.00994C6.52976 5.629943 11.1298 12.92993 11.1298 12.92993L1.5498 13.30993Z" fill="currentColor" stroke="#231F20" stroke-width="0.75" stroke-miterlimit="10"/>
+<path d="M16.4902 13.30993C16.4902 13.30993 19.1702 6.38994 20.3302 6.00994C21.4702 5.629943 26.0702 12.92993 26.0702 12.92993L16.4902 13.30993Z" fill="currentColor" stroke="#231F20" stroke-width="0.75" stroke-miterlimit="10"/>
 </svg>

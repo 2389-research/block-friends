@@ -68,15 +68,19 @@ OUT = Path("out"); OUT.mkdir(exist_ok=True)
 
 # ───────────────────── SVG PART UTILITIES ───────────────────
 def parse_defs(folder):
-    """return [(x0,y0,w,h,svg_text,offset_y,z_order), …] sorted numerically by filename"""
+    """return [(x0,y0,w,h,svg_text,z_order,width_percent,position_x,position_y,anchor,color_spec), …] sorted numerically by filename"""
     defs = []
     for f in sorted(folder.glob("*.svg"), key=lambda p: int(p.stem)):
         root = ET.parse(f).getroot()
         x0,y0,w,h = map(float, root.get("viewBox").split())
         content = "".join(ET.tostring(c, encoding="unicode") for c in root)
-        offset_y = float(root.get("data-offset-y", 0))  # default to 0 if not specified
         z_order = root.get("data-z-order", "behind")  # default to "behind" if not specified
-        defs.append((x0,y0,w,h,content,offset_y,z_order))
+        width_percent = float(root.get("data-width-percent", 100))  # default to 100% if not specified
+        position_x = root.get("data-position-x", "body-center")  # default to "body-center" if not specified
+        position_y = root.get("data-position-y", "above-body")  # default to "above-body" if not specified
+        anchor = root.get("data-anchor", "top")  # default to "top" if not specified
+        color_spec = root.get("data-color", "currentColor")  # default to "currentColor" if not specified
+        defs.append((x0,y0,w,h,content,z_order,width_percent,position_x,position_y,anchor,color_spec))
     return defs
 
 EYES   = parse_defs(ASSETS/"eyes")
@@ -104,7 +108,7 @@ def agent_svg(shape, ei, excited, hi=None, return_config=False):
     feet_fill = body_fill if random.random() < FEET_MATCH_BODY_CHANCE else node_fill
 
     # ---- eyes ----
-    ex0,ey0,ew,eh,eyes_svg,_,_ = EYES[ei]
+    ex0,ey0,ew,eh,eyes_svg,_,_,_,_,_,_ = EYES[ei]
     eyes_w = body_w * EYES_W_FRAC
     se     = eyes_w / ew
     eyes_h = eh * se
@@ -125,7 +129,7 @@ def agent_svg(shape, ei, excited, hi=None, return_config=False):
         mi = random.randint(EXC_RANGE[0], EXC_RANGE[1])
     else:
         mi = random.randint(REST_RANGE[0], REST_RANGE[1])
-    mx0,my0,mw,mh,mouth_svg,_,_ = MOUTHS[mi]
+    mx0,my0,mw,mh,mouth_svg,_,_,_,_,_,_ = MOUTHS[mi]
     mw_ratio = MOUTH_W_EXC if excited else MOUTH_W_REST
     mouth_w  = body_w * mw_ratio
     sm       = mouth_w / mw
@@ -161,14 +165,59 @@ def agent_svg(shape, ei, excited, hi=None, return_config=False):
     # Prepare hair rendering info if present
     hair_element = None
     if hi is not None:
-        hx0,hy0,hw,hh,hair_svg,hair_offset_y,hair_z_order = HAIRS[hi]
-        # Hair positioned at top of body, full width
-        hair_w = body_w
+        hx0,hy0,hw,hh,hair_svg,hair_z_order,hair_width_percent,hair_position_x,hair_position_y,hair_anchor,hair_color_spec = HAIRS[hi]
+        
+        # Calculate hair width based on SVG attribute
+        hair_w = body_w * (hair_width_percent / 100)
         sh = hair_w / hw
         hair_h = hh * sh
-        hair_x = bx0
-        hair_y = by0 - hair_h + hair_offset_y  # positioned above body with SVG-defined offset
-        hair_element = f'<g color="{body_fill}" transform="translate({hair_x},{hair_y}) scale({sh}) translate({-hx0}, {-hy0})">{hair_svg}</g>'
+        
+        # Calculate hair X position based on SVG attribute - now unified with percentage support
+        if hair_position_x == "cell-center":
+            hair_x = PAD + BOX/2 - hair_w / 2  # center on cell center
+        elif hair_position_x.endswith("%"):
+            # Percentage positioning: "50%" means 50% of hair width from body center
+            percent = float(hair_position_x[:-1]) / 100
+            hair_x = cx + (hair_w * percent) - hair_w / 2
+        else:  # default to "body-center"
+            hair_x = cx - hair_w / 2  # center on body center
+            
+        # Calculate hair Y position based on SVG attribute - now unified with percentage support and anchoring
+        if hair_position_y == "between-body-eyes":
+            base_y = (by0 + eyes_y) / 2
+        elif hair_position_y.endswith("%"):
+            # Percentage positioning: "0%" means anchor point aligns with top of body, percentage is relative to hair height
+            percent = float(hair_position_y[:-1]) / 100
+            base_y = by0 + (hair_h * percent)
+        else:  # default to "above-body"
+            base_y = by0
+            
+        # Apply anchor offset to base position
+        if hair_anchor == "bottom":
+            hair_y = base_y - hair_h  # bottom of hair at base position
+        elif hair_anchor == "center":
+            hair_y = base_y - hair_h / 2  # center of hair at base position
+        else:  # default to "top"
+            hair_y = base_y  # top of hair at base position
+            
+        # Determine hair color based on data-color attribute
+        if hair_color_spec == "currentColor":
+            hair_color = body_fill
+        elif hair_color_spec == "contrast":
+            # Choose a contrasting color (different from body color)
+            hair_color = random.choice([c for c in PALETTE if c != body_fill])
+        elif hair_color_spec.startswith('[') and hair_color_spec.endswith(']'):
+            # Parse JSON array of colors and choose randomly
+            try:
+                color_array = json.loads(hair_color_spec)
+                hair_color = random.choice(color_array)
+            except (json.JSONDecodeError, ValueError):
+                hair_color = body_fill  # fallback to body color
+        else:
+            # Single hex color specified
+            hair_color = hair_color_spec
+            
+        hair_element = f'<g color="{hair_color}" transform="translate({hair_x},{hair_y}) scale({sh}) translate({-hx0}, {-hy0})">{hair_svg}</g>'
         
         # Render hair behind body if specified
         if hair_z_order == "behind":
@@ -196,7 +245,7 @@ def agent_svg(shape, ei, excited, hi=None, return_config=False):
     
     # Render hair in front of body if specified
     if hair_element and hi is not None:
-        _,_,_,_,_,_,hair_z_order = HAIRS[hi]
+        _,_,_,_,_,hair_z_order,_,_,_,_,_ = HAIRS[hi]
         if hair_z_order == "front":
             g.append(hair_element)
     
@@ -225,7 +274,7 @@ for r in range(ROWS):
         shape   = random.choice(BODY_SHAPES)
         ei      = random.randrange(len(EYES))
         excited = random.random() < EXCITED_CHANCE
-        hi      = 0  # Force hair #1 for tweaking
+        hi      = 6  # Only hair #7 for testing
         
         svg_content, agent_config = agent_svg(shape, ei, excited, hi, return_config=True)
         agent_config['agent_id'] = agent_id
