@@ -274,7 +274,7 @@ for r in range(ROWS):
         shape   = random.choice(BODY_SHAPES)
         ei      = random.randrange(len(EYES))
         excited = random.random() < EXCITED_CHANCE
-        hi      = 8  # Only hair #9 for testing
+        hi      = 9  # Only hair #10 for testing
         
         svg_content, agent_config = agent_svg(shape, ei, excited, hi, return_config=True)
         agent_config['agent_id'] = agent_id
