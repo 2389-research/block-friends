@@ -1,5 +1,5 @@
-<svg width="8" height="14" viewBox="0 0 8 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Bandana -->
-<path d="M1.1001 2.47998L1.5701 13.01" stroke="#231F20" stroke-miterlimit="10"/>
-<path d="M5.26044 2.34998L0.94043 1.22998L1.28043 4.83002L5.27042 2.34998H5.26044Z" fill="#FF5657" stroke="#231F20" stroke-miterlimit="10"/>
+<svg width="8" height="14" viewBox="0 0 8 14" fill="none" xmlns="http://www.w3.org/2000/svg" data-z-order="behind" data-width-percent="30" data-position-x="80%" data-position-y="20%" data-anchor="bottom" data-color='["#FFC2E2", "#F34B65", "#FA709A", "#F7AB39", "#F7CF47", "#6EDCD9", "#92D6CC", "#C7EDE5", "#A297DE", "#D4C2FF"]'>
+  <!-- Flag -->
+<path d="M1.1001 2.47998L1.5701 13.01" stroke="#231F20" stroke-width="0.8" stroke-miterlimit="10"/>
+<path d="M5.26044 2.34998L0.94043 1.22998L1.28043 4.83002L5.27042 2.34998H5.26044Z" fill="currentColor" stroke="#231F20" stroke-width="0.8" stroke-miterlimit="10"/>
 </svg>
