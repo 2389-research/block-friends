@@ -3,6 +3,9 @@ out/agents_sheet.svg
 out/agents_config.csv
 out/agents_sprite.css
 
+# Claude Code local settings
+.claude/settings.local.json
+
 # Python cache files
 __pycache__/
 *.py[cod]
