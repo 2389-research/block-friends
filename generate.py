@@ -185,6 +185,8 @@ def agent_svg(shape, ei, excited, hi=None, return_config=False):
         # Calculate hair Y position based on SVG attribute - now unified with percentage support and anchoring
         if hair_position_y == "between-body-eyes":
             base_y = (by0 + eyes_y) / 2
+        elif hair_position_y == "eyes":
+            base_y = clamped_eye_center_y
         elif hair_position_y.endswith("%"):
             # Percentage positioning: "0%" means anchor point aligns with top of body, percentage is relative to hair height
             percent = float(hair_position_y[:-1]) / 100
@@ -274,7 +276,7 @@ for r in range(ROWS):
         shape   = random.choice(BODY_SHAPES)
         ei      = random.randrange(len(EYES))
         excited = random.random() < EXCITED_CHANCE
-        hi      = 11  # Only hair #12 for testing
+        hi      = random.randrange(len(HAIRS)) if random.random() < 0.5 else None
         
         svg_content, agent_config = agent_svg(shape, ei, excited, hi, return_config=True)
         agent_config['agent_id'] = agent_id
