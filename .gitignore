@@ -25,3 +25,10 @@ env/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Private journal entries
+.private-journal/
+
+# Test/temporary files
+custom_*.svg
+test_*.svg
