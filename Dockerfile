@@ -12,6 +12,7 @@ RUN uv sync --frozen --no-dev
 # Copy application code and assets
 COPY app.py door_agents.py avatar.py ./
 COPY assets ./assets
+COPY static ./static
 
 # Create output directory for cache
 RUN mkdir -p out/avatar
