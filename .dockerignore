@@ -1,0 +1,39 @@
+# flyctl launch added from .gitignore
+# Generated output files
+**/out/agents_sheet.svg
+**/out/agents_config.csv
+**/out/agents_sprite.css
+
+# Claude Code local settings
+**/.claude/settings.local.json
+
+# Python cache files
+**/__pycache__
+**/*.py[cod]
+**/*$py.class
+
+# Virtual environments
+**/.venv
+**/venv
+**/env
+
+# IDE files
+**/.vscode
+**/.idea
+**/*.swp
+**/*.swo
+
+# OS files
+**/.DS_Store
+**/Thumbs.db
+
+# Private journal entries
+**/.private-journal
+
+# Test/temporary files
+**/custom_*.svg
+**/test_*.svg
+
+# flyctl launch added from .venv/.gitignore
+.venv/**/*
+fly.toml

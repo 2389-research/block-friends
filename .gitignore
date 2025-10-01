@@ -31,4 +31,8 @@ Thumbs.db
 
 # Test/temporary files
 custom_*.svg
-test_*.svg
+test_*.svg.fly
+output.txt
+
+.fly
+out
