@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2389 Agent Avatar Service</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: url('https://2389.ai/imgs/bg/checkerboard-2.svg');
+            background-size: cover;
+            background-attachment: fixed;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .tagline {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 2rem;
+        }
+
+        section {
+            margin-bottom: 3rem;
+        }
+
+        h2 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 0.5rem;
+        }
+
+        .demo-section {
+            background: #f7f7f7;
+            padding: 2rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            min-width: 250px;
+            padding: 0.75rem 1rem;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 0.75rem 2rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        .avatar-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .avatar-item {
+            text-align: center;
+        }
+
+        .avatar-item img {
+            width: 60px;
+            height: 60px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            display: block;
+            margin: 0 auto 0.5rem;
+        }
+
+        .avatar-item small {
+            display: block;
+            color: #666;
+            font-size: 0.75rem;
+            word-break: break-all;
+        }
+
+        .endpoint {
+            background: #f0f0f0;
+            padding: 1rem;
+            border-left: 4px solid #667eea;
+            margin-bottom: 1.5rem;
+            border-radius: 4px;
+        }
+
+        .endpoint-method {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .endpoint-path {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .endpoint-desc {
+            margin-top: 0.5rem;
+            color: #666;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 0.2rem 0.5rem;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #e83e8c;
+        }
+
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin-top: 0.5rem;
+        }
+
+        pre code {
+            background: none;
+            color: #f8f8f2;
+            padding: 0;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .feature {
+            background: #f7f7f7;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .feature h3 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            background: #f7f7f7;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚪 2389 Agent Avatar Service</h1>
+            <p class="tagline">Deterministic avatar generation with 1.27 billion unique variants</p>
+        </header>
+
+        <div class="content">
+            <section id="demo">
+                <h2>Try it Live</h2>
+                <div class="demo-section">
+                    <div class="input-group">
+                        <input type="text" id="inputString" placeholder="Enter email, username, or any string..." value="test@example.com">
+                        <button onclick="generateAvatar()">Generate Avatar</button>
+                        <button onclick="generateMultiple()">Generate 10 Random</button>
+                    </div>
+                    <div id="avatarDisplay" class="avatar-display"></div>
+                </div>
+            </section>
+
+            <section id="features">
+                <h2>Features</h2>
+                <div class="features">
+                    <div class="feature">
+                        <h3>🎲 Deterministic</h3>
+                        <p>Same input always generates the same avatar. Perfect for user profiles.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>⚡ Fast</h3>
+                        <p>File-based caching ensures instant delivery for previously generated avatars.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>🎨 Unique</h3>
+                        <p>1.27 billion possible combinations ensure collision-resistant generation for ~1M users.</p>
+                    </div>
+                    <div class="feature">
+                        <h3>📦 Simple</h3>
+                        <p>Just hit a URL with any string. No API keys, no auth, no hassle.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="api">
+                <h2>API Documentation</h2>
+
+                <div class="endpoint">
+                    <div>
+                        <span class="endpoint-method">GET</span>
+                        <span class="endpoint-path">/avatar/{input}.svg</span>
+                    </div>
+                    <div class="endpoint-desc">
+                        Generate and serve an SVG avatar for any input string.
+                    </div>
+                    <pre><code>curl https://avatar.2389.dev/avatar/test@example.com.svg</code></pre>
+                </div>
+
+                <div class="endpoint">
+                    <div>
+                        <span class="endpoint-method">GET</span>
+                        <span class="endpoint-path">/avatar/{input}.svg/info</span>
+                    </div>
+                    <div class="endpoint-desc">
+                        Get JSON configuration details for an avatar without generating the image.
+                    </div>
+                    <pre><code>curl https://avatar.2389.dev/avatar/test@example.com.svg/info</code></pre>
+                </div>
+            </section>
+
+            <section id="usage">
+                <h2>Usage Examples</h2>
+
+                <h3>HTML Image Tag</h3>
+                <pre><code>&lt;img src="https://avatar.2389.dev/avatar/user@email.com.svg" width="60" height="60" /&gt;</code></pre>
+
+                <h3>Markdown</h3>
+                <pre><code>![Avatar](https://avatar.2389.dev/avatar/username.svg)</code></pre>
+
+                <h3>Random String</h3>
+                <pre><code>&lt;img src="https://avatar.2389.dev/avatar/x7k9m2p5q8.svg" width="60" height="60" /&gt;</code></pre>
+
+                <h3>CSS Background</h3>
+                <pre><code>.profile {
+  background-image: url('https://avatar.2389.dev/avatar/user123.svg');
+  background-size: cover;
+}</code></pre>
+
+                <h3>JavaScript Fetch</h3>
+                <pre><code>const response = await fetch('/avatar/user@example.com.svg/info');
+const config = await response.json();
+console.log(config); // Avatar configuration details</code></pre>
+            </section>
+        </div>
+
+        <footer>
+            <p>This service brought to you by the fine folks over at 2389 Research, Inc. Made in Chicago with love ❤️</p>
+        </footer>
+    </div>
+
+    <script>
+        function generateAvatar() {
+            const input = document.getElementById('inputString').value || 'test@example.com';
+            const display = document.getElementById('avatarDisplay');
+
+            display.innerHTML = `
+                <div class="avatar-item">
+                    <img src="/avatar/${encodeURIComponent(input)}.svg" alt="Avatar for ${input}">
+                    <small>${input}</small>
+                </div>
+            `;
+        }
+
+        function generateMultiple() {
+            const display = document.getElementById('avatarDisplay');
+
+            // Generate 10 random strings
+            const inputs = Array.from({length: 10}, () => {
+                return Math.random().toString(36).substring(2, 15);
+            });
+
+            display.innerHTML = inputs.map(input => `
+                <div class="avatar-item">
+                    <img src="/avatar/${encodeURIComponent(input)}.svg" alt="Avatar for ${input}">
+                    <small>${input}</small>
+                </div>
+            `).join('');
+        }
+
+        // Generate initial avatars on load
+        window.addEventListener('load', generateMultiple);
+    </script>
+</body>
+</html>

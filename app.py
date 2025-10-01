@@ -7,7 +7,8 @@ import logging
 import asyncio
 from pathlib import Path
 from fastapi import FastAPI, Response, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 from door_agents import DoorAgentConfig, DoorAgentGenerator
@@ -17,7 +18,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="Door Agent Avatar Service",
+    title="2389 Agent Avatar Service",
     description="Deterministic avatar generation service with 1.27 billion unique variants",
     version="1.0.0"
 )
@@ -30,8 +31,15 @@ generator = DoorAgentGenerator(config)
 CACHE_DIR = Path("out/avatar")
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
+# Static files directory
+STATIC_DIR = Path("static")
+STATIC_DIR.mkdir(parents=True, exist_ok=True)
+
 # Global lock for file operations to prevent race conditions
 file_write_lock = asyncio.Lock()
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 async def get_or_generate_avatar_content(input_string: str) -> tuple[str, str]:
     """
@@ -84,11 +92,16 @@ async def get_or_generate_avatar_content(input_string: str) -> tuple[str, str]:
 
         return full_svg, hash_hex
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 async def root():
-    """Root endpoint with service information."""
+    """Serve the landing page."""
+    index_path = STATIC_DIR / "index.html"
+    if index_path.exists():
+        return HTMLResponse(content=index_path.read_text())
+
+    # Fallback to JSON if HTML doesn't exist
     return {
-        "service": "Door Agent Avatar Service",
+        "service": "2389 Agent Avatar Service",
         "version": "1.0.0",
         "description": "Deterministic avatar generation with 1.27B unique variants",
         "usage": {
@@ -101,7 +114,7 @@ async def root():
         },
         "features": [
             "Deterministic generation from any input string",
-            "File-based caching for performance", 
+            "File-based caching for performance",
             "1.27 billion unique variants",
             "Collision-resistant for ~1M users"
         ]
