@@ -92,7 +92,7 @@ async def get_or_generate_avatar_content(input_string: str) -> tuple[str, str]:
 
         return full_svg, hash_hex
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 async def root():
     """Serve the landing page."""
     index_path = STATIC_DIR / "index.html"
