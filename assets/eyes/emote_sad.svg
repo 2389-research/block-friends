@@ -1,0 +1,7 @@
+<svg viewBox="134 0 22 14" xmlns="http://www.w3.org/2000/svg">
+<!-- Sad eyes - droopy, looking down -->
+<ellipse cx="138" cy="7" rx="3" ry="6" fill="#F9F9F6" stroke="#231F20" stroke-width="0.75"/>
+<ellipse cx="152" cy="7" rx="3" ry="6" fill="#F9F9F6" stroke="#231F20" stroke-width="0.75"/>
+<circle cx="138" cy="9" r="1.8" fill="#2B2727"/>
+<circle cx="152" cy="9" r="1.8" fill="#2B2727"/>
+</svg>

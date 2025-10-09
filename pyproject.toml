@@ -3,10 +3,11 @@ name = "sprite-maker"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
     "pillow>=11.3.0",
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",
     "cairosvg>=2.8.2",
+    "pypdf2>=3.0.1",
 ]

@@ -1,8 +1,11 @@
 # syntax=docker/dockerfile:1
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
-# Install Cairo graphics library for PNG conversion
+# Install build tools and Cairo graphics library
+# Build tools needed for compiling httptools and other C extensions
 RUN apt-get update && apt-get install -y \
+    build-essential \
+    gcc \
     libcairo2 \
     && rm -rf /var/lib/apt/lists/*
 
@@ -11,7 +14,8 @@ WORKDIR /app
 # Copy dependency files
 COPY pyproject.toml uv.lock ./
 
-# Install dependencies
+# Install dependencies using Python 3.12 explicitly
+ENV UV_PYTHON=python3.12
 RUN uv sync --frozen --no-dev
 
 # Copy application code and assets

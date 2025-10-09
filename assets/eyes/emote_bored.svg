@@ -1,0 +1,10 @@
+<svg viewBox="134 0 22 12" xmlns="http://www.w3.org/2000/svg">
+<!-- Bored eyes - half-closed, unfocused -->
+<ellipse cx="138" cy="6" rx="3" ry="4" fill="#F9F9F6" stroke="#231F20" stroke-width="0.75"/>
+<ellipse cx="152" cy="6" rx="3" ry="4" fill="#F9F9F6" stroke="#231F20" stroke-width="0.75"/>
+<ellipse cx="138" cy="7" rx="1.5" ry="1.5" fill="#2B2727"/>
+<ellipse cx="152" cy="7" rx="1.5" ry="1.5" fill="#2B2727"/>
+<!-- Half-closed lids -->
+<path d="M134 4 L142 4" stroke="#231F20" stroke-width="1" stroke-linecap="round"/>
+<path d="M148 4 L156 4" stroke="#231F20" stroke-width="1" stroke-linecap="round"/>
+</svg>

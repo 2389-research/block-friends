@@ -61,9 +61,12 @@ class DoorAgentConfig:
         self.MOUTH_MAX_HEIGHT_FRAC = config["positioning"]["mouth_max_height_fraction"]
 
     def _parse_defs(self, folder: Path) -> List[Tuple]:
-        """Parse SVG definitions from a folder, returning sorted list of asset data."""
+        """Parse SVG definitions from a folder, returning sorted list of asset data.
+        Only processes files with numeric names (e.g., 1.svg, 2.svg)."""
         defs = []
-        for f in sorted(folder.glob("*.svg"), key=lambda p: int(p.stem)):
+        # Filter for numeric filenames only
+        numeric_files = [f for f in folder.glob("*.svg") if f.stem.isdigit()]
+        for f in sorted(numeric_files, key=lambda p: int(p.stem)):
             root = ET.parse(f).getroot()
             x0, y0, w, h = map(float, root.get("viewBox").split())
             content = "".join(ET.tostring(c, encoding="unicode") for c in root)
@@ -76,11 +79,38 @@ class DoorAgentConfig:
             defs.append((x0, y0, w, h, content, z_order, width_percent, position_x, position_y, anchor, color_spec))
         return defs
 
+    def _parse_named_defs(self, folder: Path, pattern: str = "*.svg") -> Dict[str, Tuple]:
+        """Parse SVG definitions from a folder, returning dict keyed by filename stem."""
+        defs = {}
+        for f in folder.glob(pattern):
+            root = ET.parse(f).getroot()
+            x0, y0, w, h = map(float, root.get("viewBox").split())
+            content = "".join(ET.tostring(c, encoding="unicode") for c in root)
+            # Use filename stem as key (e.g., "emote_happy" from "emote_happy.svg")
+            defs[f.stem] = (x0, y0, w, h, content)
+        return defs
+
     def _load_assets(self):
         """Load all SVG assets."""
+        # Load numbered assets (existing)
         self.EYES = self._parse_defs(self.assets_path / "eyes")
         self.MOUTHS = self._parse_defs(self.assets_path / "mouths")
         self.HAIRS = self._parse_defs(self.assets_path / "hair")
+
+        # Load emote/animation assets (new)
+        eyes_path = self.assets_path / "eyes"
+        mouths_path = self.assets_path / "mouths"
+        eyebrows_path = self.assets_path / "eyebrows"
+
+        self.EMOTE_EYES = self._parse_named_defs(eyes_path, "emote_*.svg")
+        self.EMOTE_MOUTHS = self._parse_named_defs(mouths_path, "emote_*.svg")
+        self.VOWEL_MOUTHS = self._parse_named_defs(mouths_path, "vowel_*.svg")
+
+        # Load eyebrows (only angry for now)
+        if eyebrows_path.exists():
+            self.EYEBROWS = self._parse_named_defs(eyebrows_path)
+        else:
+            self.EYEBROWS = {}
 
 
 class DoorAgentGenerator:
@@ -120,7 +150,7 @@ class DoorAgentGenerator:
         else:
             return hair_color_spec
 
-    def generate_agent_svg(self, 
+    def generate_agent_svg(self,
                           shape: Tuple[int, int],
                           eye_index: int,
                           mouth_index: int,
@@ -128,13 +158,24 @@ class DoorAgentGenerator:
                           body_color: str,
                           node_color: str,
                           feet_match_body: bool,
-                          hair_color_hash_byte: int = 0) -> str:
-        """Generate a single agent SVG with specified parameters."""
-        
+                          hair_color_hash_byte: int = 0,
+                          body_scale_y: float = 1.0,
+                          eye_override: Optional[str] = None,
+                          mouth_override: Optional[str] = None,
+                          show_eyebrows: bool = False) -> str:
+        """Generate a single agent SVG with specified parameters.
+
+        Animation parameters:
+            body_scale_y: Vertical scale factor for body (for breathing)
+            eye_override: Asset name for emote eyes (e.g., "emote_happy")
+            mouth_override: Asset name for emote/vowel mouths (e.g., "vowel_A")
+            show_eyebrows: Whether to render eyebrows (for angry emote)
+        """
+
         w_tiles, h_tiles = shape
         scale = (self.config.BOX - self.config.BOX * self.config.FOOT_H_FRAC) / 7
         body_w = int(w_tiles * scale)
-        body_h = int(h_tiles * scale)
+        body_h = int(h_tiles * scale * body_scale_y)  # Apply vertical scale
         foot_h = int(self.config.BOX * self.config.FOOT_H_FRAC)
 
         bx0 = self.config.PAD + (self.config.BOX - body_w) // 2
@@ -145,8 +186,11 @@ class DoorAgentGenerator:
 
         feet_fill = body_color if feet_match_body else node_color
 
-        # Eyes
-        ex0, ey0, ew, eh, eyes_svg, _, _, _, _, _, _ = self.config.EYES[eye_index]
+        # Eyes - check for override
+        if eye_override and eye_override in self.config.EMOTE_EYES:
+            ex0, ey0, ew, eh, eyes_svg = self.config.EMOTE_EYES[eye_override]
+        else:
+            ex0, ey0, ew, eh, eyes_svg, _, _, _, _, _, _ = self.config.EYES[eye_index]
         eyes_w = body_w * self.config.EYES_W_FRAC
         se = eyes_w / ew
         eyes_h = eh * se
@@ -160,8 +204,17 @@ class DoorAgentGenerator:
         clamped_eye_center_y = max(by0 + eyes_h / 2, min(by1 - eyes_h / 2, target_eye_center_y))
         eyes_y = clamped_eye_center_y - eyes_h / 2
 
-        # Mouth
-        mx0, my0, mw, mh, mouth_svg, _, _, _, _, _, _ = self.config.MOUTHS[mouth_index]
+        # Mouth - check for override
+        if mouth_override:
+            if mouth_override in self.config.EMOTE_MOUTHS:
+                mx0, my0, mw, mh, mouth_svg = self.config.EMOTE_MOUTHS[mouth_override]
+            elif mouth_override in self.config.VOWEL_MOUTHS:
+                mx0, my0, mw, mh, mouth_svg = self.config.VOWEL_MOUTHS[mouth_override]
+            else:
+                # Fallback to normal mouth if override not found
+                mx0, my0, mw, mh, mouth_svg, _, _, _, _, _, _ = self.config.MOUTHS[mouth_index]
+        else:
+            mx0, my0, mw, mh, mouth_svg, _, _, _, _, _, _ = self.config.MOUTHS[mouth_index]
         # Determine if this is an excited mouth (index 6+ in our system)
         excited = mouth_index >= 6
         mw_ratio = self.config.MOUTH_W_EXC if excited else self.config.MOUTH_W_REST
@@ -262,6 +315,17 @@ class DoorAgentGenerator:
         g.append(f'<g transform="translate({eyes_x},{eyes_y}) scale({se}) '
                  f'translate({-ex0}, {-ey0})">{eyes_svg}</g>')
 
+        # Eyebrows (if enabled for angry emote)
+        if show_eyebrows and "angry" in self.config.EYEBROWS:
+            brow_x0, brow_y0, brow_w, brow_h, brow_svg = self.config.EYEBROWS["angry"]
+            # Position eyebrows above eyes, same width as eyes
+            s_brow = eyes_w / brow_w
+            brow_height = brow_h * s_brow
+            brow_x = eyes_x
+            brow_y = eyes_y - brow_height - 1  # 1px gap above eyes
+            g.append(f'<g transform="translate({brow_x},{brow_y}) scale({s_brow}) '
+                     f'translate({-brow_x0}, {-brow_y0})">{brow_svg}</g>')
+
         # Mouth
         g.append(f'<g transform="translate({mouth_x},{mouth_y}) scale({sm}) '
                  f'translate({-mx0}, {-my0})">{mouth_svg}</g>')
@@ -273,6 +337,70 @@ class DoorAgentGenerator:
                 g.append(hair_element)
 
         return "".join(g)
+
+    def _get_frame_modifications(self, frame: str, hash_bytes: bytes) -> Dict:
+        """Get frame-specific modifications for animation.
+
+        Args:
+            frame: Frame identifier (e.g., "neutral", "idle_0", "happy", "vowel_A")
+            hash_bytes: SHA-256 hash bytes for deterministic variations
+
+        Returns:
+            Dict with keys: body_scale_y, eye_override, mouth_override, show_eyebrows
+        """
+        modifications = {
+            'body_scale_y': 1.0,
+            'eye_override': None,
+            'mouth_override': None,
+            'show_eyebrows': False
+        }
+
+        # Neutral frame - no modifications
+        if frame == "neutral":
+            return modifications
+
+        # Idle animation frames (4-frame breathing cycle)
+        if frame.startswith("idle_"):
+            frame_num = int(frame.split("_")[1])
+            # Use hash bytes 8-10 for subtle per-agent variations
+            variation = (hash_bytes[8] % 10) / 100.0  # 0.00 to 0.09
+
+            # Breathing cycle: expand -> hold -> contract -> hold
+            scales = [1.0, 1.02 + variation, 1.02 + variation, 1.0]
+            modifications['body_scale_y'] = scales[frame_num % 4]
+            return modifications
+
+        # Emote frames
+        emote_map = {
+            'happy': ('emote_happy', 'emote_smile', False),
+            'sad': ('emote_sad', 'emote_frown', False),
+            'surprised': ('emote_surprised', 'emote_O', False),
+            'angry': ('emote_angry', 'emote_line', True),
+            'bored': ('emote_bored', 'emote_line', False)
+        }
+
+        if frame in emote_map:
+            eye_asset, mouth_asset, eyebrows = emote_map[frame]
+            modifications['eye_override'] = eye_asset
+            modifications['mouth_override'] = mouth_asset
+            modifications['show_eyebrows'] = eyebrows
+            return modifications
+
+        # Vowel mouth frames
+        vowel_map = {
+            'vowel_A': 'vowel_A',
+            'vowel_E': 'vowel_E',
+            'vowel_I': 'vowel_I',
+            'vowel_O': 'vowel_O',
+            'vowel_U': 'vowel_U'
+        }
+
+        if frame in vowel_map:
+            modifications['mouth_override'] = vowel_map[frame]
+            return modifications
+
+        # Unknown frame - return neutral
+        return modifications
 
     def generate_random(self) -> Tuple[str, Dict]:
         """Generate a random agent with configuration info."""
@@ -306,8 +434,16 @@ class DoorAgentGenerator:
 
         return svg_content, config_info
 
-    def generate_deterministic(self, input_string: str) -> Tuple[str, Dict]:
-        """Generate a deterministic agent from input string (e.g., email)."""
+    def generate_deterministic(self, input_string: str, frame: str = "neutral") -> Tuple[str, Dict]:
+        """Generate a deterministic agent from input string (e.g., email).
+
+        Args:
+            input_string: Seed string for deterministic generation
+            frame: Animation frame identifier (default: "neutral")
+                   Options: "neutral", "idle_0" through "idle_3",
+                           "happy", "sad", "surprised", "angry", "bored",
+                           "vowel_A", "vowel_E", "vowel_I", "vowel_O", "vowel_U"
+        """
         # Generate SHA-256 hash
         hash_bytes = hashlib.sha256(input_string.encode('utf-8')).digest()
         
@@ -341,9 +477,16 @@ class DoorAgentGenerator:
         # Use additional hash byte for hair color selection if needed
         hair_color_hash_byte = hash_bytes[7] if hair_index is not None else 0
 
+        # Get frame-specific modifications
+        frame_mods = self._get_frame_modifications(frame, hash_bytes)
+
         svg_content = self.generate_agent_svg(
-            shape, eye_index, mouth_index, hair_index, 
-            body_color, node_color, feet_match_body, hair_color_hash_byte
+            shape, eye_index, mouth_index, hair_index,
+            body_color, node_color, feet_match_body, hair_color_hash_byte,
+            body_scale_y=frame_mods['body_scale_y'],
+            eye_override=frame_mods['eye_override'],
+            mouth_override=frame_mods['mouth_override'],
+            show_eyebrows=frame_mods['show_eyebrows']
         )
 
         # Determine if mouth represents excited state
@@ -351,6 +494,7 @@ class DoorAgentGenerator:
 
         config_info = {
             'input_string': input_string,
+            'frame': frame,
             'body_shape': f"{shape[0]}x{shape[1]}",
             'eye_index': eye_index + 1,
             'mouth_index': mouth_index + 1,
@@ -359,7 +503,11 @@ class DoorAgentGenerator:
             'body_color': body_color,
             'node_color': node_color,
             'feet_color': body_color if feet_match_body else node_color,
-            'feet_match_body': feet_match_body
+            'feet_match_body': feet_match_body,
+            'body_scale_y': frame_mods['body_scale_y'],
+            'eye_override': frame_mods['eye_override'],
+            'mouth_override': frame_mods['mouth_override'],
+            'show_eyebrows': frame_mods['show_eyebrows']
         }
 
         return svg_content, config_info

@@ -1,0 +1,10 @@
+<svg viewBox="134 0 22 14" xmlns="http://www.w3.org/2000/svg">
+<!-- Happy eyes - slightly wider and brighter -->
+<ellipse cx="138" cy="7" rx="3.5" ry="7" fill="#F9F9F6" stroke="#231F20" stroke-width="0.75"/>
+<ellipse cx="152" cy="7" rx="3.5" ry="7" fill="#F9F9F6" stroke="#231F20" stroke-width="0.75"/>
+<circle cx="138" cy="6" r="2" fill="#2B2727"/>
+<circle cx="152" cy="6" r="2" fill="#2B2727"/>
+<!-- Small highlight for sparkle -->
+<circle cx="138.5" cy="5.5" r="0.5" fill="#FFFFFF"/>
+<circle cx="152.5" cy="5.5" r="0.5" fill="#FFFFFF"/>
+</svg>

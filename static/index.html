@@ -211,6 +211,35 @@
             background: #f7f7f7;
             color: #666;
         }
+
+        @keyframes breathe {
+            0%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(1.05); }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .breathing {
+            animation: breathe 2s ease-in-out infinite;
+            transform-origin: bottom;
+        }
+
+        .bouncing {
+            animation: bounce 1s ease-in-out infinite;
+        }
+
+        @keyframes fadeSwap {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        .swapping {
+            animation: fadeSwap 0.3s ease-in-out;
+        }
     </style>
 </head>
 <body>
@@ -279,6 +308,30 @@
                     </div>
                     <pre><code>curl https://avatar.2389.dev/avatar/test@example.com.svg/info</code></pre>
                 </div>
+
+                <div class="endpoint">
+                    <div>
+                        <span class="endpoint-method">GET</span>
+                        <span class="endpoint-path">/avatar/{input}/bundle</span>
+                    </div>
+                    <div class="endpoint-desc">
+                        Generate a ZIP bundle containing PDF sprites for multiple animation sets. Returns a downloadable ZIP file with all frames organized by animation type, plus metadata.
+                    </div>
+                    <pre><code>curl https://avatar.2389.dev/avatar/user@example.com/bundle \
+  --output avatar_bundle.zip
+
+# Optional: specify which animations to include
+curl "https://avatar.2389.dev/avatar/user@example.com/bundle?animations=idle,emotes" \
+  --output avatar_bundle.zip</code></pre>
+                    <div class="endpoint-desc" style="margin-top: 0.5rem;">
+                        <strong>Animation types:</strong>
+                        <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                            <li><code>idle</code> - 4 frames (idle_0, idle_1, idle_2, idle_3)</li>
+                            <li><code>emotes</code> - 5 frames (happy, sad, surprised, angry, bored)</li>
+                            <li><code>vowels</code> - 5 frames (vowel_A, vowel_E, vowel_I, vowel_O, vowel_U)</li>
+                        </ul>
+                    </div>
+                </div>
             </section>
 
             <section id="usage">
@@ -303,6 +356,15 @@
                 <pre><code>const response = await fetch('/avatar/user@example.com.svg/info');
 const config = await response.json();
 console.log(config); // Avatar configuration details</code></pre>
+
+                <h3>🎬 Animations</h3>
+                <p>Avatars support 19 animation frames for games and interactive applications:</p>
+                <ul style="margin-left: 1.5rem; margin-top: 0.5rem; margin-bottom: 1rem;">
+                    <li><strong>Emotes:</strong> happy, sad, surprised, angry, bored, neutral</li>
+                    <li><strong>Idle animation:</strong> 4 frames for breathing/bobbing</li>
+                    <li><strong>Lip-sync:</strong> 5 vowel mouth shapes (A, E, I, O, U)</li>
+                </ul>
+                <p><strong><a href="/animations.html" style="color: #667eea; text-decoration: none; border-bottom: 2px solid #667eea;">View Animation Documentation & Live Demo →</a></strong></p>
             </section>
         </div>
 
@@ -340,8 +402,10 @@ console.log(config); // Avatar configuration details</code></pre>
             `).join('');
         }
 
-        // Generate initial avatars on load
-        window.addEventListener('load', generateMultiple);
+        // Generate random avatars on load
+        window.addEventListener('load', () => {
+            generateMultiple();
+        });
     </script>
 </body>
 </html>
