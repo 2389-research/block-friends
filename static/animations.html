@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animations - 2389 Agent Avatar Service</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: url('https://2389.ai/imgs/bg/checkerboard-2.svg');
+            background-size: cover;
+            background-attachment: fixed;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .tagline {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 1rem;
+            color: white;
+            text-decoration: none;
+            opacity: 0.9;
+            transition: opacity 0.3s;
+        }
+
+        .back-link:hover {
+            opacity: 1;
+        }
+
+        .content {
+            padding: 2rem;
+        }
+
+        section {
+            margin-bottom: 3rem;
+        }
+
+        h2 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 0.5rem;
+        }
+
+        h3 {
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            color: #667eea;
+        }
+
+        .demo-section {
+            background: #f7f7f7;
+            padding: 2rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        button {
+            padding: 0.75rem 2rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 0.2rem 0.5rem;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #e83e8c;
+        }
+
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin-top: 0.5rem;
+        }
+
+        pre code {
+            background: none;
+            color: #f8f8f2;
+            padding: 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            background: #f7f7f7;
+            color: #666;
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(1.05); }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .breathing {
+            animation: breathe 2s ease-in-out infinite;
+            transform-origin: bottom;
+        }
+
+        .bouncing {
+            animation: bounce 1s ease-in-out infinite;
+        }
+
+        @keyframes fadeSwap {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        .swapping {
+            animation: fadeSwap 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎬 Avatar Animations</h1>
+            <p class="tagline">19 animation frames for games and interactive applications</p>
+            <a href="/" class="back-link">← Back to main page</a>
+        </header>
+
+        <div class="content">
+            <section id="animation-frames">
+                <h2>Animation Frames</h2>
+                <p>Add <code>?frame=</code> parameter to request specific animation frames:</p>
+                <pre><code>&lt;!-- Emotes --&gt;
+&lt;img src="https://avatar.2389.dev/avatar/user@email.com.svg?frame=happy" /&gt;
+&lt;img src="https://avatar.2389.dev/avatar/user@email.com.svg?frame=sad" /&gt;
+&lt;img src="https://avatar.2389.dev/avatar/user@email.com.svg?frame=surprised" /&gt;
+&lt;img src="https://avatar.2389.dev/avatar/user@email.com.svg?frame=angry" /&gt;
+&lt;img src="https://avatar.2389.dev/avatar/user@email.com.svg?frame=bored" /&gt;
+
+&lt;!-- Idle animation frames --&gt;
+&lt;img src="https://avatar.2389.dev/avatar/user@email.com.svg?frame=idle_0" /&gt;
+&lt;img src="https://avatar.2389.dev/avatar/user@email.com.svg?frame=idle_1" /&gt;
+&lt;img src="https://avatar.2389.dev/avatar/user@email.com.svg?frame=idle_2" /&gt;
+&lt;img src="https://avatar.2389.dev/avatar/user@email.com.svg?frame=idle_3" /&gt;
+
+&lt;!-- Vowel mouth shapes for lip-sync --&gt;
+&lt;img src="https://avatar.2389.dev/avatar/user@email.com.svg?frame=vowel_A" /&gt;
+&lt;img src="https://avatar.2389.dev/avatar/user@email.com.svg?frame=vowel_E" /&gt;
+&lt;img src="https://avatar.2389.dev/avatar/user@email.com.svg?frame=vowel_I" /&gt;
+&lt;img src="https://avatar.2389.dev/avatar/user@email.com.svg?frame=vowel_O" /&gt;
+&lt;img src="https://avatar.2389.dev/avatar/user@email.com.svg?frame=vowel_U" /&gt;</code></pre>
+
+                <h3>JavaScript Animation Loop</h3>
+                <pre><code>// Cycle through idle frames at 4 FPS
+const frames = ['idle_0', 'idle_1', 'idle_2', 'idle_3'];
+let index = 0;
+const img = document.getElementById('avatar');
+
+setInterval(() => {
+  img.src = `/avatar/user@email.com.svg?frame=${frames[index]}`;
+  index = (index + 1) % frames.length;
+}, 250);</code></pre>
+            </section>
+
+            <section id="live-demo">
+                <h2>🎬 Live Animation Demo</h2>
+                <div class="demo-section">
+                    <div style="text-align: center; margin-bottom: 2rem;">
+                        <img id="animatedAvatar" src="/avatar/demo@2389.ai.svg"
+                             alt="Animated Avatar"
+                             style="width: 120px; height: 120px; border: 3px solid #667eea; border-radius: 12px; image-rendering: pixelated;"
+                             onerror="console.error('Failed to load avatar image');"
+                             onload="console.log('Avatar loaded successfully');">
+                        <div style="margin-top: 1rem; font-size: 1.2rem; color: #667eea; font-weight: bold;" id="currentFrame">
+                            neutral
+                        </div>
+                        <div style="margin-top: 0.5rem; color: #666; font-size: 0.9rem;">
+                            19 animation frames • Deterministic generation
+                        </div>
+                        <div id="statusMessage" style="margin-top: 0.5rem; color: #ff0000; font-size: 0.85rem; min-height: 1.2rem;"></div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center;">
+                        <button onclick="setFrame('neutral')" style="padding: 0.5rem 1rem; font-size: 0.9rem;">😐 Neutral</button>
+                        <button onclick="setFrame('happy')" style="padding: 0.5rem 1rem; font-size: 0.9rem;">😊 Happy</button>
+                        <button onclick="setFrame('sad')" style="padding: 0.5rem 1rem; font-size: 0.9rem;">😢 Sad</button>
+                        <button onclick="setFrame('surprised')" style="padding: 0.5rem 1rem; font-size: 0.9rem;">😮 Surprised</button>
+                        <button onclick="setFrame('angry')" style="padding: 0.5rem 1rem; font-size: 0.9rem;">😠 Angry</button>
+                        <button onclick="setFrame('bored')" style="padding: 0.5rem 1rem; font-size: 0.9rem;">😑 Bored</button>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; margin-top: 0.5rem;">
+                        <button onclick="playCSSBreathing()" style="padding: 0.5rem 1rem; font-size: 0.9rem; background: #17a2b8;">💨 Smooth Breathing</button>
+                        <button onclick="playIdle()" style="padding: 0.5rem 1rem; font-size: 0.9rem; background: #28a745;">▶️ Frame Loop</button>
+                        <button onclick="playVowels()" style="padding: 0.5rem 1rem; font-size: 0.9rem; background: #ffc107; color: #333;">🗣️ A-E-I-O-U</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <footer>
+            <p>This service brought to you by the fine folks over at 2389 Research, Inc. Made in Chicago with love ❤️</p>
+        </footer>
+    </div>
+
+    <script>
+        let animationInterval = null;
+        const baseInput = 'demo@2389.ai';
+
+        function setFrame(frame, skipIntervalClear = false) {
+            // Stop any running animation (unless we're being called from within an animation)
+            if (!skipIntervalClear && animationInterval) {
+                clearInterval(animationInterval);
+                animationInterval = null;
+            }
+
+            const img = document.getElementById('animatedAvatar');
+            const frameLabel = document.getElementById('currentFrame');
+            const status = document.getElementById('statusMessage');
+
+            // Remove all animation classes (unless we're in an animation loop)
+            if (!skipIntervalClear) {
+                img.classList.remove('breathing', 'bouncing', 'swapping');
+            }
+
+            // Add fade swap animation for visual feedback
+            img.classList.add('swapping');
+            setTimeout(() => img.classList.remove('swapping'), 300);
+
+            // Force reload with cache busting
+            const url = `/avatar/${encodeURIComponent(baseInput)}.svg?frame=${frame}&t=${Date.now()}`;
+
+            status.textContent = `Loading ${frame}...`;
+            status.style.color = '#666';
+
+            img.onload = () => {
+                status.textContent = '';
+                console.log('✓ Loaded frame:', frame);
+            };
+
+            img.onerror = () => {
+                status.textContent = `Failed to load ${frame}`;
+                status.style.color = '#ff0000';
+                console.error('✗ Failed to load frame:', frame, url);
+            };
+
+            img.src = url;
+            frameLabel.textContent = frame;
+
+            console.log('→ Loading frame:', frame);
+        }
+
+        function playIdle() {
+            if (animationInterval) {
+                clearInterval(animationInterval);
+            }
+
+            const img = document.getElementById('animatedAvatar');
+            img.classList.remove('breathing', 'bouncing');
+
+            const frames = ['idle_0', 'idle_1', 'idle_2', 'idle_3'];
+            let index = 0;
+
+            // Add CSS breathing effect for smooth animation
+            img.classList.add('breathing');
+
+            animationInterval = setInterval(() => {
+                setFrame(frames[index], true);  // Pass true to skip interval clearing
+                index = (index + 1) % frames.length;
+            }, 250); // 4 FPS
+        }
+
+        function playCSSBreathing() {
+            if (animationInterval) {
+                clearInterval(animationInterval);
+                animationInterval = null;
+            }
+
+            const img = document.getElementById('animatedAvatar');
+            const frameLabel = document.getElementById('currentFrame');
+
+            // Reset to neutral and add CSS animation
+            img.src = `/avatar/${encodeURIComponent(baseInput)}.svg?frame=neutral`;
+            img.classList.remove('breathing', 'bouncing');
+            img.classList.add('breathing');
+            frameLabel.textContent = 'CSS breathing (smooth)';
+        }
+
+        function playVowels() {
+            if (animationInterval) {
+                clearInterval(animationInterval);
+            }
+
+            const img = document.getElementById('animatedAvatar');
+            img.classList.remove('breathing', 'bouncing');
+
+            const frames = ['vowel_A', 'vowel_E', 'vowel_I', 'vowel_O', 'vowel_U'];
+            let index = 0;
+
+            animationInterval = setInterval(() => {
+                setFrame(frames[index], true);  // Pass true to skip interval clearing
+                index = (index + 1) % frames.length;
+            }, 400); // Slower for vowels
+        }
+    </script>
+</body>
+</html>
