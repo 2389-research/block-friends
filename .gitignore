@@ -29,6 +29,9 @@ Thumbs.db
 # Private journal entries
 .private-journal/
 
+# Git worktrees
+.worktrees/
+
 # Test/temporary files
 custom_*.svg
 test_*.svg.fly
