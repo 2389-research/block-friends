@@ -168,23 +168,21 @@ class DoorAgentGenerator:
                           node_color: str,
                           feet_match_body: bool,
                           hair_color_hash_byte: int = 0,
-                          body_scale_y: float = 1.0,
                           eye_override: Optional[str] = None,
                           mouth_override: Optional[str] = None,
-                          show_eyebrows: bool = False) -> str:
+                          body_transform: str = '') -> str:
         """Generate a single agent SVG with specified parameters.
 
         Animation parameters:
-            body_scale_y: Vertical scale factor for body (for breathing)
-            eye_override: Asset name for emote eyes (e.g., "emote_happy")
-            mouth_override: Asset name for emote/vowel mouths (e.g., "vowel_A")
-            show_eyebrows: Whether to render eyebrows (for angry emote)
+            eye_override: "open" or "closed" to override default eye state
+            mouth_override: "open" or "closed" to override default mouth state
+            body_transform: SVG transform string for body positioning (e.g., "translate(1.5, 0)")
         """
 
         w_tiles, h_tiles = shape
         scale = (self.config.BOX - self.config.BOX * self.config.FOOT_H_FRAC) / 7
         body_w = int(w_tiles * scale)
-        body_h = int(h_tiles * scale * body_scale_y)  # Apply vertical scale
+        body_h = int(h_tiles * scale)
         foot_h = int(self.config.BOX * self.config.FOOT_H_FRAC)
 
         bx0 = self.config.PAD + (self.config.BOX - body_w) // 2
@@ -195,11 +193,13 @@ class DoorAgentGenerator:
 
         feet_fill = body_color if feet_match_body else node_color
 
-        # Eyes - check for override
-        if eye_override and eye_override in self.config.EMOTE_EYES:
-            ex0, ey0, ew, eh, eyes_svg = self.config.EMOTE_EYES[eye_override]
+        # Eyes - check for state override
+        if eye_override == "closed":
+            ex0, ey0, ew, eh, eyes_svg, _, _, _, _, _, _ = self.config.closed_eyes[closed_eye_index]
+        elif eye_override == "open":
+            ex0, ey0, ew, eh, eyes_svg, _, _, _, _, _, _ = self.config.open_eyes[open_eye_index]
         else:
-            # Default to open eyes for base render
+            # Default to open eyes for neutral/base render
             ex0, ey0, ew, eh, eyes_svg, _, _, _, _, _, _ = self.config.open_eyes[open_eye_index]
         eyes_w = body_w * self.config.EYES_W_FRAC
         se = eyes_w / ew
@@ -214,20 +214,15 @@ class DoorAgentGenerator:
         clamped_eye_center_y = max(by0 + eyes_h / 2, min(by1 - eyes_h / 2, target_eye_center_y))
         eyes_y = clamped_eye_center_y - eyes_h / 2
 
-        # Mouth - check for override
-        if mouth_override:
-            if mouth_override in self.config.EMOTE_MOUTHS:
-                mx0, my0, mw, mh, mouth_svg = self.config.EMOTE_MOUTHS[mouth_override]
-            elif mouth_override in self.config.VOWEL_MOUTHS:
-                mx0, my0, mw, mh, mouth_svg = self.config.VOWEL_MOUTHS[mouth_override]
-            else:
-                # Fallback to normal mouth if override not found
-                mx0, my0, mw, mh, mouth_svg, _, _, _, _, _, _ = self.config.open_mouths[open_mouth_index]
-        else:
-            # Default to open mouths for base render
+        # Mouth - check for state override
+        if mouth_override == "closed":
+            mx0, my0, mw, mh, mouth_svg, _, _, _, _, _, _ = self.config.closed_mouths[closed_mouth_index]
+        elif mouth_override == "open":
             mx0, my0, mw, mh, mouth_svg, _, _, _, _, _, _ = self.config.open_mouths[open_mouth_index]
-        # Determine if this is an excited mouth (index 6+ in legacy MOUTHS array)
-        # For now, check if open_mouth_index is in upper half of open_mouths
+        else:
+            # Default to open mouths for neutral/base render
+            mx0, my0, mw, mh, mouth_svg, _, _, _, _, _, _ = self.config.open_mouths[open_mouth_index]
+        # Determine if this is an excited mouth (index in upper half)
         excited = open_mouth_index >= len(self.config.open_mouths) // 2
         mw_ratio = self.config.MOUTH_W_EXC if excited else self.config.MOUTH_W_REST
         mouth_w = body_w * mw_ratio
@@ -307,6 +302,10 @@ class DoorAgentGenerator:
             if hair_z_order == "behind":
                 g.append(hair_element)
 
+        # Wrap body, nodes, feet, eyes, and mouth in a transform group if body_transform is specified
+        if body_transform:
+            g.append(f'<g transform="{body_transform}">')
+
         # Body and core elements
         g.append(f'<rect x="{bx0}" y="{by0}" width="{body_w}" height="{body_h}" '
                  f'fill="{body_color}" stroke="{self.config.OUTLINE}" stroke-width="{self.config.STROKE}"/>')
@@ -327,20 +326,13 @@ class DoorAgentGenerator:
         g.append(f'<g transform="translate({eyes_x},{eyes_y}) scale({se}) '
                  f'translate({-ex0}, {-ey0})">{eyes_svg}</g>')
 
-        # Eyebrows (if enabled for angry emote)
-        if show_eyebrows and "angry" in self.config.EYEBROWS:
-            brow_x0, brow_y0, brow_w, brow_h, brow_svg = self.config.EYEBROWS["angry"]
-            # Position eyebrows above eyes, same width as eyes
-            s_brow = eyes_w / brow_w
-            brow_height = brow_h * s_brow
-            brow_x = eyes_x
-            brow_y = eyes_y - brow_height - 1  # 1px gap above eyes
-            g.append(f'<g transform="translate({brow_x},{brow_y}) scale({s_brow}) '
-                     f'translate({-brow_x0}, {-brow_y0})">{brow_svg}</g>')
-
         # Mouth
         g.append(f'<g transform="translate({mouth_x},{mouth_y}) scale({sm}) '
                  f'translate({-mx0}, {-my0})">{mouth_svg}</g>')
+
+        # Close body transform group if needed
+        if body_transform:
+            g.append('</g>')
 
         # Hair in front
         if hair_element and hair_index is not None:
@@ -353,63 +345,71 @@ class DoorAgentGenerator:
     def _get_frame_modifications(self, frame: str, hash_bytes: bytes) -> Dict:
         """Get frame-specific modifications for animation.
 
+        New system uses open/closed eye and mouth states with horizontal body sway.
+
         Args:
             frame: Frame identifier (e.g., "neutral", "idle_0", "happy", "vowel_A")
             hash_bytes: SHA-256 hash bytes for deterministic variations
 
         Returns:
-            Dict with keys: body_scale_y, eye_override, mouth_override, show_eyebrows
+            Dict with keys: eye_override, mouth_override, body_transform
         """
         modifications = {
-            'body_scale_y': 1.0,
-            'eye_override': None,
-            'mouth_override': None,
-            'show_eyebrows': False
+            'eye_override': None,      # "open", "closed", or None (use agent default)
+            'mouth_override': None,    # "open", "closed", or None (use agent default)
+            'body_transform': ''       # SVG transform string for body positioning
         }
 
         # Neutral frame - no modifications
         if frame == "neutral":
             return modifications
 
-        # Idle animation frames (4-frame breathing cycle)
+        # Idle animation frames (4-frame blink + sway cycle)
         if frame.startswith("idle_"):
             frame_num = int(frame.split("_")[1])
-            # Use hash byte 10 for subtle per-agent variations
-            variation = (hash_bytes[10] % 10) / 100.0  # 0.00 to 0.09
 
-            # Breathing cycle: expand -> hold -> contract -> hold
-            scales = [1.0, 1.02 + variation, 1.02 + variation, 1.0]
-            modifications['body_scale_y'] = scales[frame_num % 4]
+            # Frame 0: open eyes, body left (-1.5px horizontal offset)
+            if frame_num == 0:
+                modifications['eye_override'] = 'open'
+                modifications['body_transform'] = 'translate(-1.5, 0)'
+
+            # Frame 1: open eyes, body center (no offset)
+            elif frame_num == 1:
+                modifications['eye_override'] = 'open'
+                modifications['body_transform'] = ''
+
+            # Frame 2: closed eyes (blink), body right (+1.5px horizontal offset)
+            elif frame_num == 2:
+                modifications['eye_override'] = 'closed'
+                modifications['body_transform'] = 'translate(1.5, 0)'
+
+            # Frame 3: open eyes, body center (no offset)
+            elif frame_num == 3:
+                modifications['eye_override'] = 'open'
+                modifications['body_transform'] = ''
+
             return modifications
 
-        # Emote frames
-        emote_map = {
-            'happy': ('emote_happy', 'emote_smile', False),
-            'sad': ('emote_sad', 'emote_frown', False),
-            'surprised': ('emote_surprised', 'emote_O', False),
-            'angry': ('emote_angry', 'emote_line', True),
-            'bored': ('emote_bored', 'emote_line', False)
-        }
+        # Emote frames (control eye/mouth open/closed states)
+        if frame == 'happy':
+            modifications['eye_override'] = 'open'
+            modifications['mouth_override'] = 'open'  # smile
 
-        if frame in emote_map:
-            eye_asset, mouth_asset, eyebrows = emote_map[frame]
-            modifications['eye_override'] = eye_asset
-            modifications['mouth_override'] = mouth_asset
-            modifications['show_eyebrows'] = eyebrows
-            return modifications
+        elif frame == 'sad':
+            modifications['eye_override'] = 'open'
+            modifications['mouth_override'] = 'closed'  # frown
 
-        # Vowel mouth frames
-        vowel_map = {
-            'vowel_A': 'vowel_A',
-            'vowel_E': 'vowel_E',
-            'vowel_I': 'vowel_I',
-            'vowel_O': 'vowel_O',
-            'vowel_U': 'vowel_U'
-        }
+        elif frame == 'surprised':
+            modifications['eye_override'] = 'open'
+            modifications['mouth_override'] = 'open'  # O shape
 
-        if frame in vowel_map:
-            modifications['mouth_override'] = vowel_map[frame]
-            return modifications
+        elif frame == 'angry':
+            modifications['eye_override'] = 'open'
+            modifications['mouth_override'] = 'closed'  # small/tight
+
+        elif frame == 'bored':
+            modifications['eye_override'] = 'closed'
+            modifications['mouth_override'] = 'closed'  # normal
 
         # Unknown frame - return neutral
         return modifications
@@ -513,10 +513,9 @@ class DoorAgentGenerator:
         svg_content = self.generate_agent_svg(
             shape, open_eye_idx, closed_eye_idx, open_mouth_idx, closed_mouth_idx,
             hair_index, body_color, node_color, feet_match_body, hair_color_hash_byte,
-            body_scale_y=frame_mods['body_scale_y'],
             eye_override=frame_mods['eye_override'],
             mouth_override=frame_mods['mouth_override'],
-            show_eyebrows=frame_mods['show_eyebrows']
+            body_transform=frame_mods['body_transform']
         )
 
         # Determine if mouth represents excited state (based on open mouth)
@@ -536,10 +535,9 @@ class DoorAgentGenerator:
             'node_color': node_color,
             'feet_color': body_color if feet_match_body else node_color,
             'feet_match_body': feet_match_body,
-            'body_scale_y': frame_mods['body_scale_y'],
             'eye_override': frame_mods['eye_override'],
             'mouth_override': frame_mods['mouth_override'],
-            'show_eyebrows': frame_mods['show_eyebrows']
+            'body_transform': frame_mods['body_transform']
         }
 
         return svg_content, config_info
