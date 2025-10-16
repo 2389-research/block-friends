@@ -159,8 +159,10 @@ class DoorAgentGenerator:
 
     def generate_agent_svg(self,
                           shape: Tuple[int, int],
-                          eye_index: int,
-                          mouth_index: int,
+                          open_eye_index: int,
+                          closed_eye_index: int,
+                          open_mouth_index: int,
+                          closed_mouth_index: int,
                           hair_index: Optional[int],
                           body_color: str,
                           node_color: str,
@@ -197,7 +199,8 @@ class DoorAgentGenerator:
         if eye_override and eye_override in self.config.EMOTE_EYES:
             ex0, ey0, ew, eh, eyes_svg = self.config.EMOTE_EYES[eye_override]
         else:
-            ex0, ey0, ew, eh, eyes_svg, _, _, _, _, _, _ = self.config.EYES[eye_index]
+            # Default to open eyes for base render
+            ex0, ey0, ew, eh, eyes_svg, _, _, _, _, _, _ = self.config.open_eyes[open_eye_index]
         eyes_w = body_w * self.config.EYES_W_FRAC
         se = eyes_w / ew
         eyes_h = eh * se
@@ -219,11 +222,13 @@ class DoorAgentGenerator:
                 mx0, my0, mw, mh, mouth_svg = self.config.VOWEL_MOUTHS[mouth_override]
             else:
                 # Fallback to normal mouth if override not found
-                mx0, my0, mw, mh, mouth_svg, _, _, _, _, _, _ = self.config.MOUTHS[mouth_index]
+                mx0, my0, mw, mh, mouth_svg, _, _, _, _, _, _ = self.config.open_mouths[open_mouth_index]
         else:
-            mx0, my0, mw, mh, mouth_svg, _, _, _, _, _, _ = self.config.MOUTHS[mouth_index]
-        # Determine if this is an excited mouth (index 6+ in our system)
-        excited = mouth_index >= 6
+            # Default to open mouths for base render
+            mx0, my0, mw, mh, mouth_svg, _, _, _, _, _, _ = self.config.open_mouths[open_mouth_index]
+        # Determine if this is an excited mouth (index 6+ in legacy MOUTHS array)
+        # For now, check if open_mouth_index is in upper half of open_mouths
+        excited = open_mouth_index >= len(self.config.open_mouths) // 2
         mw_ratio = self.config.MOUTH_W_EXC if excited else self.config.MOUTH_W_REST
         mouth_w = body_w * mw_ratio
         sm = mouth_w / mw
@@ -412,25 +417,39 @@ class DoorAgentGenerator:
     def generate_random(self) -> Tuple[str, Dict]:
         """Generate a random agent with configuration info."""
         shape = random.choice(self.config.BODY_SHAPES)
-        ei = random.randrange(len(self.config.EYES))
+
+        # Generate separate indices for open/closed eyes and mouths
+        open_eye_idx = random.randrange(len(self.config.open_eyes))
+        closed_eye_idx = random.randrange(len(self.config.closed_eyes))
+
         excited = random.random() < self.config.EXCITED_CHANCE
         hi = random.randrange(len(self.config.HAIRS)) if random.random() < 0.5 else None
 
+        # Select mouth indices from open/closed mouths
         if excited:
-            mi = random.randint(self.config.EXC_RANGE[0], self.config.EXC_RANGE[1])
+            # For excited, choose from upper half of open mouths
+            open_mouth_idx = random.randint(len(self.config.open_mouths) // 2, len(self.config.open_mouths) - 1)
+            closed_mouth_idx = random.randint(len(self.config.closed_mouths) // 2, len(self.config.closed_mouths) - 1)
         else:
-            mi = random.randint(self.config.REST_RANGE[0], self.config.REST_RANGE[1])
+            # For rest, choose from lower half of open mouths
+            open_mouth_idx = random.randint(0, len(self.config.open_mouths) // 2 - 1)
+            closed_mouth_idx = random.randint(0, len(self.config.closed_mouths) // 2 - 1)
 
         body_fill = random.choice(self.config.PALETTE)
         node_fill = random.choice([c for c in self.config.PALETTE if c != body_fill])
         feet_match_body = random.random() < self.config.FEET_MATCH_BODY_CHANCE
 
-        svg_content = self.generate_agent_svg(shape, ei, mi, hi, body_fill, node_fill, feet_match_body)
+        svg_content = self.generate_agent_svg(
+            shape, open_eye_idx, closed_eye_idx, open_mouth_idx, closed_mouth_idx,
+            hi, body_fill, node_fill, feet_match_body
+        )
 
         config_info = {
             'body_shape': f"{shape[0]}x{shape[1]}",
-            'eye_index': ei + 1,
-            'mouth_index': mi + 1,
+            'open_eye_index': open_eye_idx + 1,
+            'closed_eye_index': closed_eye_idx + 1,
+            'open_mouth_index': open_mouth_idx + 1,
+            'closed_mouth_index': closed_mouth_idx + 1,
             'hair_index': hi + 1 if hi is not None else None,
             'excited': excited,
             'body_color': body_fill,
@@ -490,11 +509,10 @@ class DoorAgentGenerator:
         # Get frame-specific modifications
         frame_mods = self._get_frame_modifications(frame, hash_bytes)
 
-        # TODO (Task 6): Update generate_agent_svg signature to accept 4 indices
-        # For now, pass open_eye_idx as legacy eye_index parameter
+        # Generate agent SVG with all 4 indices
         svg_content = self.generate_agent_svg(
-            shape, open_eye_idx, open_mouth_idx, hair_index,
-            body_color, node_color, feet_match_body, hair_color_hash_byte,
+            shape, open_eye_idx, closed_eye_idx, open_mouth_idx, closed_mouth_idx,
+            hair_index, body_color, node_color, feet_match_body, hair_color_hash_byte,
             body_scale_y=frame_mods['body_scale_y'],
             eye_override=frame_mods['eye_override'],
             mouth_override=frame_mods['mouth_override'],
