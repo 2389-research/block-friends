@@ -18,7 +18,7 @@ import uvicorn
 import cairosvg
 from PyPDF2 import PdfWriter, PdfReader
 
-from door_agents import DoorAgentConfig, DoorAgentGenerator
+from door_agents import DoorAgentConfig, DoorAgentGenerator, AVATAR_SYSTEM_VERSION
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -321,10 +321,15 @@ async def root():
     return {
         "service": "2389 Agent Avatar Service",
         "version": "1.0.0",
+        "avatar_system_version": AVATAR_SYSTEM_VERSION,
         "description": "Deterministic avatar generation with 1.27B unique variants",
-        "usage": {
+        "endpoints": {
+            "version": "/version",
             "avatar_svg": "/avatar/{input}.svg",
             "avatar_png": "/avatar/{input}.png",
+            "bundle": "/avatar/{input}/bundle"
+        },
+        "usage": {
             "examples": [
                 "/avatar/test@example.com.svg",
                 "/avatar/test@example.com.png",
@@ -337,7 +342,8 @@ async def root():
             "SVG and PNG format support",
             "File-based caching for performance",
             "1.27 billion unique variants",
-            "Collision-resistant for ~1M users"
+            "Collision-resistant for ~1M users",
+            "Version tracking via /version endpoint and X-Avatar-System-Version header"
         ]
     }
 
@@ -374,7 +380,8 @@ async def get_avatar(input_param: str, frame: str = "neutral"):
             media_type="image/svg+xml",
             headers={
                 "Cache-Control": "public, max-age=31536000, immutable",
-                "ETag": etag
+                "ETag": etag,
+                "X-Avatar-System-Version": AVATAR_SYSTEM_VERSION
             }
         )
 
@@ -409,7 +416,8 @@ async def get_avatar_png(input_param: str, frame: str = "neutral"):
             media_type="image/png",
             headers={
                 "Cache-Control": "public, max-age=31536000, immutable",
-                "ETag": etag
+                "ETag": etag,
+                "X-Avatar-System-Version": AVATAR_SYSTEM_VERSION
             }
         )
 
@@ -547,7 +555,8 @@ async def get_avatar_bundle(input_param: str, animations: str = "idle,emotes,vow
             io.BytesIO(zip_bytes),
             media_type="application/zip",
             headers={
-                "Content-Disposition": f'attachment; filename="{filename}"'
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "X-Avatar-System-Version": AVATAR_SYSTEM_VERSION
             }
         )
 
@@ -583,13 +592,19 @@ async def create_avatar_bundle(request: BundleRequest):
             io.BytesIO(zip_bytes),
             media_type="application/zip",
             headers={
-                "Content-Disposition": f'attachment; filename="{filename}"'
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "X-Avatar-System-Version": AVATAR_SYSTEM_VERSION
             }
         )
 
     except Exception as e:
         logger.exception(f"Error generating PDF bundle for {request.input}")
         raise HTTPException(status_code=500, detail=f"Error generating PDF bundle: {str(e)}")
+
+@app.get("/version")
+async def get_version():
+    """Return the avatar system version."""
+    return {"avatar_system_version": AVATAR_SYSTEM_VERSION}
 
 @app.get("/health")
 async def health_check():
