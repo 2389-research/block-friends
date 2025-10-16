@@ -369,8 +369,8 @@ class DoorAgentGenerator:
         # Idle animation frames (4-frame breathing cycle)
         if frame.startswith("idle_"):
             frame_num = int(frame.split("_")[1])
-            # Use hash bytes 8-10 for subtle per-agent variations
-            variation = (hash_bytes[8] % 10) / 100.0  # 0.00 to 0.09
+            # Use hash byte 10 for subtle per-agent variations
+            variation = (hash_bytes[10] % 10) / 100.0  # 0.00 to 0.09
 
             # Breathing cycle: expand -> hold -> contract -> hold
             scales = [1.0, 1.02 + variation, 1.02 + variation, 1.0]
@@ -453,42 +453,47 @@ class DoorAgentGenerator:
         """
         # Generate SHA-256 hash
         hash_bytes = hashlib.sha256(input_string.encode('utf-8')).digest()
-        
+
         # Map hash bytes to asset selections (using different bytes for each choice)
-        eye_index = hash_bytes[0] % len(self.config.EYES)
-        mouth_index = hash_bytes[1] % len(self.config.MOUTHS)
+        # Allocate 4 indices for open/closed eye and mouth states
+        open_eye_idx = hash_bytes[0] % len(self.config.open_eyes)
+        closed_eye_idx = hash_bytes[1] % len(self.config.closed_eyes)
+        open_mouth_idx = hash_bytes[2] % len(self.config.open_mouths)
+        closed_mouth_idx = hash_bytes[3] % len(self.config.closed_mouths)
         
         # Hair selection (use None if hash indicates no hair)
-        hair_selection = hash_bytes[2]
+        hair_selection = hash_bytes[4]
         if hair_selection < 128:  # ~50% chance of having hair
             hair_index = hair_selection % len(self.config.HAIRS)
         else:
             hair_index = None
-            
-        shape_index = hash_bytes[3] % len(self.config.BODY_SHAPES)
+
+        shape_index = hash_bytes[5] % len(self.config.BODY_SHAPES)
         shape = self.config.BODY_SHAPES[shape_index]
-        
-        body_color_index = hash_bytes[4] % len(self.config.PALETTE)
+
+        body_color_index = hash_bytes[6] % len(self.config.PALETTE)
         body_color = self.config.PALETTE[body_color_index]
-        
-        node_color_index = hash_bytes[5] % len(self.config.PALETTE)
+
+        node_color_index = hash_bytes[7] % len(self.config.PALETTE)
         node_color = self.config.PALETTE[node_color_index]
-        
+
         # Handle constraint: body_color != node_color
         if body_color == node_color:
             node_color_index = (node_color_index + 1) % len(self.config.PALETTE)
             node_color = self.config.PALETTE[node_color_index]
-            
-        feet_match_body = (hash_bytes[6] & 0x01) == 0  # Use bit for boolean decision
-        
+
+        feet_match_body = (hash_bytes[8] & 0x01) == 0  # Use bit for boolean decision
+
         # Use additional hash byte for hair color selection if needed
-        hair_color_hash_byte = hash_bytes[7] if hair_index is not None else 0
+        hair_color_hash_byte = hash_bytes[9] if hair_index is not None else 0
 
         # Get frame-specific modifications
         frame_mods = self._get_frame_modifications(frame, hash_bytes)
 
+        # TODO (Task 6): Update generate_agent_svg signature to accept 4 indices
+        # For now, pass open_eye_idx as legacy eye_index parameter
         svg_content = self.generate_agent_svg(
-            shape, eye_index, mouth_index, hair_index,
+            shape, open_eye_idx, open_mouth_idx, hair_index,
             body_color, node_color, feet_match_body, hair_color_hash_byte,
             body_scale_y=frame_mods['body_scale_y'],
             eye_override=frame_mods['eye_override'],
@@ -496,15 +501,17 @@ class DoorAgentGenerator:
             show_eyebrows=frame_mods['show_eyebrows']
         )
 
-        # Determine if mouth represents excited state
-        excited = mouth_index >= 6
+        # Determine if mouth represents excited state (based on open mouth)
+        excited = open_mouth_idx >= len(self.config.open_mouths) // 2
 
         config_info = {
             'input_string': input_string,
             'frame': frame,
             'body_shape': f"{shape[0]}x{shape[1]}",
-            'eye_index': eye_index + 1,
-            'mouth_index': mouth_index + 1,
+            'open_eye_index': open_eye_idx + 1,
+            'closed_eye_index': closed_eye_idx + 1,
+            'open_mouth_index': open_mouth_idx + 1,
+            'closed_mouth_index': closed_mouth_idx + 1,
             'hair_index': hair_index + 1 if hair_index is not None else None,
             'excited': excited,
             'body_color': body_color,
