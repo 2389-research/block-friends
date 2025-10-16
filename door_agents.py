@@ -1,13 +1,65 @@
 #!/usr/bin/env python3
-# ABOUTME: Door agent sprite generation library with shared config, assets, and generation logic
-# ABOUTME: Supports both random generation (for sheets) and deterministic generation (for gravatars)
+# ABOUTME: Door agent avatar generation system
+# ABOUTME: v2.0 with separate open/closed eye and mouth states for emote animations
+
+"""
+Door Agent Avatar Generation System v2.0
+
+# Breaking Changes in v2.0
+
+## What Changed
+- Avatar generation now uses 4 separate indices for eyes/mouths instead of 2
+  - v1.x: Used single eye_index and mouth_index
+  - v2.0: Uses open_eye_index, closed_eye_index, open_mouth_index, closed_mouth_index
+- Hash byte allocation changed to accommodate 4 indices:
+  - Bytes [0-3]: Now allocated to 4 eye/mouth indices (was [0-1] in v1.x)
+  - Bytes [4-10]: Hair and other attributes (shifted from [2-8] in v1.x)
+- Emote system rewritten to control open/closed states instead of using special emote assets
+- Idle animation changed from vertical breathing to horizontal sway + blink
+- Asset structure changed: eyes/ and mouths/ now have open/ and closed/ subdirectories
+
+## Impact on Existing Avatars
+- All avatars generated from the same input string will look DIFFERENT in v2.0 vs v1.x
+- This is due to hash byte reallocation - different bytes now control different features
+- No automated migration path exists - v2.0 is a fresh start
+- Avatar determinism IS preserved: same input = same avatar within v2.0
+
+## Hash Byte Allocation (v2.0)
+Byte [0]: open_eye_index - selects which open eye asset to use
+Byte [1]: closed_eye_index - selects which closed eye asset to use
+Byte [2]: open_mouth_index - selects which open mouth asset to use
+Byte [3]: closed_mouth_index - selects which closed mouth asset to use
+Byte [4]: hair_selection - presence and style of hair
+Byte [5]: body_shape - width x height dimensions
+Byte [6]: body_color - primary fill color
+Byte [7]: node_color - side node fill color
+Byte [8]: feet_match_body - boolean for feet color
+Byte [9]: hair_color - used for deterministic hair color selection
+
+## Why This Breaking Change?
+The v2.0 emote system needed independent control over eye and mouth states
+(open/closed) to support animations like blinking, talking, and expressive emotes.
+The v1.x design used numbered assets where some were "rest" and some were "excited",
+which didn't provide sufficient flexibility for animation control.
+
+## Upgrade Path
+There is no upgrade path to maintain visual consistency. If you need to preserve
+existing avatar appearances, continue using v1.x. For new deployments, v2.0
+provides significantly better animation capabilities.
+"""
 
 import os, random, re, xml.etree.ElementTree as ET, json, hashlib
 from pathlib import Path
 from typing import Optional, Dict, List, Tuple, Union
 
+AVATAR_SYSTEM_VERSION = "2.0"
+
 class DoorAgentConfig:
-    """Handles loading and managing all door agent configuration and assets."""
+    """Handles loading and managing all door agent configuration and assets.
+
+    Part of Avatar System v2.0 - uses separate open/closed eye and mouth assets
+    for flexible animation control.
+    """
     
     def __init__(self, assets_path: Path = Path("assets")):
         self.assets_path = assets_path
@@ -445,6 +497,7 @@ class DoorAgentGenerator:
         )
 
         config_info = {
+            'avatar_system_version': AVATAR_SYSTEM_VERSION,
             'body_shape': f"{shape[0]}x{shape[1]}",
             'open_eye_index': open_eye_idx + 1,
             'closed_eye_index': closed_eye_idx + 1,
@@ -522,6 +575,7 @@ class DoorAgentGenerator:
         excited = open_mouth_idx >= len(self.config.open_mouths) // 2
 
         config_info = {
+            'avatar_system_version': AVATAR_SYSTEM_VERSION,
             'input_string': input_string,
             'frame': frame,
             'body_shape': f"{shape[0]}x{shape[1]}",
