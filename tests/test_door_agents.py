@@ -1,3 +1,5 @@
+# ABOUTME: Test suite for door agent generation system
+# ABOUTME: Covers config loading, deterministic generation, and emote system functionality
 """Tests for door agent generation system."""
 import pytest
 from pathlib import Path
