@@ -4,8 +4,12 @@ Generate a 20×20 sprite sheet of 'door agents'.
 
 Folder layout expected:
   assets/
-    eyes/1.svg ... eyes/6.svg
-    mouths/1.svg ... mouths/8.svg   (1-6 = rest, 7-8 = excited)
+    eyes/
+      open/1.svg ... 6.svg
+      closed/1.svg ... 6.svg
+    mouths/
+      open/1.svg ... 8.svg
+      closed/1.svg ... 8.svg
 
 Outputs to ./out/
   agents_sheet.svg   (vector, 1200×1200)

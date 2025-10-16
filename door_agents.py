@@ -91,13 +91,20 @@ class DoorAgentConfig:
         return defs
 
     def _load_assets(self):
-        """Load all SVG assets."""
-        # Load numbered assets (existing)
-        self.EYES = self._parse_defs(self.assets_path / "eyes")
-        self.MOUTHS = self._parse_defs(self.assets_path / "mouths")
+        """Load all SVG assets from open/closed subdirectories."""
+        # Load numbered assets from open/closed subdirectories
+        self.open_eyes = self._parse_defs(self.assets_path / "eyes" / "open")
+        self.closed_eyes = self._parse_defs(self.assets_path / "eyes" / "closed")
+        self.open_mouths = self._parse_defs(self.assets_path / "mouths" / "open")
+        self.closed_mouths = self._parse_defs(self.assets_path / "mouths" / "closed")
+
+        # Keep legacy attributes for backward compatibility (combine open + closed)
+        self.EYES = self.open_eyes + self.closed_eyes
+        self.MOUTHS = self.open_mouths + self.closed_mouths
+
         self.HAIRS = self._parse_defs(self.assets_path / "hair")
 
-        # Load emote/animation assets (new)
+        # Load emote/animation assets from parent directories
         eyes_path = self.assets_path / "eyes"
         mouths_path = self.assets_path / "mouths"
         eyebrows_path = self.assets_path / "eyebrows"
