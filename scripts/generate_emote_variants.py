@@ -248,6 +248,131 @@ def scale_eyes(root: ET.Element, scale_factor: float) -> ET.Element:
     return root
 
 
+def scale_path_around_center(path_data: str, scale: float, center_x: float, center_y: float) -> str:
+    """
+    Scale path coordinates around a center point.
+
+    For each coordinate pair (x, y) in path:
+    new_x = center_x + (x - center_x) * scale
+    new_y = center_y + (y - center_y) * scale
+    """
+    tokens = re.findall(r'[MLCZ]|[-+]?[0-9]*\.?[0-9]+', path_data)
+    result = []
+
+    i = 0
+    while i < len(tokens):
+        token = tokens[i]
+
+        if token in ['M', 'L']:
+            result.append(token)
+            if i + 2 < len(tokens):
+                x = float(tokens[i + 1])
+                y = float(tokens[i + 2])
+                # Scale around center
+                new_x = center_x + (x - center_x) * scale
+                new_y = center_y + (y - center_y) * scale
+                result.append(f"{new_x:.3f}")
+                result.append(f"{new_y:.3f}")
+                i += 3
+            else:
+                i += 1
+
+        elif token == 'C':
+            result.append(token)
+            if i + 6 < len(tokens):
+                for j in range(1, 7, 2):
+                    x = float(tokens[i + j])
+                    y = float(tokens[i + j + 1])
+                    # Scale around center
+                    new_x = center_x + (x - center_x) * scale
+                    new_y = center_y + (y - center_y) * scale
+                    result.append(f"{new_x:.3f}")
+                    result.append(f"{new_y:.3f}")
+                i += 7
+            else:
+                i += 1
+
+        elif token == 'Z':
+            result.append(token)
+            i += 1
+        else:
+            result.append(token)
+            i += 1
+
+    return ' '.join(result)
+
+
+def scale_pupils_only(root: ET.Element, scale_factor: float) -> ET.Element:
+    """
+    Scale only the pupils (dark fills) around their centers.
+    Used for surprised emote to make pupils look wider.
+    """
+    whites, pupils = find_eye_elements(root)
+
+    if not pupils:
+        return root
+
+    # Scale each pupil around its own center
+    for pupil in pupils:
+        path_data = pupil.get('d', '')
+        if path_data:
+            # Get pupil center
+            center_x, center_y = get_path_center(path_data)
+            # Scale path around its center
+            new_path_data = scale_path_around_center(path_data, scale_factor, center_x, center_y)
+            pupil.set('d', new_path_data)
+
+    return root
+
+
+def clip_top_half_of_eyes(root: ET.Element) -> ET.Element:
+    """
+    Clip the top half of eyes to create a half-lidded, bored look.
+    Adds a clipPath that shows only the bottom half of the eye whites.
+    """
+    whites, pupils = find_eye_elements(root)
+
+    if not whites:
+        return root
+
+    # Get bounding box of whites
+    bbox = get_combined_bbox(whites)
+    min_x, min_y, max_x, max_y = bbox
+    width = max_x - min_x
+    height = max_y - min_y
+    mid_y = min_y + (height / 2)
+
+    # Create clipPath element
+    clip_id = "bored-clip"
+    clipPath = ET.Element('clipPath', {'id': clip_id})
+    rect = ET.Element('rect', {
+        'x': str(min_x),
+        'y': str(mid_y),
+        'width': str(width),
+        'height': str(height / 2)
+    })
+    clipPath.append(rect)
+
+    # Add clipPath to SVG root (prepend to beginning)
+    root.insert(0, clipPath)
+
+    # Wrap all path elements in a group with clip-path
+    all_paths = whites + pupils
+    if all_paths:
+        # Create wrapper group
+        g = ET.Element('g', {'clip-path': f'url(#{clip_id})'})
+
+        # Move all paths into the group
+        for path in all_paths:
+            root.remove(path)
+            g.append(path)
+
+        # Add group to root (after clipPath)
+        root.append(g)
+
+    return root
+
+
 def process_emote_variant(
     base_svg_path: Path,
     output_path: Path,
@@ -262,6 +387,8 @@ def process_emote_variant(
         transform_config: Configuration for transformations
             - pupil_position: "center", "top", or "bottom"
             - scale: scale factor for eye_scale
+            - scale_pupils: scale factor for pupils only
+            - clip_top_half: if True, clip top half of eyes
 
     Returns:
         True if successful, False otherwise
@@ -276,6 +403,12 @@ def process_emote_variant(
 
         if 'scale' in transform_config:
             scale_eyes(root, transform_config['scale'])
+
+        if 'scale_pupils' in transform_config:
+            scale_pupils_only(root, transform_config['scale_pupils'])
+
+        if 'clip_top_half' in transform_config and transform_config['clip_top_half']:
+            clip_top_half_of_eyes(root)
 
         # Write output
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -309,7 +442,7 @@ EMOTE_TRANSFORMS = {
         "mouths_closed": {}
     },
     "surprised": {
-        "eyes_open": {"scale": 1.15},  # Wider eyes
+        "eyes_open": {"scale_pupils": 1.5},  # Scale pupils only for wider look
         "eyes_closed": {},
         "mouths_open": {},  # Already O-shaped
         "mouths_closed": {}
@@ -321,8 +454,8 @@ EMOTE_TRANSFORMS = {
         "mouths_closed": {}
     },
     "bored": {
-        "eyes_open": {},  # Use open eyes as-is
-        "eyes_closed": {},  # Use closed eyes for half-lidded look
+        "eyes_open": {"clip_top_half": True},  # Clip top half for half-lidded look
+        "eyes_closed": {},
         "mouths_open": {},
         "mouths_closed": {}
     }
