@@ -12,6 +12,7 @@ from pathlib import Path
 from fastapi import FastAPI, Response, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
 import uvicorn
@@ -30,6 +31,15 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Add CORS middleware to allow cross-origin requests
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins for development
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods
+    allow_headers=["*"],  # Allow all headers
+)
+
 # Initialize the door agent system
 config = DoorAgentConfig()
 generator = DoorAgentGenerator(config)
@@ -44,11 +54,15 @@ CACHE_DIR_PNG.mkdir(parents=True, exist_ok=True)
 STATIC_DIR = Path("static")
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
 
+# Assets directory
+ASSETS_DIR = Path("assets")
+
 # Global lock for file operations to prevent race conditions
 file_write_lock = asyncio.Lock()
 
-# Mount static files
+# Mount static files and assets
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/assets", StaticFiles(directory="assets"), name="assets")
 
 # Pydantic models for request bodies
 class BundleRequest(BaseModel):
@@ -610,6 +624,23 @@ async def get_version():
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "service": "door-agent-avatars"}
+
+@app.get("/debug/avatar/{input_param}")
+async def debug_avatar(input_param: str):
+    """Debug endpoint showing which assets are assigned to an avatar."""
+    svg, info = generator.generate_deterministic(input_param, frame='neutral')
+
+    return {
+        "input": input_param,
+        "assets": {
+            "open_eye": f"assets/eyes/open/{info['open_eye_index']}.svg",
+            "closed_eye": f"assets/eyes/closed/{info['closed_eye_index']}.svg",
+            "open_mouth": f"assets/mouths/open/{info['open_mouth_index']}.svg",
+            "closed_mouth": f"assets/mouths/closed/{info['closed_mouth_index']}.svg",
+            "hair": f"assets/hair/{info['hair_index']}.svg" if info['hair_index'] else None
+        },
+        "full_config": info
+    }
 
 if __name__ == "__main__":
     uvicorn.run(

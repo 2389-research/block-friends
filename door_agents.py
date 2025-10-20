@@ -149,7 +149,7 @@ class DoorAgentConfig:
         Each variant corresponds to a base asset index.
         """
         variants = {}
-        for emote in ["happy", "sad", "surprised", "angry", "bored"]:
+        for emote in ["happy", "sad", "surprised", "angry", "bored", "vowel_a", "vowel_e", "vowel_i", "vowel_o", "vowel_u"]:
             variants[emote] = []
             # Find all files matching emote_{emote}_*.svg pattern
             pattern = f"emote_{emote}_*.svg"
@@ -295,10 +295,16 @@ class DoorAgentGenerator:
         else:
             # Default to open eyes for neutral/base render
             ex0, ey0, ew, eh, eyes_svg, _, _, _, _, _, _ = self.config.open_eyes[open_eye_index]
-        eyes_w = body_w * self.config.EYES_W_FRAC
+
+        # Apply emote-specific size scaling
+        eye_scale_multiplier = 1.0
+        if emote_name == "surprised":
+            eye_scale_multiplier = 1.15  # 15% bigger for surprised
+
+        eyes_w = body_w * self.config.EYES_W_FRAC * eye_scale_multiplier
         se = eyes_w / ew
         eyes_h = eh * se
-        max_eyes_h = body_h * self.config.EYE_MAX_HEIGHT_FRAC
+        max_eyes_h = body_h * self.config.EYE_MAX_HEIGHT_FRAC * eye_scale_multiplier  # Scale max constraint too
         if eyes_h > max_eyes_h:
             eyes_h = max_eyes_h
             se = eyes_h / eh
@@ -342,9 +348,9 @@ class DoorAgentGenerator:
             sm = mouth_h / mh
             mouth_w = mw * sm
         mouth_x = cx - mouth_w / 2
-        eyes_bottom = clamped_eye_center_y + eyes_h / 2
-        target_mouth_center = (eyes_bottom + by1) / 2
-        clamped_mouth_center_y = max(by0 + mouth_h / 2, min(by1 - mouth_h / 2, target_mouth_center))
+        # Position mouth at fixed fraction below eye center (not dependent on eye height)
+        target_mouth_center_y = by0 + body_h * self.config.MOUTH_Y_FRAC
+        clamped_mouth_center_y = max(by0 + mouth_h / 2, min(by1 - mouth_h / 2, target_mouth_center_y))
         mouth_y = clamped_mouth_center_y - mouth_h / 2
 
         # Nodes
@@ -473,29 +479,29 @@ class DoorAgentGenerator:
         if frame == "neutral":
             return modifications
 
-        # Idle animation frames (4-frame blink + sway cycle)
+        # Idle animation frames (4-frame blink + breathing cycle)
         if frame.startswith("idle_"):
             frame_num = int(frame.split("_")[1])
 
-            # Frame 0: open eyes, body left (-1.5px horizontal offset)
+            # Frame 0: open eyes, closed mouth
             if frame_num == 0:
                 modifications['eye_override'] = 'open'
-                modifications['body_transform'] = 'translate(-1.5, 0)'
+                modifications['mouth_override'] = 'closed'
 
-            # Frame 1: open eyes, body center (no offset)
+            # Frame 1: open eyes, open mouth (breathing/talking)
             elif frame_num == 1:
                 modifications['eye_override'] = 'open'
-                modifications['body_transform'] = ''
+                modifications['mouth_override'] = 'open'
 
-            # Frame 2: closed eyes (blink), body right (+1.5px horizontal offset)
+            # Frame 2: closed eyes (blink), closed mouth
             elif frame_num == 2:
                 modifications['eye_override'] = 'closed'
-                modifications['body_transform'] = 'translate(1.5, 0)'
+                modifications['mouth_override'] = 'closed'
 
-            # Frame 3: open eyes, body center (no offset)
+            # Frame 3: open eyes, closed mouth
             elif frame_num == 3:
                 modifications['eye_override'] = 'open'
-                modifications['body_transform'] = ''
+                modifications['mouth_override'] = 'closed'
 
             return modifications
 
@@ -521,9 +527,35 @@ class DoorAgentGenerator:
             modifications['emote_name'] = 'angry'
 
         elif frame == 'bored':
-            modifications['eye_override'] = 'closed'
+            modifications['eye_override'] = 'open'  # half-lidded (clipped open eyes)
             modifications['mouth_override'] = 'closed'  # normal
             modifications['emote_name'] = 'bored'
+
+        # Vowel frames for lip-sync animation
+        elif frame == 'vowel_a':
+            modifications['eye_override'] = 'open'
+            modifications['mouth_override'] = 'open'
+            modifications['emote_name'] = 'vowel_a'
+
+        elif frame == 'vowel_e':
+            modifications['eye_override'] = 'open'
+            modifications['mouth_override'] = 'open'
+            modifications['emote_name'] = 'vowel_e'
+
+        elif frame == 'vowel_i':
+            modifications['eye_override'] = 'open'
+            modifications['mouth_override'] = 'open'
+            modifications['emote_name'] = 'vowel_i'
+
+        elif frame == 'vowel_o':
+            modifications['eye_override'] = 'open'
+            modifications['mouth_override'] = 'open'
+            modifications['emote_name'] = 'vowel_o'
+
+        elif frame == 'vowel_u':
+            modifications['eye_override'] = 'open'
+            modifications['mouth_override'] = 'open'
+            modifications['emote_name'] = 'vowel_u'
 
         # Unknown frame - return neutral
         return modifications

@@ -252,11 +252,42 @@
         <div class="instructions">
             <h2>Instructions</h2>
             <ul>
-                <li>Each avatar shows 4 idle frames (breathing animation) and 5 emotes (happy, sad, surprised, angry, bored)</li>
+                <li>Each avatar shows an animated idle (4 frames cycling at 500ms) and 5 emotes (happy, sad, surprised, angry, bored)</li>
                 <li>Add custom test avatars using the input field below</li>
-                <li>Toggle animation to see the idle frames cycle</li>
+                <li>Idle animation plays automatically - watch for the breathing/blinking cycle</li>
                 <li>Server must be running at localhost:8000 for avatars to load</li>
             </ul>
+        </div>
+
+        <div style="background: #f0f7ff; padding: 20px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #2196f3;">
+            <h2 style="font-size: 18px; margin-bottom: 12px; color: #1976d2;">Emote Specification</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; font-size: 13px; color: #555;">
+                <div>
+                    <strong style="color: #333; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Happy</strong><br>
+                    Eyes: open (pupils 1/3 down)<br>
+                    Mouth: open (30% U-smile blend)
+                </div>
+                <div>
+                    <strong style="color: #333; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Sad</strong><br>
+                    Eyes: open (pupils 2/3 down)<br>
+                    Mouth: closed (flipped vertically)
+                </div>
+                <div>
+                    <strong style="color: #333; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Surprised</strong><br>
+                    Eyes: open (pupils 50% bigger)<br>
+                    Mouth: open (70% O-blend, 30% bigger)
+                </div>
+                <div>
+                    <strong style="color: #333; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Angry</strong><br>
+                    Eyes: open (V-cuts, centered, pupils 30% bigger)<br>
+                    Mouth: closed (flipped, 25% smaller)
+                </div>
+                <div>
+                    <strong style="color: #333; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">Bored</strong><br>
+                    Eyes: open (half-lidded clip)<br>
+                    Mouth: closed (50% flattened)
+                </div>
+            </div>
         </div>
 
         <div class="controls">
@@ -267,7 +298,6 @@
             </div>
 
             <div class="control-group">
-                <button onclick="toggleAnimation()">Toggle Idle Animation</button>
                 <button class="secondary" onclick="clearCustomAvatars()">Clear Custom Avatars</button>
             </div>
 
@@ -277,6 +307,14 @@
         </div>
 
         <div id="avatarContainer"></div>
+
+        <!-- Asset Showcase Section -->
+        <div style="margin-top: 60px; padding-top: 40px; border-top: 3px solid #2196f3;">
+            <h2 style="font-size: 24px; color: #333; margin-bottom: 20px;">Asset Showcase</h2>
+            <p style="color: #666; margin-bottom: 30px;">Visual reference of all base assets and their emote variants</p>
+
+            <div id="assetShowcase"></div>
+        </div>
     </div>
 
     <script>
@@ -289,9 +327,6 @@
             'diana@temple.com'
         ];
 
-        let animationEnabled = false;
-        let animationInterval = null;
-        let currentFrame = 0;
         const customAvatars = [];
 
         // Check server status
@@ -348,18 +383,39 @@
 
             const idleTitle = document.createElement('div');
             idleTitle.className = 'section-title';
-            idleTitle.textContent = 'Idle Animation (4 frames)';
+            idleTitle.textContent = 'Idle Animation (4 frames, 500ms each)';
             idleGroup.appendChild(idleTitle);
 
-            const idleGrid = document.createElement('div');
-            idleGrid.className = 'animation-grid';
+            const idleContainer = document.createElement('div');
+            idleContainer.style.display = 'flex';
+            idleContainer.style.alignItems = 'center';
+            idleContainer.style.gap = '20px';
 
-            for (let i = 0; i < 4; i++) {
-                idleGrid.appendChild(createAnimationCell(input, `idle_${i}`, `Frame ${i}`, true));
-            }
+            // Create single animated frame cell
+            idleContainer.appendChild(createAnimatedIdleCell(input));
 
-            idleGroup.appendChild(idleGrid);
+            idleGroup.appendChild(idleContainer);
             section.appendChild(idleGroup);
+
+            // Vowels animation group
+            const vowelGroup = document.createElement('div');
+            vowelGroup.className = 'idle-group';
+
+            const vowelTitle = document.createElement('div');
+            vowelTitle.className = 'section-title';
+            vowelTitle.textContent = 'Vowel Animation (5 mouth shapes, 400ms each)';
+            vowelGroup.appendChild(vowelTitle);
+
+            const vowelContainer = document.createElement('div');
+            vowelContainer.style.display = 'flex';
+            vowelContainer.style.alignItems = 'center';
+            vowelContainer.style.gap = '20px';
+
+            // Create single animated vowel cell
+            vowelContainer.appendChild(createAnimatedVowelCell(input));
+
+            vowelGroup.appendChild(vowelContainer);
+            section.appendChild(vowelGroup);
 
             // Emotes group
             const emoteGroup = document.createElement('div');
@@ -422,6 +478,97 @@
             return cell;
         }
 
+        function createAnimatedIdleCell(input) {
+            const cell = document.createElement('div');
+            cell.className = 'animation-cell';
+            cell.style.minWidth = '150px';
+
+            const labelDiv = document.createElement('div');
+            labelDiv.className = 'animation-label';
+            labelDiv.textContent = 'Idle (Animated)';
+            cell.appendChild(labelDiv);
+
+            const frameContainer = document.createElement('div');
+            frameContainer.className = 'frame-container';
+
+            const img = document.createElement('img');
+            img.alt = `${input} - Idle Animation`;
+            img.onerror = () => {
+                const error = document.createElement('div');
+                error.className = 'error';
+                error.textContent = 'Failed to load';
+                frameContainer.appendChild(error);
+            };
+
+            frameContainer.appendChild(img);
+            cell.appendChild(frameContainer);
+
+            const info = document.createElement('div');
+            info.className = 'frame-info';
+            cell.appendChild(info);
+
+            // Animation state
+            let currentIdleFrame = 0;
+            const updateIdleFrame = () => {
+                const frame = `idle_${currentIdleFrame}`;
+                img.src = `${API_BASE}/avatar/${encodeURIComponent(input)}.svg?frame=${frame}`;
+                info.textContent = frame;
+                currentIdleFrame = (currentIdleFrame + 1) % 4;
+            };
+
+            // Start animation
+            updateIdleFrame(); // Show first frame immediately
+            setInterval(updateIdleFrame, 500); // Update every 500ms
+
+            return cell;
+        }
+
+        function createAnimatedVowelCell(input) {
+            const cell = document.createElement('div');
+            cell.className = 'animation-cell';
+            cell.style.minWidth = '150px';
+
+            const labelDiv = document.createElement('div');
+            labelDiv.className = 'animation-label';
+            labelDiv.textContent = 'Vowels (Animated)';
+            cell.appendChild(labelDiv);
+
+            const frameContainer = document.createElement('div');
+            frameContainer.className = 'frame-container';
+
+            const img = document.createElement('img');
+            img.alt = `${input} - Vowel Animation`;
+            img.onerror = () => {
+                const error = document.createElement('div');
+                error.className = 'error';
+                error.textContent = 'Failed to load';
+                frameContainer.appendChild(error);
+            };
+
+            frameContainer.appendChild(img);
+            cell.appendChild(frameContainer);
+
+            const info = document.createElement('div');
+            info.className = 'frame-info';
+            cell.appendChild(info);
+
+            // Animation state - cycle through vowels
+            const vowels = ['a', 'e', 'i', 'o', 'u'];
+            let currentVowelIndex = 0;
+            const updateVowelFrame = () => {
+                const frame = `vowel_${vowels[currentVowelIndex]}`;
+                img.src = `${API_BASE}/avatar/${encodeURIComponent(input)}.svg?frame=${frame}`;
+                info.textContent = frame.toUpperCase();
+                currentVowelIndex = (currentVowelIndex + 1) % vowels.length;
+            };
+
+            // Start animation
+            updateVowelFrame(); // Show first frame immediately
+            setInterval(updateVowelFrame, 400); // Update every 400ms
+
+            return cell;
+        }
+
         function addCustomAvatar() {
             const input = document.getElementById('customInput');
             const value = input.value.trim();
@@ -466,54 +613,6 @@
             }
         }
 
-        function toggleAnimation() {
-            animationEnabled = !animationEnabled;
-
-            if (animationEnabled) {
-                startIdleAnimation();
-            } else {
-                stopIdleAnimation();
-            }
-        }
-
-        function startIdleAnimation() {
-            if (animationInterval) return;
-
-            currentFrame = 0;
-            animationInterval = setInterval(() => {
-                updateIdleFrames();
-                currentFrame = (currentFrame + 1) % 4;
-            }, 250); // 250ms per frame = 4fps
-        }
-
-        function stopIdleAnimation() {
-            if (animationInterval) {
-                clearInterval(animationInterval);
-                animationInterval = null;
-            }
-            // Reset to frame 0
-            currentFrame = 0;
-            updateIdleFrames();
-        }
-
-        function updateIdleFrames() {
-            const cells = document.querySelectorAll('[data-idle-frame]');
-            cells.forEach(cell => {
-                const frameNum = parseInt(cell.dataset.idleFrame.split('_')[1]);
-                const img = cell.querySelector('img');
-
-                if (frameNum === currentFrame) {
-                    cell.style.background = '#e3f2fd';
-                    cell.style.borderColor = '#2196f3';
-                    if (img) img.style.transform = 'scale(1.1)';
-                } else {
-                    cell.style.background = '#fafafa';
-                    cell.style.borderColor = '#e0e0e0';
-                    if (img) img.style.transform = 'scale(1)';
-                }
-            });
-        }
-
         function initializeGrid() {
             const container = document.getElementById('avatarContainer');
             container.innerHTML = '';
@@ -523,10 +622,121 @@
             });
         }
 
+        function createAssetShowcase() {
+            const showcase = document.getElementById('assetShowcase');
+
+            const assetTypes = [
+                { name: 'Open Eyes', path: 'eyes/open', baseCount: 4, emotes: ['happy', 'sad', 'surprised', 'angry', 'bored'] },
+                { name: 'Closed Eyes', path: 'eyes/closed', baseCount: 2, emotes: [] }, // No emote variants for closed eyes
+                { name: 'Open Mouths', path: 'mouths/open', baseCount: 3, emotes: ['happy', 'surprised', 'vowel_a', 'vowel_e', 'vowel_i', 'vowel_o', 'vowel_u'] },
+                { name: 'Closed Mouths', path: 'mouths/closed', baseCount: 7, emotes: ['sad', 'angry', 'bored'] }
+            ];
+
+            assetTypes.forEach(assetType => {
+                const section = document.createElement('div');
+                section.style.marginBottom = '40px';
+
+                const title = document.createElement('h3');
+                title.style.fontSize = '18px';
+                title.style.color = '#555';
+                title.style.marginBottom = '15px';
+                title.style.paddingBottom = '8px';
+                title.style.borderBottom = '2px solid #e0e0e0';
+                title.textContent = assetType.name;
+                section.appendChild(title);
+
+                // Create grid for each base asset
+                for (let i = 1; i <= assetType.baseCount; i++) {
+                    const assetGroup = document.createElement('div');
+                    assetGroup.style.marginBottom = '20px';
+
+                    const assetTitle = document.createElement('div');
+                    assetTitle.style.fontSize = '14px';
+                    assetTitle.style.fontWeight = '600';
+                    assetTitle.style.color = '#666';
+                    assetTitle.style.marginBottom = '10px';
+                    assetTitle.textContent = `Asset ${i}`;
+                    assetGroup.appendChild(assetTitle);
+
+                    const grid = document.createElement('div');
+                    grid.style.display = 'grid';
+                    grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(100px, 1fr))';
+                    grid.style.gap = '10px';
+
+                    // Base asset
+                    grid.appendChild(createAssetCell(assetType.path, `${i}`, 'base'));
+
+                    // Emote variants (only for emotes that apply to this asset type)
+                    assetType.emotes.forEach(emote => {
+                        grid.appendChild(createAssetCell(assetType.path, `emote_${emote}_${i}`, emote));
+                    });
+
+                    assetGroup.appendChild(grid);
+                    section.appendChild(assetGroup);
+                }
+
+                showcase.appendChild(section);
+            });
+        }
+
+        function createAssetCell(path, filename, label) {
+            const cell = document.createElement('div');
+            cell.style.textAlign = 'center';
+            cell.style.padding = '10px';
+            cell.style.background = '#fafafa';
+            cell.style.borderRadius = '5px';
+            cell.style.border = '1px solid #e0e0e0';
+
+            const labelDiv = document.createElement('div');
+            labelDiv.style.fontSize = '11px';
+            labelDiv.style.fontWeight = '600';
+            labelDiv.style.marginBottom = '8px';
+            labelDiv.style.color = label === 'base' ? '#2196f3' : '#666';
+            labelDiv.style.textTransform = 'uppercase';
+            labelDiv.textContent = label;
+            cell.appendChild(labelDiv);
+
+            const imgContainer = document.createElement('div');
+            imgContainer.style.width = '80px';
+            imgContainer.style.height = '40px';
+            imgContainer.style.margin = '0 auto';
+            imgContainer.style.background = '#e6d9f5';
+            imgContainer.style.border = '1px solid #ddd';
+            imgContainer.style.borderRadius = '3px';
+            imgContainer.style.display = 'flex';
+            imgContainer.style.alignItems = 'center';
+            imgContainer.style.justifyContent = 'center';
+
+            const img = document.createElement('img');
+            img.src = `${API_BASE}/assets/${path}/${filename}.svg`;
+            img.style.maxWidth = '70px';
+            img.style.maxHeight = '35px';
+            img.style.imageRendering = 'pixelated';
+            img.onerror = () => {
+                imgContainer.textContent = 'N/A';
+                imgContainer.style.fontSize = '10px';
+                imgContainer.style.color = '#ccc';
+            };
+
+            imgContainer.appendChild(img);
+            cell.appendChild(imgContainer);
+
+            const filenameDiv = document.createElement('div');
+            filenameDiv.style.fontSize = '9px';
+            filenameDiv.style.color = '#999';
+            filenameDiv.style.marginTop = '5px';
+            filenameDiv.style.wordBreak = 'break-word';
+            filenameDiv.textContent = `${filename}.svg`;
+            cell.appendChild(filenameDiv);
+
+            return cell;
+        }
+
         // Initialize on page load
         window.addEventListener('DOMContentLoaded', () => {
             checkServer();
             initializeGrid();
+            createAssetShowcase();
 
             // Allow Enter key to add avatar
             document.getElementById('customInput').addEventListener('keypress', (e) => {
