@@ -249,7 +249,9 @@ class DoorAgentGenerator:
                           eye_override: Optional[str] = None,
                           mouth_override: Optional[str] = None,
                           body_transform: str = '',
-                          emote_name: Optional[str] = None) -> str:
+                          emote_name: Optional[str] = None,
+                          eye_emote: Optional[str] = None,
+                          mouth_emote: Optional[str] = None) -> str:
         """Generate a single agent SVG with specified parameters.
 
         Animation parameters:
@@ -273,17 +275,20 @@ class DoorAgentGenerator:
 
         feet_fill = body_color if feet_match_body else node_color
 
+        # Determine which emote to use for eyes (prefer eye_emote over emote_name)
+        effective_eye_emote = eye_emote if eye_emote is not None else emote_name
+
         # Eyes - check for emote variant first, then state override
-        if emote_name and eye_override == "open" and emote_name in self.config.open_eye_emotes:
+        if effective_eye_emote and eye_override == "open" and effective_eye_emote in self.config.open_eye_emotes:
             # Use emote variant if available
-            emote_variants = self.config.open_eye_emotes[emote_name]
+            emote_variants = self.config.open_eye_emotes[effective_eye_emote]
             if open_eye_index < len(emote_variants):
                 ex0, ey0, ew, eh, eyes_svg = emote_variants[open_eye_index]
             else:
                 # Fallback to base if variant doesn't exist
                 ex0, ey0, ew, eh, eyes_svg, _, _, _, _, _, _ = self.config.open_eyes[open_eye_index]
-        elif emote_name and eye_override == "closed" and emote_name in self.config.closed_eye_emotes:
-            emote_variants = self.config.closed_eye_emotes[emote_name]
+        elif effective_eye_emote and eye_override == "closed" and effective_eye_emote in self.config.closed_eye_emotes:
+            emote_variants = self.config.closed_eye_emotes[effective_eye_emote]
             if closed_eye_index < len(emote_variants):
                 ex0, ey0, ew, eh, eyes_svg = emote_variants[closed_eye_index]
             else:
@@ -314,17 +319,20 @@ class DoorAgentGenerator:
         clamped_eye_center_y = max(by0 + eyes_h / 2, min(by1 - eyes_h / 2, target_eye_center_y))
         eyes_y = clamped_eye_center_y - eyes_h / 2
 
+        # Determine which emote to use for mouth (prefer mouth_emote over emote_name)
+        effective_mouth_emote = mouth_emote if mouth_emote is not None else emote_name
+
         # Mouth - check for emote variant first, then state override
-        if emote_name and mouth_override == "open" and emote_name in self.config.open_mouth_emotes:
+        if effective_mouth_emote and mouth_override == "open" and effective_mouth_emote in self.config.open_mouth_emotes:
             # Use emote variant if available
-            emote_variants = self.config.open_mouth_emotes[emote_name]
+            emote_variants = self.config.open_mouth_emotes[effective_mouth_emote]
             if open_mouth_index < len(emote_variants):
                 mx0, my0, mw, mh, mouth_svg = emote_variants[open_mouth_index]
             else:
                 # Fallback to base if variant doesn't exist
                 mx0, my0, mw, mh, mouth_svg, _, _, _, _, _, _ = self.config.open_mouths[open_mouth_index]
-        elif emote_name and mouth_override == "closed" and emote_name in self.config.closed_mouth_emotes:
-            emote_variants = self.config.closed_mouth_emotes[emote_name]
+        elif effective_mouth_emote and mouth_override == "closed" and effective_mouth_emote in self.config.closed_mouth_emotes:
+            emote_variants = self.config.closed_mouth_emotes[effective_mouth_emote]
             if closed_mouth_index < len(emote_variants):
                 mx0, my0, mw, mh, mouth_svg = emote_variants[closed_mouth_index]
             else:
@@ -472,14 +480,16 @@ class DoorAgentGenerator:
             'eye_override': None,      # "open", "closed", or None (use agent default)
             'mouth_override': None,    # "open", "closed", or None (use agent default)
             'body_transform': '',      # SVG transform string for body positioning
-            'emote_name': None         # Emote name for variant selection (e.g., "happy", "sad")
+            'emote_name': None,        # Emote name for variant selection (e.g., "happy", "sad")
+            'eye_emote': None,         # Separate emote for eyes only
+            'mouth_emote': None        # Separate emote for mouth only
         }
 
         # Neutral frame - no modifications
         if frame == "neutral":
             return modifications
 
-        # Idle animation frames (4-frame blink + breathing cycle)
+        # Idle animation frames (10-frame extended cycle with emote variations)
         if frame.startswith("idle_"):
             frame_num = int(frame.split("_")[1])
 
@@ -498,8 +508,43 @@ class DoorAgentGenerator:
                 modifications['eye_override'] = 'closed'
                 modifications['mouth_override'] = 'closed'
 
-            # Frame 3: open eyes, closed mouth
+            # Frame 3: happy eyes, base closed mouth
             elif frame_num == 3:
+                modifications['eye_override'] = 'open'
+                modifications['mouth_override'] = 'closed'
+                modifications['eye_emote'] = 'happy'
+
+            # Frame 4: base eyes, closed mouth
+            elif frame_num == 4:
+                modifications['eye_override'] = 'open'
+                modifications['mouth_override'] = 'closed'
+
+            # Frame 5: sad eyes, base closed mouth
+            elif frame_num == 5:
+                modifications['eye_override'] = 'open'
+                modifications['mouth_override'] = 'closed'
+                modifications['eye_emote'] = 'sad'
+
+            # Frame 6: base eyes, bored mouth
+            elif frame_num == 6:
+                modifications['eye_override'] = 'open'
+                modifications['mouth_override'] = 'closed'
+                modifications['mouth_emote'] = 'bored'
+
+            # Frame 7: bored eyes, bored mouth
+            elif frame_num == 7:
+                modifications['eye_override'] = 'open'
+                modifications['mouth_override'] = 'closed'
+                modifications['eye_emote'] = 'bored'
+                modifications['mouth_emote'] = 'bored'
+
+            # Frame 8: base eyes, base mouth (open)
+            elif frame_num == 8:
+                modifications['eye_override'] = 'open'
+                modifications['mouth_override'] = 'open'
+
+            # Frame 9: open eyes, closed mouth
+            elif frame_num == 9:
                 modifications['eye_override'] = 'open'
                 modifications['mouth_override'] = 'closed'
 
@@ -663,7 +708,9 @@ class DoorAgentGenerator:
             eye_override=frame_mods['eye_override'],
             mouth_override=frame_mods['mouth_override'],
             body_transform=frame_mods['body_transform'],
-            emote_name=frame_mods.get('emote_name')
+            emote_name=frame_mods.get('emote_name'),
+            eye_emote=frame_mods.get('eye_emote'),
+            mouth_emote=frame_mods.get('mouth_emote')
         )
 
         # Determine if mouth represents excited state (based on open mouth)
