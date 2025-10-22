@@ -504,47 +504,73 @@ class DoorAgentGenerator:
             root = ET.parse(svg_path).getroot()
             return "".join(ET.tostring(c, encoding="unicode") for c in root)
 
-        eye_groups = {}
+        # Collect all eye dimensions first to find max height for centering
+        eye_data = {}
 
         # Open eyes (base state)
         open_eye_file = assets_path / "eyes" / "open" / f"{open_eye_idx + 1}.svg"
         if open_eye_file.exists():
+            ex0, ey0, ew, eh, *_ = self.config.open_eyes[open_eye_idx]
             content = read_asset_content(open_eye_file)
-            eye_groups['open'] = f'<g class="open">{content}</g>'
+            eye_data['open'] = (ex0, ey0, ew, eh, content)
 
         # Closed eyes
         closed_eye_file = assets_path / "eyes" / "closed" / f"{closed_eye_idx + 1}.svg"
         if closed_eye_file.exists():
+            ex0, ey0, ew, eh, *_ = self.config.closed_eyes[closed_eye_idx]
             content = read_asset_content(closed_eye_file)
-            eye_groups['closed'] = f'<g class="closed">{content}</g>'
+            eye_data['closed'] = (ex0, ey0, ew, eh, content)
 
         # Emote variants
         for emote in ['happy', 'sad', 'surprised', 'angry', 'bored']:
-            emote_file = assets_path / "eyes" / "open" / f"emote_{emote}_{open_eye_idx + 1}.svg"
-            if emote_file.exists():
-                content = read_asset_content(emote_file)
-                eye_groups[emote] = f'<g class="{emote}">{content}</g>'
+            if emote in self.config.open_eye_emotes:
+                variants = self.config.open_eye_emotes[emote]
+                if open_eye_idx < len(variants):
+                    ex0, ey0, ew, eh, content_svg = variants[open_eye_idx]
+                    emote_file = assets_path / "eyes" / "open" / f"emote_{emote}_{open_eye_idx + 1}.svg"
+                    if emote_file.exists():
+                        content = read_asset_content(emote_file)
+                        eye_data[emote] = (ex0, ey0, ew, eh, content)
 
-        # Calculate scale and position
-        # Get dimensions from first eye asset
-        x0, y0, w, h, *_ = self.config.open_eyes[open_eye_idx]
+        # Find max height for the bounding box
+        max_height = max(eh for ex0, ey0, ew, eh, content in eye_data.values())
 
+        # Use first eye for width scaling reference
+        ref_x0, ref_y0, ref_w, ref_h, _ = list(eye_data.values())[0]
         eyes_w = body_w * self.config.EYES_W_FRAC
-        scale = eyes_w / w
-        eyes_h = h * scale
+        scale = eyes_w / ref_w
+        scaled_max_height = max_height * scale
 
-        # Position eyes - center horizontally and at eye_y vertically
+        # Calculate reference center point (for horizontal alignment)
+        ref_center_x = ref_x0 + ref_w / 2
+
+        # Position eyes group - center horizontally and at eye_y vertically based on max height
         cx = (bx0 + bx0 + body_w) / 2
         eyes_x = cx - eyes_w / 2
-        eyes_y = max(by0 + eyes_h / 2, min(by0 + body_h - eyes_h / 2, eye_y)) - eyes_h / 2
+        eyes_y = max(by0 + scaled_max_height / 2, min(by0 + body_h - scaled_max_height / 2, eye_y)) - scaled_max_height / 2
+
+        # Calculate reference center point (for vertical alignment)
+        ref_center_y = ref_y0 + ref_h / 2
+
+        # Build nested groups with individual centering offsets
+        eye_groups = {}
+        for state, (ex0, ey0, ew, eh, content) in eye_data.items():
+            # Calculate vertical offset to align this eye's center with reference center
+            eye_center_y = ey0 + eh / 2
+            y_offset = ref_center_y - eye_center_y
+            # Calculate horizontal offset to align this eye's center with reference center
+            eye_center_x = ex0 + ew / 2
+            x_offset = ref_center_x - eye_center_x
+            eye_groups[state] = f'<g class="{state}" transform="translate({x_offset}, {y_offset})">{content}</g>'
 
         # Build nested structure with transform
         nested_groups = '\n  '.join(eye_groups.values())
-        return f'<g class="eyes" transform="translate({eyes_x},{eyes_y}) scale({scale}) translate({-x0},{-y0})">\n  {nested_groups}\n</g>'
+        return f'<g class="eyes" transform="translate({eyes_x},{eyes_y}) scale({scale}) translate({-ref_x0},{-ref_y0})">\n  {nested_groups}\n</g>'
 
     def _generate_universal_mouths(self, open_mouth_idx: int, closed_mouth_idx: int,
                                    email: str, shape: Tuple[int, int],
-                                   cell_size: float, pad: float) -> str:
+                                   cell_size: float, pad: float,
+                                   open_eye_idx: int = None, closed_eye_idx: int = None) -> str:
         """Generate universal mouths with all states as nested groups.
 
         Args:
@@ -554,6 +580,8 @@ class DoorAgentGenerator:
             shape: (width, height) tuple
             cell_size: Size of grid cell
             pad: Padding amount
+            open_eye_idx: Index for open eye asset (for calculating mouth position)
+            closed_eye_idx: Index for closed eye asset (for calculating mouth position)
 
         Returns:
             SVG string with nested mouth groups for all 12 states (open, closed, happy, surprised, sad, angry, bored, vowel_a, vowel_e, vowel_i, vowel_o, vowel_u)
@@ -574,8 +602,42 @@ class DoorAgentGenerator:
         bx0 = pad + (box - body_w) // 2
         by0 = pad + box - foot_h - body_h
 
-        # Calculate mouth positioning
-        mouth_y = by0 + body_h * self.config.MOUTH_Y_FRAC
+        # Calculate mouth positioning - center between bottom of eyes and bottom of body
+        # First, we need to calculate the scaled eye height using the same logic as _generate_universal_eyes
+        if open_eye_idx is not None and closed_eye_idx is not None:
+            # Get eye dimensions to calculate scaled height
+            eye_dimensions = []
+            for eye_idx in [open_eye_idx, closed_eye_idx]:
+                if eye_idx < len(self.config.open_eyes):
+                    ex0, ey0, ew, eh, *_ = self.config.open_eyes[eye_idx]
+                    eye_dimensions.append(eh)
+                if eye_idx < len(self.config.closed_eyes):
+                    ex0, ey0, ew, eh, *_ = self.config.closed_eyes[eye_idx]
+                    eye_dimensions.append(eh)
+
+            # Calculate scaled eye height
+            if eye_dimensions:
+                max_eye_height = max(eye_dimensions)
+                eyes_w = body_w * self.config.EYES_W_FRAC
+                # Use first open eye for width reference
+                ref_ew = self.config.open_eyes[open_eye_idx][2] if open_eye_idx < len(self.config.open_eyes) else eyes_w
+                eye_scale = eyes_w / ref_ew
+                scaled_eye_height = max_eye_height * eye_scale
+
+                # Calculate where eyes are positioned (centered at eye_y)
+                eye_y = by0 + body_h * self.config.EYE_Y_FRAC
+                eye_top = max(by0 + scaled_eye_height / 2, min(by0 + body_h - scaled_eye_height / 2, eye_y)) - scaled_eye_height / 2
+                eye_bottom = eye_top + scaled_eye_height
+
+                # Position mouth centered between eye bottom and body bottom
+                body_bottom = by0 + body_h
+                mouth_y = (eye_bottom + body_bottom) / 2
+            else:
+                # Fallback to old behavior if no eye data
+                mouth_y = by0 + body_h * self.config.MOUTH_Y_FRAC
+        else:
+            # Fallback to old behavior if no eye indices provided
+            mouth_y = by0 + body_h * self.config.MOUTH_Y_FRAC
 
         # Read asset contents
         assets_path = self.config.assets_path
@@ -585,57 +647,90 @@ class DoorAgentGenerator:
             root = ET.parse(svg_path).getroot()
             return "".join(ET.tostring(c, encoding="unicode") for c in root)
 
-        mouth_groups = {}
+        # Collect all mouth dimensions first to find max height for centering
+        mouth_data = {}
 
         # Open mouth (base state)
         open_mouth_file = assets_path / "mouths" / "open" / f"{open_mouth_idx + 1}.svg"
         if open_mouth_file.exists():
+            mx0, my0, mw, mh, *_ = self.config.open_mouths[open_mouth_idx]
             content = read_asset_content(open_mouth_file)
-            mouth_groups['open'] = f'<g class="open">{content}</g>'
+            mouth_data['open'] = (mx0, my0, mw, mh, content)
 
         # Closed mouth
         closed_mouth_file = assets_path / "mouths" / "closed" / f"{closed_mouth_idx + 1}.svg"
         if closed_mouth_file.exists():
+            mx0, my0, mw, mh, *_ = self.config.closed_mouths[closed_mouth_idx]
             content = read_asset_content(closed_mouth_file)
-            mouth_groups['closed'] = f'<g class="closed">{content}</g>'
+            mouth_data['closed'] = (mx0, my0, mw, mh, content)
 
         # Emote variants - open mouth emotes (happy, surprised)
         for emote in ['happy', 'surprised']:
-            emote_file = assets_path / "mouths" / "open" / f"emote_{emote}_{open_mouth_idx + 1}.svg"
-            if emote_file.exists():
-                content = read_asset_content(emote_file)
-                mouth_groups[emote] = f'<g class="{emote}">{content}</g>'
+            if emote in self.config.open_mouth_emotes:
+                variants = self.config.open_mouth_emotes[emote]
+                if open_mouth_idx < len(variants):
+                    mx0, my0, mw, mh, content_svg = variants[open_mouth_idx]
+                    # Need to read from file for universal mode
+                    emote_file = assets_path / "mouths" / "open" / f"emote_{emote}_{open_mouth_idx + 1}.svg"
+                    if emote_file.exists():
+                        content = read_asset_content(emote_file)
+                        mouth_data[emote] = (mx0, my0, mw, mh, content)
 
         # Emote variants - closed mouth emotes (sad, angry, bored)
         for emote in ['sad', 'angry', 'bored']:
-            emote_file = assets_path / "mouths" / "closed" / f"emote_{emote}_{closed_mouth_idx + 1}.svg"
-            if emote_file.exists():
-                content = read_asset_content(emote_file)
-                mouth_groups[emote] = f'<g class="{emote}">{content}</g>'
+            if emote in self.config.closed_mouth_emotes:
+                variants = self.config.closed_mouth_emotes[emote]
+                if closed_mouth_idx < len(variants):
+                    mx0, my0, mw, mh, content_svg = variants[closed_mouth_idx]
+                    emote_file = assets_path / "mouths" / "closed" / f"emote_{emote}_{closed_mouth_idx + 1}.svg"
+                    if emote_file.exists():
+                        content = read_asset_content(emote_file)
+                        mouth_data[emote] = (mx0, my0, mw, mh, content)
 
         # Vowel variants (all based on open mouth)
         for vowel in ['a', 'e', 'i', 'o', 'u']:
-            vowel_file = assets_path / "mouths" / "open" / f"emote_vowel_{vowel}_{open_mouth_idx + 1}.svg"
-            if vowel_file.exists():
-                content = read_asset_content(vowel_file)
-                mouth_groups[f'vowel_{vowel}'] = f'<g class="vowel_{vowel}">{content}</g>'
+            vowel_key = f'vowel_{vowel}'
+            if vowel_key in self.config.open_mouth_emotes:
+                variants = self.config.open_mouth_emotes[vowel_key]
+                if open_mouth_idx < len(variants):
+                    mx0, my0, mw, mh, content_svg = variants[open_mouth_idx]
+                    vowel_file = assets_path / "mouths" / "open" / f"emote_vowel_{vowel}_{open_mouth_idx + 1}.svg"
+                    if vowel_file.exists():
+                        content = read_asset_content(vowel_file)
+                        mouth_data[vowel_key] = (mx0, my0, mw, mh, content)
 
-        # Calculate scale and position
-        # Get dimensions from first mouth asset
-        x0, y0, w, h, *_ = self.config.open_mouths[open_mouth_idx]
+        # Find max height for the bounding box
+        max_height = max(mh for mx0, my0, mw, mh, content in mouth_data.values())
 
+        # Use first mouth for width scaling reference
+        ref_x0, ref_y0, ref_w, ref_h, _ = list(mouth_data.values())[0]
         mouth_w = body_w * self.config.MOUTH_W_REST
-        scale = mouth_w / w
-        mouth_h = h * scale
+        scale = mouth_w / ref_w
+        scaled_max_height = max_height * scale
 
-        # Position mouth - center horizontally and at mouth_y vertically
+        # Calculate reference center point (for horizontal and vertical alignment)
+        ref_center_x = ref_x0 + ref_w / 2
+        ref_center_y = ref_y0 + ref_h / 2
+
+        # Position mouths group - center horizontally and at mouth_y vertically based on max height
         cx = (bx0 + bx0 + body_w) / 2
         mouth_x = cx - mouth_w / 2
-        mouths_y = max(by0 + mouth_h / 2, min(by0 + body_h - mouth_h / 2, mouth_y)) - mouth_h / 2
+        mouths_y = max(by0 + scaled_max_height / 2, min(by0 + body_h - scaled_max_height / 2, mouth_y)) - scaled_max_height / 2
+
+        # Build nested groups with individual centering offsets
+        mouth_groups = {}
+        for state, (mx0, my0, mw, mh, content) in mouth_data.items():
+            # Calculate vertical offset to align this mouth's center with reference center
+            mouth_center_y = my0 + mh / 2
+            y_offset = ref_center_y - mouth_center_y
+            # Calculate horizontal offset to align this mouth's center with reference center
+            mouth_center_x = mx0 + mw / 2
+            x_offset = ref_center_x - mouth_center_x
+            mouth_groups[state] = f'<g class="{state}" transform="translate({x_offset}, {y_offset})">{content}</g>'
 
         # Build nested structure with transform
         nested_groups = '\n  '.join(mouth_groups.values())
-        return f'<g class="mouths" transform="translate({mouth_x},{mouths_y}) scale({scale}) translate({-x0},{-y0})">\n  {nested_groups}\n</g>'
+        return f'<g class="mouths" transform="translate({mouth_x},{mouths_y}) scale({scale}) translate({-ref_x0},{-ref_y0})">\n  {nested_groups}\n</g>'
 
     def _generate_css_rules(self, avatar_id: str) -> str:
         """Generate CSS rules for universal SVG state control.
@@ -643,6 +738,10 @@ class DoorAgentGenerator:
         Creates scoped CSS that controls visibility of eye and mouth states via class names.
         All eye/mouth groups are hidden by default, then specific combinations are shown
         based on the avatar's class (idle_N, emote name, or vowel_X).
+
+        Also includes interactive pseudo-class rules:
+        - :hover switches eyes to closed
+        - :active switches mouth to open
 
         Args:
             avatar_id: Unique avatar ID (e.g., 'avatar-973dfe463ec8')
@@ -698,6 +797,24 @@ class DoorAgentGenerator:
                 f'#{avatar_id}.vowel_{vowel} .eyes > .open, '
                 f'#{avatar_id}.vowel_{vowel} .mouths > .vowel_{vowel} {{ display: block; }}'
             )
+
+        # Interactive pseudo-class rules for hover and active states
+        # Combine with each state for proper specificity
+        all_states = ['neutral'] + [f'idle_{i}' for i in range(10)] + ['happy', 'sad', 'surprised', 'angry', 'bored'] + [f'vowel_{v}' for v in ['a', 'e', 'i', 'o', 'u']]
+
+        # :hover closes eyes (blink effect) - combine with all states for specificity
+        hover_selectors = ', '.join([f'#{avatar_id}.{state}:hover .eyes > g' for state in all_states])
+        css_rules.append(f'{hover_selectors} {{ display: none; }}')
+
+        hover_closed_selectors = ', '.join([f'#{avatar_id}.{state}:hover .eyes > .closed' for state in all_states])
+        css_rules.append(f'{hover_closed_selectors} {{ display: block; }}')
+
+        # :active opens mouth (click/press effect) - combine with all states for specificity
+        active_selectors = ', '.join([f'#{avatar_id}.{state}:active .mouths > g' for state in all_states])
+        css_rules.append(f'{active_selectors} {{ display: none; }}')
+
+        active_open_selectors = ', '.join([f'#{avatar_id}.{state}:active .mouths > .open' for state in all_states])
+        css_rules.append(f'{active_open_selectors} {{ display: block; }}')
 
         return '<style>\n' + '\n'.join(css_rules) + '\n</style>'
 
@@ -917,7 +1034,8 @@ class DoorAgentGenerator:
             )
             mouths_svg = self._generate_universal_mouths(
                 open_mouth_index, closed_mouth_index, email,
-                shape, self.config.CELL, self.config.PAD
+                shape, self.config.CELL, self.config.PAD,
+                open_eye_index, closed_eye_index
             )
             # Generate CSS rules for state control
             avatar_id = self._generate_avatar_id(email) if email else "avatar-default"
