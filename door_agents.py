@@ -338,6 +338,98 @@ class DoorAgentGenerator:
 
         return left_foot + right_foot
 
+    def _generate_hair(self, hair_index: Optional[int], hair_color_hash_byte: int,
+                      body_color: str, shape: Tuple[int, int], cell_size: float,
+                      pad: float, z_order: str) -> str:
+        """Generate hair SVG if hair_index provided.
+
+        Args:
+            hair_index: Index of hair asset, or None for no hair
+            hair_color_hash_byte: Byte for deterministic color selection
+            body_color: Hex color for body (used in some hair colors)
+            shape: (width, height) tuple
+            cell_size: Size of grid cell
+            pad: Padding amount
+            z_order: 'front' or 'behind' - which hair to render (filters by z-order)
+
+        Returns:
+            SVG string for hair, or empty string if no hair or wrong z-order
+        """
+        if hair_index is None:
+            return ""
+
+        # Get hair asset data
+        hx0, hy0, hw, hh, hair_svg, hair_z_order, hair_width_percent, hair_position_x, hair_position_y, hair_anchor, hair_color_spec = self.config.HAIRS[hair_index]
+
+        # Only render if z-order matches the requested layer
+        if hair_z_order != z_order:
+            return ""
+
+        # Calculate body dimensions for positioning
+        w_tiles, h_tiles = shape
+        box = cell_size - 2 * pad
+        foot_h_frac = self.config.FOOT_H_FRAC
+
+        scale = (box - box * foot_h_frac) / 7
+        body_w = int(w_tiles * scale)
+        body_h = int(h_tiles * scale)
+        foot_h = int(box * foot_h_frac)
+
+        bx0 = pad + (box - body_w) // 2
+        by0 = pad + box - foot_h - body_h
+        bx1 = bx0 + body_w
+        cx = (bx0 + bx1) / 2
+
+        # Calculate eye position for hair positioning
+        eyes_w = body_w * self.config.EYES_W_FRAC
+        # Calculate eyes position (simplified from generate_agent_svg)
+        # We need eye_y for "between-body-eyes" positioning
+        target_eye_center_y = by0 + body_h * self.config.EYE_Y_FRAC
+        by1 = by0 + body_h
+        # Use target eye position directly for hair calculations
+        eyes_y_approx = target_eye_center_y
+
+        # Calculate hair dimensions
+        hair_w = body_w * (hair_width_percent / 100)
+        sh = hair_w / hw
+        hair_h = hh * sh
+
+        # Calculate hair X position
+        if hair_position_x == "cell-center":
+            hair_x = pad + box / 2 - hair_w / 2
+        elif hair_position_x.endswith("%"):
+            percent = float(hair_position_x[:-1]) / 100
+            hair_x = cx + (hair_w * percent) - hair_w / 2
+        else:  # "body-center" or default
+            hair_x = cx - hair_w / 2
+
+        # Calculate hair Y position
+        if hair_position_y == "between-body-eyes":
+            base_y = (by0 + eyes_y_approx) / 2
+        elif hair_position_y == "eyes":
+            base_y = eyes_y_approx
+        elif hair_position_y.endswith("%"):
+            percent = float(hair_position_y[:-1]) / 100
+            base_y = by0 + (hair_h * percent)
+        else:  # "above-body" or default
+            base_y = by0
+
+        # Apply anchor offset
+        if hair_anchor == "bottom":
+            hair_y = base_y - hair_h
+        elif hair_anchor == "center":
+            hair_y = base_y - hair_h / 2
+        else:  # "top" or default
+            hair_y = base_y
+
+        # Resolve hair color (deterministic or random based on context)
+        if hair_color_hash_byte > 0:
+            hair_color = self._resolve_hair_color_deterministic(hair_color_spec, body_color, hair_color_hash_byte)
+        else:
+            hair_color = self._resolve_hair_color(hair_color_spec, body_color)
+
+        return f'<g color="{hair_color}" transform="translate({hair_x},{hair_y}) scale({sh}) translate({-hx0}, {-hy0})">{hair_svg}</g>'
+
     def _resolve_hair_color(self, hair_color_spec: str, body_fill: str) -> str:
         """Resolve hair color based on data-color specification."""
         if hair_color_spec == "currentColor":
@@ -501,54 +593,13 @@ class DoorAgentGenerator:
 
         g = []
 
-        # Hair rendering
-        hair_element = None
-        if hair_index is not None:
-            hx0, hy0, hw, hh, hair_svg, hair_z_order, hair_width_percent, hair_position_x, hair_position_y, hair_anchor, hair_color_spec = self.config.HAIRS[hair_index]
-
-            # Calculate hair dimensions and position (same logic as original)
-            hair_w = body_w * (hair_width_percent / 100)
-            sh = hair_w / hw
-            hair_h = hh * sh
-
-            # Calculate hair X position
-            if hair_position_x == "cell-center":
-                hair_x = self.config.PAD + self.config.BOX / 2 - hair_w / 2
-            elif hair_position_x.endswith("%"):
-                percent = float(hair_position_x[:-1]) / 100
-                hair_x = cx + (hair_w * percent) - hair_w / 2
-            else:
-                hair_x = cx - hair_w / 2
-
-            # Calculate hair Y position
-            if hair_position_y == "between-body-eyes":
-                base_y = (by0 + eyes_y) / 2
-            elif hair_position_y == "eyes":
-                base_y = clamped_eye_center_y
-            elif hair_position_y.endswith("%"):
-                percent = float(hair_position_y[:-1]) / 100
-                base_y = by0 + (hair_h * percent)
-            else:
-                base_y = by0
-
-            # Apply anchor offset
-            if hair_anchor == "bottom":
-                hair_y = base_y - hair_h
-            elif hair_anchor == "center":
-                hair_y = base_y - hair_h / 2
-            else:
-                hair_y = base_y
-
-            # Resolve hair color (deterministic or random based on context)
-            if hair_color_hash_byte > 0:
-                hair_color = self._resolve_hair_color_deterministic(hair_color_spec, body_color, hair_color_hash_byte)
-            else:
-                hair_color = self._resolve_hair_color(hair_color_spec, body_color)
-
-            hair_element = f'<g color="{hair_color}" transform="translate({hair_x},{hair_y}) scale({sh}) translate({-hx0}, {-hy0})">{hair_svg}</g>'
-
-            if hair_z_order == "behind":
-                g.append(hair_element)
+        # Render hair behind body (if any)
+        hair_behind = self._generate_hair(
+            hair_index, hair_color_hash_byte, body_color,
+            shape, self.config.CELL, self.config.PAD, z_order='behind'
+        )
+        if hair_behind:
+            g.append(hair_behind)
 
         # Wrap body, nodes, feet, eyes, and mouth in a transform group if body_transform is specified
         if body_transform:
@@ -578,11 +629,13 @@ class DoorAgentGenerator:
         if body_transform:
             g.append('</g>')
 
-        # Hair in front
-        if hair_element and hair_index is not None:
-            _, _, _, _, _, hair_z_order, _, _, _, _, _ = self.config.HAIRS[hair_index]
-            if hair_z_order == "front":
-                g.append(hair_element)
+        # Render hair in front of body (if any)
+        hair_front = self._generate_hair(
+            hair_index, hair_color_hash_byte, body_color,
+            shape, self.config.CELL, self.config.PAD, z_order='front'
+        )
+        if hair_front:
+            g.append(hair_front)
 
         # Generate avatar ID and wrap in SVG tag
         avatar_id = self._generate_avatar_id(email) if email else "avatar-default"
