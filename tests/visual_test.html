@@ -39,9 +39,15 @@
         fetch('http://localhost:8000/avatar/visual-test@example.com.svg')
             .then(r => r.text())
             .then(svgText => {
-                document.getElementById('universal-container').innerHTML = svgText;
+                // Parse SVG using DOMParser to avoid HTML entity escaping
+                const parser = new DOMParser();
+                const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+                const svg = svgDoc.documentElement;
 
-                const svg = document.querySelector('#universal-container svg');
+                const container = document.getElementById('universal-container');
+                container.innerHTML = '';
+                container.appendChild(svg);
+
                 const states = [
                     'idle_0', 'idle_1', 'idle_2', 'idle_3', 'idle_4',
                     'idle_5', 'idle_6', 'idle_7', 'idle_8', 'idle_9',

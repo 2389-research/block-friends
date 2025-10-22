@@ -213,18 +213,18 @@ setInterval(() => {
                 <h2>🎬 Live Animation Demo</h2>
                 <div class="demo-section">
                     <div style="text-align: center; margin-bottom: 2rem;">
-                        <img id="animatedAvatar" src="/avatar/demo@2389.ai.svg"
-                             alt="Animated Avatar"
-                             style="width: 120px; height: 120px; border: 3px solid #667eea; border-radius: 12px; image-rendering: pixelated;"
-                             onerror="console.error('Failed to load avatar image');"
-                             onload="console.log('Avatar loaded successfully');">
+                        <div id="avatarContainer" style="display: inline-block; width: 120px; height: 120px; border: 3px solid #667eea; border-radius: 12px;">
+                            Loading avatar...
+                        </div>
                         <div style="margin-top: 1rem; font-size: 1.2rem; color: #667eea; font-weight: bold;" id="currentFrame">
                             neutral
                         </div>
                         <div style="margin-top: 0.5rem; color: #666; font-size: 0.9rem;">
-                            19 animation frames • Deterministic generation
+                            20 animation states • Universal SVG with CSS • Interactive!
                         </div>
-                        <div id="statusMessage" style="margin-top: 0.5rem; color: #ff0000; font-size: 0.85rem; min-height: 1.2rem;"></div>
+                        <div id="statusMessage" style="margin-top: 0.5rem; color: #28a745; font-size: 0.85rem; min-height: 1.2rem;">
+                            Hover to blink • Click to open mouth
+                        </div>
                     </div>
                     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center;">
                         <button onclick="setFrame('neutral')" style="padding: 0.5rem 1rem; font-size: 0.9rem;">😐 Neutral</button>
@@ -250,7 +250,42 @@ setInterval(() => {
 
     <script>
         let animationInterval = null;
+        let avatarSvg = null;
         const baseInput = 'demo@2389.ai';
+
+        // Load universal SVG on page load
+        window.addEventListener('load', async () => {
+            const container = document.getElementById('avatarContainer');
+            const status = document.getElementById('statusMessage');
+
+            try {
+                const response = await fetch(`/avatar/${encodeURIComponent(baseInput)}.svg`);
+                const svgText = await response.text();
+
+                // Parse SVG using DOMParser to avoid HTML entity escaping
+                const parser = new DOMParser();
+                const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+                avatarSvg = svgDoc.documentElement;
+
+                if (avatarSvg) {
+                    avatarSvg.style.width = '100%';
+                    avatarSvg.style.height = '100%';
+                    avatarSvg.style.cursor = 'pointer';
+
+                    container.innerHTML = '';
+                    container.appendChild(avatarSvg);
+
+                    console.log('✓ Universal SVG loaded successfully');
+                } else {
+                    status.textContent = 'Error: SVG not found';
+                    status.style.color = '#ff0000';
+                }
+            } catch (err) {
+                status.textContent = 'Failed to load avatar';
+                status.style.color = '#ff0000';
+                console.error('Error loading SVG:', err);
+            }
+        });
 
         function setFrame(frame, skipIntervalClear = false) {
             // Stop any running animation (unless we're being called from within an animation)
@@ -259,40 +294,18 @@ setInterval(() => {
                 animationInterval = null;
             }
 
-            const img = document.getElementById('animatedAvatar');
-            const frameLabel = document.getElementById('currentFrame');
-            const status = document.getElementById('statusMessage');
-
-            // Remove all animation classes (unless we're in an animation loop)
-            if (!skipIntervalClear) {
-                img.classList.remove('breathing', 'bouncing', 'swapping');
+            if (!avatarSvg) {
+                console.error('SVG not loaded yet');
+                return;
             }
 
-            // Add fade swap animation for visual feedback
-            img.classList.add('swapping');
-            setTimeout(() => img.classList.remove('swapping'), 300);
+            const frameLabel = document.getElementById('currentFrame');
 
-            // Force reload with cache busting
-            const url = `/avatar/${encodeURIComponent(baseInput)}.svg?frame=${frame}&t=${Date.now()}`;
-
-            status.textContent = `Loading ${frame}...`;
-            status.style.color = '#666';
-
-            img.onload = () => {
-                status.textContent = '';
-                console.log('✓ Loaded frame:', frame);
-            };
-
-            img.onerror = () => {
-                status.textContent = `Failed to load ${frame}`;
-                status.style.color = '#ff0000';
-                console.error('✗ Failed to load frame:', frame, url);
-            };
-
-            img.src = url;
+            // Change SVG class to switch state
+            avatarSvg.className.baseVal = `agent ${frame}`;
             frameLabel.textContent = frame;
 
-            console.log('→ Loading frame:', frame);
+            console.log('✓ Switched to frame:', frame);
         }
 
         function playIdle() {

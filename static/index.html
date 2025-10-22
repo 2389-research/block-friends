@@ -374,19 +374,34 @@ console.log(config); // Avatar configuration details</code></pre>
     </div>
 
     <script>
-        function generateAvatar() {
+        async function generateAvatar() {
             const input = document.getElementById('inputString').value || 'test@example.com';
             const display = document.getElementById('avatarDisplay');
 
-            display.innerHTML = `
-                <div class="avatar-item">
-                    <img src="/avatar/${encodeURIComponent(input)}.svg" alt="Avatar for ${input}">
-                    <small>${input}</small>
-                </div>
-            `;
+            // Fetch and inline SVG
+            const response = await fetch(`/avatar/${encodeURIComponent(input)}.svg`);
+            const svgText = await response.text();
+
+            // Create container
+            const container = document.createElement('div');
+            container.className = 'avatar-item';
+
+            // Parse SVG using DOMParser to avoid HTML entity escaping
+            const parser = new DOMParser();
+            const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+            const svgElement = svgDoc.documentElement;
+
+            container.appendChild(svgElement);
+
+            const label = document.createElement('small');
+            label.textContent = input;
+            container.appendChild(label);
+
+            display.innerHTML = '';
+            display.appendChild(container);
         }
 
-        function generateMultiple() {
+        async function generateMultiple() {
             const display = document.getElementById('avatarDisplay');
 
             // Generate 10 random strings
@@ -394,12 +409,30 @@ console.log(config); // Avatar configuration details</code></pre>
                 return Math.random().toString(36).substring(2, 15);
             });
 
-            display.innerHTML = inputs.map(input => `
-                <div class="avatar-item">
-                    <img src="/avatar/${encodeURIComponent(input)}.svg" alt="Avatar for ${input}">
-                    <small>${input}</small>
-                </div>
-            `).join('');
+            // Fetch and inline all SVGs using DOMParser
+            const parser = new DOMParser();
+            const avatarPromises = inputs.map(async input => {
+                const response = await fetch(`/avatar/${encodeURIComponent(input)}.svg`);
+                const svgText = await response.text();
+
+                // Parse SVG to avoid HTML entity escaping
+                const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+                const svgElement = svgDoc.documentElement;
+
+                const container = document.createElement('div');
+                container.className = 'avatar-item';
+                container.appendChild(svgElement);
+
+                const label = document.createElement('small');
+                label.textContent = input;
+                container.appendChild(label);
+
+                return container;
+            });
+
+            const avatarElements = await Promise.all(avatarPromises);
+            display.innerHTML = '';
+            avatarElements.forEach(el => display.appendChild(el));
         }
 
         // Generate random avatars on load

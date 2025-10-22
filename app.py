@@ -113,12 +113,17 @@ async def get_or_generate_avatar_content(input_string: str, frame: str = "neutra
         # Generate new avatar with frame and universal parameters
         svg_content_raw, _ = generator.generate_deterministic(input_string, frame=frame, universal=universal)
 
-        # Wrap in properly sized container
-        cell_size = config.CELL
-        full_svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="{cell_size}" height="{cell_size}" '
-                    f'viewBox="0 0 {cell_size} {cell_size}">'
-                    f'<rect width="100%" height="100%" fill="none"/>'
-                    f'{svg_content_raw}</svg>')
+        # Only wrap in container for legacy mode
+        # Universal mode has ID and CSS rules that need to be on the root <svg>
+        if universal:
+            full_svg = svg_content_raw
+        else:
+            # Legacy mode: wrap in properly sized container
+            cell_size = config.CELL
+            full_svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="{cell_size}" height="{cell_size}" '
+                        f'viewBox="0 0 {cell_size} {cell_size}">'
+                        f'<rect width="100%" height="100%" fill="none"/>'
+                        f'{svg_content_raw}</svg>')
 
         # Cache to file with error handling
         try:
@@ -374,6 +379,14 @@ async def animations():
     if animations_path.exists():
         return HTMLResponse(content=animations_path.read_text())
     raise HTTPException(status_code=404, detail="Animations page not found")
+
+@app.get("/sitemap.html")
+async def sitemap():
+    """Serve the sitemap page."""
+    sitemap_path = STATIC_DIR / "sitemap.html"
+    if sitemap_path.exists():
+        return HTMLResponse(content=sitemap_path.read_text())
+    raise HTTPException(status_code=404, detail="Sitemap page not found")
 
 @app.get("/avatar/{input_param}.svg")
 async def get_avatar(input_param: str, frame: str = "neutral", legacy: bool = False):
