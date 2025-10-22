@@ -70,7 +70,7 @@ class BundleRequest(BaseModel):
     input: str
     animations: List[str] = ["idle", "emotes", "vowels"]
 
-async def get_or_generate_avatar_content(input_string: str, frame: str = "neutral") -> tuple[str, str]:
+async def get_or_generate_avatar_content(input_string: str, frame: str = "neutral", universal: bool = True) -> tuple[str, str]:
     """
     Gets avatar SVG content from file cache or generates it, ensuring thread-safety.
     Returns (svg_content, hash_hex) tuple.
@@ -78,10 +78,13 @@ async def get_or_generate_avatar_content(input_string: str, frame: str = "neutra
     Args:
         input_string: Input string for deterministic generation
         frame: Animation frame (default: "neutral")
+        universal: If True, generate universal SVG with all states (default: True)
     """
     hash_hex = hashlib.sha256(input_string.encode('utf-8')).hexdigest()[:16]
-    # Include frame in cache key for frame-specific caching
-    cache_key = f"{hash_hex}_{frame}" if frame != "neutral" else hash_hex
+    # Include frame and universal mode in cache key for frame-specific caching
+    cache_suffix = f"_{frame}" if frame != "neutral" else ""
+    cache_suffix += "_legacy" if not universal else ""
+    cache_key = f"{hash_hex}{cache_suffix}"
     cache_path = CACHE_DIR / f"{cache_key}.svg"
 
     # Try to read from file cache first
@@ -107,8 +110,8 @@ async def get_or_generate_avatar_content(input_string: str, frame: str = "neutra
             except IOError as e:
                 logger.error(f"Error reading cached avatar after lock {cache_path}: {e}")
 
-        # Generate new avatar with frame parameter
-        svg_content_raw, _ = generator.generate_deterministic(input_string, frame=frame)
+        # Generate new avatar with frame and universal parameters
+        svg_content_raw, _ = generator.generate_deterministic(input_string, frame=frame, universal=universal)
 
         # Wrap in properly sized container
         cell_size = config.CELL
@@ -127,7 +130,7 @@ async def get_or_generate_avatar_content(input_string: str, frame: str = "neutra
 
         return full_svg, hash_hex
 
-async def get_or_generate_avatar_png(input_string: str, frame: str = "neutral") -> tuple[bytes, str]:
+async def get_or_generate_avatar_png(input_string: str, frame: str = "neutral", universal: bool = True) -> tuple[bytes, str]:
     """
     Gets avatar PNG content from file cache or generates it from SVG, ensuring thread-safety.
     Returns (png_bytes, hash_hex) tuple.
@@ -135,10 +138,13 @@ async def get_or_generate_avatar_png(input_string: str, frame: str = "neutral") 
     Args:
         input_string: Input string for deterministic generation
         frame: Animation frame (default: "neutral")
+        universal: If True, generate universal SVG with all states (default: True)
     """
     hash_hex = hashlib.sha256(input_string.encode('utf-8')).hexdigest()[:16]
-    # Include frame in cache key for frame-specific caching
-    cache_key = f"{hash_hex}_{frame}" if frame != "neutral" else hash_hex
+    # Include frame and universal mode in cache key for frame-specific caching
+    cache_suffix = f"_{frame}" if frame != "neutral" else ""
+    cache_suffix += "_legacy" if not universal else ""
+    cache_key = f"{hash_hex}{cache_suffix}"
     cache_path = CACHE_DIR_PNG / f"{cache_key}.png"
 
     # Try to read from PNG cache first
@@ -153,8 +159,8 @@ async def get_or_generate_avatar_png(input_string: str, frame: str = "neutral") 
 
     logger.info(f"PNG cache miss for {hash_hex}, converting from SVG")
 
-    # Get SVG content (which may be cached), passing through the frame parameter
-    svg_content, hash_hex = await get_or_generate_avatar_content(input_string, frame=frame)
+    # Get SVG content (which may be cached), passing through the frame and universal parameters
+    svg_content, hash_hex = await get_or_generate_avatar_content(input_string, frame=frame, universal=universal)
 
     # Generate and cache PNG with lock to prevent race conditions
     async with file_write_lock:
@@ -370,7 +376,7 @@ async def animations():
     raise HTTPException(status_code=404, detail="Animations page not found")
 
 @app.get("/avatar/{input_param}.svg")
-async def get_avatar(input_param: str, frame: str = "neutral"):
+async def get_avatar(input_param: str, frame: str = "neutral", legacy: bool = False):
     """
     Generate and serve avatar SVG for given input.
 
@@ -379,12 +385,16 @@ async def get_avatar(input_param: str, frame: str = "neutral"):
         - Options: "neutral", "idle_0" through "idle_3",
                   "happy", "sad", "surprised", "angry", "bored",
                   "vowel_A", "vowel_E", "vowel_I", "vowel_O", "vowel_U"
+    - **legacy**: If true, use legacy single-frame mode (default: false for universal mode)
     - Returns SVG image with proper content-type headers
     - Cached results are served immediately for performance
     """
     try:
-        # Get or generate avatar content with consistent hash and frame
-        svg_content, hash_hex = await get_or_generate_avatar_content(input_param, frame=frame)
+        # Convert legacy parameter to universal (universal = not legacy)
+        universal = not legacy
+
+        # Get or generate avatar content with consistent hash, frame, and universal mode
+        svg_content, hash_hex = await get_or_generate_avatar_content(input_param, frame=frame, universal=universal)
 
         # Consistent ETag generation from canonical hash
         etag = f'"{hash_hex}"'
@@ -406,7 +416,7 @@ async def get_avatar(input_param: str, frame: str = "neutral"):
         raise HTTPException(status_code=500, detail=f"Error generating avatar: {str(e)}")
 
 @app.get("/avatar/{input_param}.png")
-async def get_avatar_png(input_param: str, frame: str = "neutral"):
+async def get_avatar_png(input_param: str, frame: str = "neutral", legacy: bool = False):
     """
     Generate and serve avatar PNG for given input.
 
@@ -415,12 +425,16 @@ async def get_avatar_png(input_param: str, frame: str = "neutral"):
         - Options: "neutral", "idle_0" through "idle_3",
                   "happy", "sad", "surprised", "angry", "bored",
                   "vowel_A", "vowel_E", "vowel_I", "vowel_O", "vowel_U"
+    - **legacy**: If true, use legacy single-frame mode (default: false for universal mode)
     - Returns PNG image with proper content-type headers
     - Cached results are served immediately for performance
     """
     try:
-        # Get or generate PNG content with consistent hash and frame
-        png_content, hash_hex = await get_or_generate_avatar_png(input_param, frame=frame)
+        # Convert legacy parameter to universal (universal = not legacy)
+        universal = not legacy
+
+        # Get or generate PNG content with consistent hash, frame, and universal mode
+        png_content, hash_hex = await get_or_generate_avatar_png(input_param, frame=frame, universal=universal)
 
         # Consistent ETag generation from canonical hash
         etag = f'"{hash_hex}"'
