@@ -292,6 +292,52 @@ class DoorAgentGenerator:
 
         return left_circle + right_circle
 
+    def _generate_feet(self, shape: Tuple[int, int], body_color: str, node_color: str,
+                      feet_match_body: bool, cell_size: float, pad: float) -> str:
+        """Generate foot rectangles.
+
+        Args:
+            shape: (width, height) tuple in grid units
+            body_color: Hex color string
+            node_color: Hex color string
+            feet_match_body: If True, feet use body color; else node color
+            cell_size: Size of grid cell
+            pad: Padding amount
+
+        Returns:
+            SVG string for feet rectangles
+        """
+        w_tiles, h_tiles = shape
+        box = cell_size - 2 * pad
+        foot_h_frac = self.config.FOOT_H_FRAC
+
+        # Calculate body dimensions (same as in _generate_body)
+        scale = (box - box * foot_h_frac) / 7
+        body_w = int(w_tiles * scale)
+        body_h = int(h_tiles * scale)
+        foot_h = int(box * foot_h_frac)
+
+        # Calculate body position
+        bx0 = pad + (box - body_w) // 2
+        by0 = pad + box - foot_h - body_h
+        bx1 = bx0 + body_w
+        cx = (bx0 + bx1) / 2
+
+        # Determine foot color
+        foot_color = body_color if feet_match_body else node_color
+
+        # Calculate foot dimensions and positions
+        foot_w = int(body_w * 0.26)
+        left_foot_x = cx - body_w / 4 - foot_w / 2
+        right_foot_x = cx + body_w / 4 - foot_w / 2
+        foot_y = pad + box - foot_h
+
+        # Generate foot rectangles
+        left_foot = f'<rect x="{left_foot_x}" y="{foot_y}" width="{foot_w}" height="{foot_h}" fill="{foot_color}" stroke="{self.config.OUTLINE}" stroke-width="{self.config.STROKE}"/>'
+        right_foot = f'<rect x="{right_foot_x}" y="{foot_y}" width="{foot_w}" height="{foot_h}" fill="{foot_color}" stroke="{self.config.OUTLINE}" stroke-width="{self.config.STROKE}"/>'
+
+        return left_foot + right_foot
+
     def _resolve_hair_color(self, hair_color_spec: str, body_fill: str) -> str:
         """Resolve hair color based on data-color specification."""
         if hair_color_spec == "currentColor":
@@ -453,12 +499,6 @@ class DoorAgentGenerator:
         clamped_mouth_center_y = max(by0 + mouth_h / 2, min(by1 - mouth_h / 2, target_mouth_center_y))
         mouth_y = clamped_mouth_center_y - mouth_h / 2
 
-        # Feet
-        foot_w = int(body_w * 0.26)
-        left_foot = cx - body_w / 4 - foot_w / 2
-        right_foot = cx + body_w / 4 - foot_w / 2
-        fy = self.config.PAD + self.config.BOX - foot_h
-
         g = []
 
         # Hair rendering
@@ -523,9 +563,8 @@ class DoorAgentGenerator:
         g.append(nodes_svg)
 
         # Feet
-        for fx in (left_foot, right_foot):
-            g.append(f'<rect x="{fx}" y="{fy}" width="{foot_w}" height="{foot_h}" '
-                     f'fill="{feet_fill}" stroke="{self.config.OUTLINE}" stroke-width="{self.config.STROKE}"/>')
+        feet_svg = self._generate_feet(shape, body_color, node_color, feet_match_body, self.config.CELL, self.config.PAD)
+        g.append(feet_svg)
 
         # Eyes
         g.append(f'<g transform="translate({eyes_x},{eyes_y}) scale({se}) '
