@@ -14,6 +14,18 @@ def test_css_rules_hide_all_by_default():
 
     assert f'#{avatar_id} .eyes > g, #{avatar_id} .mouths > g {{ display: none; }}' in css
 
+def test_css_rules_for_neutral():
+    """CSS should include rule for neutral/default state."""
+    config = DoorAgentConfig()
+    generator = DoorAgentGenerator(config)
+
+    avatar_id = "avatar-test123"
+    css = generator._generate_css_rules(avatar_id)
+
+    # Check neutral rule (open eyes, closed mouth)
+    assert f'#{avatar_id}.neutral .eyes > .open' in css
+    assert f'#{avatar_id}.neutral .mouths > .closed' in css
+
 def test_css_rules_for_idle_frames():
     """CSS should include rules for all 10 idle frames."""
     config = DoorAgentConfig()

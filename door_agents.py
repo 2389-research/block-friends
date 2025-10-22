@@ -658,6 +658,12 @@ class DoorAgentGenerator:
         # Hide all groups by default
         css_rules.append(f'#{avatar_id} .eyes > g, #{avatar_id} .mouths > g {{ display: none; }}')
 
+        # Neutral/default state (same as idle_0)
+        css_rules.append(
+            f'#{avatar_id}.neutral .eyes > .open, '
+            f'#{avatar_id}.neutral .mouths > .closed {{ display: block; }}'
+        )
+
         # Idle frame rules (10 frames with independent eye/mouth combinations)
         # These create variety in the idle animation cycle
         idle_frames = [
