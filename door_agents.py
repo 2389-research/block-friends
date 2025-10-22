@@ -542,6 +542,101 @@ class DoorAgentGenerator:
         nested_groups = '\n  '.join(eye_groups.values())
         return f'<g class="eyes" transform="translate({eyes_x},{eyes_y}) scale({scale}) translate({-x0},{-y0})">\n  {nested_groups}\n</g>'
 
+    def _generate_universal_mouths(self, open_mouth_idx: int, closed_mouth_idx: int,
+                                   email: str, shape: Tuple[int, int],
+                                   cell_size: float, pad: float) -> str:
+        """Generate universal mouths with all states as nested groups.
+
+        Args:
+            open_mouth_idx: Index for open mouth asset
+            closed_mouth_idx: Index for closed mouth asset
+            email: Email for deterministic asset selection
+            shape: (width, height) tuple
+            cell_size: Size of grid cell
+            pad: Padding amount
+
+        Returns:
+            SVG string with nested mouth groups for all 12 states (open, closed, happy, surprised, sad, angry, bored, vowel_a, vowel_e, vowel_i, vowel_o, vowel_u)
+        """
+        import xml.etree.ElementTree as ET
+
+        w_tiles, h_tiles = shape
+        box = cell_size - 2 * pad
+        foot_h_frac = self.config.FOOT_H_FRAC
+
+        # Calculate body dimensions
+        scale_body = (box - box * foot_h_frac) / 7
+        body_w = int(w_tiles * scale_body)
+        body_h = int(h_tiles * scale_body)
+        foot_h = int(box * foot_h_frac)
+
+        # Calculate body position
+        bx0 = pad + (box - body_w) // 2
+        by0 = pad + box - foot_h - body_h
+
+        # Calculate mouth positioning
+        mouth_y = by0 + body_h * self.config.MOUTH_Y_FRAC
+
+        # Read asset contents
+        assets_path = self.config.assets_path
+
+        def read_asset_content(svg_path):
+            """Extract inner content from SVG file."""
+            root = ET.parse(svg_path).getroot()
+            return "".join(ET.tostring(c, encoding="unicode") for c in root)
+
+        mouth_groups = {}
+
+        # Open mouth (base state)
+        open_mouth_file = assets_path / "mouths" / "open" / f"{open_mouth_idx + 1}.svg"
+        if open_mouth_file.exists():
+            content = read_asset_content(open_mouth_file)
+            mouth_groups['open'] = f'<g class="open">{content}</g>'
+
+        # Closed mouth
+        closed_mouth_file = assets_path / "mouths" / "closed" / f"{closed_mouth_idx + 1}.svg"
+        if closed_mouth_file.exists():
+            content = read_asset_content(closed_mouth_file)
+            mouth_groups['closed'] = f'<g class="closed">{content}</g>'
+
+        # Emote variants - open mouth emotes (happy, surprised)
+        for emote in ['happy', 'surprised']:
+            emote_file = assets_path / "mouths" / "open" / f"emote_{emote}_{open_mouth_idx + 1}.svg"
+            if emote_file.exists():
+                content = read_asset_content(emote_file)
+                mouth_groups[emote] = f'<g class="{emote}">{content}</g>'
+
+        # Emote variants - closed mouth emotes (sad, angry, bored)
+        for emote in ['sad', 'angry', 'bored']:
+            emote_file = assets_path / "mouths" / "closed" / f"emote_{emote}_{closed_mouth_idx + 1}.svg"
+            if emote_file.exists():
+                content = read_asset_content(emote_file)
+                mouth_groups[emote] = f'<g class="{emote}">{content}</g>'
+
+        # Vowel variants (all based on open mouth)
+        for vowel in ['a', 'e', 'i', 'o', 'u']:
+            vowel_file = assets_path / "mouths" / "open" / f"emote_vowel_{vowel}_{open_mouth_idx + 1}.svg"
+            if vowel_file.exists():
+                content = read_asset_content(vowel_file)
+                mouth_groups[f'vowel_{vowel}'] = f'<g class="vowel_{vowel}">{content}</g>'
+
+        # Calculate scale and position
+        # Get dimensions from first mouth asset
+        x0, y0, w, h, *_ = self.config.open_mouths[open_mouth_idx]
+
+        mouth_w = body_w * self.config.MOUTH_W_REST
+        scale = mouth_w / w
+        mouth_h = h * scale
+
+        # Position mouth - center horizontally and at mouth_y vertically
+        cx = (bx0 + bx0 + body_w) / 2
+        mouth_x = cx - mouth_w / 2
+        mouths_y = max(by0 + mouth_h / 2, min(by0 + body_h - mouth_h / 2, mouth_y)) - mouth_h / 2
+
+        # Build nested structure with transform
+        nested_groups = '\n  '.join(mouth_groups.values())
+        return f'<g class="mouths" transform="translate({mouth_x},{mouths_y}) scale({scale}) translate({-x0},{-y0})">\n  {nested_groups}\n</g>'
+
     def generate_agent_svg(self,
                           shape: Tuple[int, int],
                           open_eye_index: int,
