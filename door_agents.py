@@ -637,6 +637,64 @@ class DoorAgentGenerator:
         nested_groups = '\n  '.join(mouth_groups.values())
         return f'<g class="mouths" transform="translate({mouth_x},{mouths_y}) scale({scale}) translate({-x0},{-y0})">\n  {nested_groups}\n</g>'
 
+    def _generate_css_rules(self, avatar_id: str) -> str:
+        """Generate CSS rules for universal SVG state control.
+
+        Creates scoped CSS that controls visibility of eye and mouth states via class names.
+        All eye/mouth groups are hidden by default, then specific combinations are shown
+        based on the avatar's class (idle_N, emote name, or vowel_X).
+
+        Args:
+            avatar_id: Unique avatar ID (e.g., 'avatar-973dfe463ec8')
+
+        Returns:
+            CSS string wrapped in <style> tags with scoped rules for all 20 states:
+            - 10 idle frames (idle_0 through idle_9)
+            - 5 emotes (happy, sad, surprised, angry, bored)
+            - 5 vowels (vowel_a, vowel_e, vowel_i, vowel_o, vowel_u)
+        """
+        css_rules = []
+
+        # Hide all groups by default
+        css_rules.append(f'#{avatar_id} .eyes > g, #{avatar_id} .mouths > g {{ display: none; }}')
+
+        # Idle frame rules (10 frames with independent eye/mouth combinations)
+        # These create variety in the idle animation cycle
+        idle_frames = [
+            ('idle_0', 'open', 'closed'),      # Default resting state
+            ('idle_1', 'open', 'open'),        # Slight smile
+            ('idle_2', 'closed', 'closed'),    # Blink
+            ('idle_3', 'happy', 'closed'),     # Slight happiness
+            ('idle_4', 'open', 'closed'),      # Return to rest
+            ('idle_5', 'sad', 'closed'),       # Slight sadness
+            ('idle_6', 'open', 'bored'),       # Slight boredom
+            ('idle_7', 'bored', 'bored'),      # Full boredom
+            ('idle_8', 'open', 'open'),        # Slight smile again
+            ('idle_9', 'open', 'closed'),      # Return to rest
+        ]
+
+        for frame, eye_class, mouth_class in idle_frames:
+            css_rules.append(
+                f'#{avatar_id}.{frame} .eyes > .{eye_class}, '
+                f'#{avatar_id}.{frame} .mouths > .{mouth_class} {{ display: block; }}'
+            )
+
+        # Emote rules (matching eye/mouth pairs for expressive states)
+        for emote in ['happy', 'sad', 'surprised', 'angry', 'bored']:
+            css_rules.append(
+                f'#{avatar_id}.{emote} .eyes > .{emote}, '
+                f'#{avatar_id}.{emote} .mouths > .{emote} {{ display: block; }}'
+            )
+
+        # Vowel rules (open eyes + vowel mouths for lip-sync)
+        for vowel in ['a', 'e', 'i', 'o', 'u']:
+            css_rules.append(
+                f'#{avatar_id}.vowel_{vowel} .eyes > .open, '
+                f'#{avatar_id}.vowel_{vowel} .mouths > .vowel_{vowel} {{ display: block; }}'
+            )
+
+        return '<style>\n' + '\n'.join(css_rules) + '\n</style>'
+
     def generate_agent_svg(self,
                           shape: Tuple[int, int],
                           open_eye_index: int,
