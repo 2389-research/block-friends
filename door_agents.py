@@ -200,10 +200,22 @@ class DoorAgentConfig:
 
 class DoorAgentGenerator:
     """Generates door agent SVGs with both random and deterministic modes."""
-    
+
     def __init__(self, config: DoorAgentConfig):
         self.config = config
-    
+
+    def _generate_avatar_id(self, input_string: str) -> str:
+        """Generate unique avatar ID from input string.
+
+        Args:
+            input_string: Seed string (e.g., email)
+
+        Returns:
+            Avatar ID like 'avatar-973dfe463ec8' (12-char hash)
+        """
+        hash_hex = hashlib.sha256(input_string.encode('utf-8')).hexdigest()
+        return f"avatar-{hash_hex[:12]}"
+
     def _resolve_hair_color(self, hair_color_spec: str, body_fill: str) -> str:
         """Resolve hair color based on data-color specification."""
         if hair_color_spec == "currentColor":
@@ -251,7 +263,9 @@ class DoorAgentGenerator:
                           body_transform: str = '',
                           emote_name: Optional[str] = None,
                           eye_emote: Optional[str] = None,
-                          mouth_emote: Optional[str] = None) -> str:
+                          mouth_emote: Optional[str] = None,
+                          email: Optional[str] = None,
+                          frame: str = "neutral") -> str:
         """Generate a single agent SVG with specified parameters.
 
         Animation parameters:
@@ -259,6 +273,8 @@ class DoorAgentGenerator:
             mouth_override: "open" or "closed" to override default mouth state
             body_transform: SVG transform string for body positioning (e.g., "translate(1.5, 0)")
             emote_name: Emote name for using variant assets (e.g., "happy", "sad")
+            email: Email or input string for generating avatar ID (optional)
+            frame: Animation frame identifier for CSS class (default: "neutral")
         """
 
         w_tiles, h_tiles = shape
@@ -462,7 +478,15 @@ class DoorAgentGenerator:
             if hair_z_order == "front":
                 g.append(hair_element)
 
-        return "".join(g)
+        # Generate avatar ID and wrap in SVG tag
+        avatar_id = self._generate_avatar_id(email) if email else "avatar-default"
+        svg_content = "".join(g)
+
+        return (f'<svg id="{avatar_id}" class="agent {frame}" '
+                f'width="{self.config.CELL}" height="{self.config.CELL}" '
+                f'viewBox="0 0 {self.config.CELL} {self.config.CELL}" '
+                f'xmlns="http://www.w3.org/2000/svg">'
+                f'{svg_content}</svg>')
 
     def _get_frame_modifications(self, frame: str, hash_bytes: bytes) -> Dict:
         """Get frame-specific modifications for animation.
@@ -710,7 +734,9 @@ class DoorAgentGenerator:
             body_transform=frame_mods['body_transform'],
             emote_name=frame_mods.get('emote_name'),
             eye_emote=frame_mods.get('eye_emote'),
-            mouth_emote=frame_mods.get('mouth_emote')
+            mouth_emote=frame_mods.get('mouth_emote'),
+            email=input_string,
+            frame=frame
         )
 
         # Determine if mouth represents excited state (based on open mouth)
