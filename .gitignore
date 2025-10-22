@@ -18,6 +18,13 @@ env/
 
 # IDE files
 .vscode/
+
+# Test coverage
+.coverage
+htmlcov/
+
+# Prototype files (historical reference only)
+prototype_*.py
 .idea/
 *.swp
 *.swo
