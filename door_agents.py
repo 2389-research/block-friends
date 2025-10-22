@@ -461,6 +461,87 @@ class DoorAgentGenerator:
         else:
             return hair_color_spec
 
+    def _generate_universal_eyes(self, open_eye_idx: int, closed_eye_idx: int,
+                                 email: str, shape: Tuple[int, int],
+                                 cell_size: float, pad: float) -> str:
+        """Generate universal eyes with all states as nested groups.
+
+        Args:
+            open_eye_idx: Index for open eye asset
+            closed_eye_idx: Index for closed eye asset
+            email: Email for deterministic asset selection
+            shape: (width, height) tuple
+            cell_size: Size of grid cell
+            pad: Padding amount
+
+        Returns:
+            SVG string with nested eye groups for all 7 states (open, closed, happy, sad, surprised, angry, bored)
+        """
+        import xml.etree.ElementTree as ET
+
+        w_tiles, h_tiles = shape
+        box = cell_size - 2 * pad
+        foot_h_frac = self.config.FOOT_H_FRAC
+
+        # Calculate body dimensions
+        scale_body = (box - box * foot_h_frac) / 7
+        body_w = int(w_tiles * scale_body)
+        body_h = int(h_tiles * scale_body)
+        foot_h = int(box * foot_h_frac)
+
+        # Calculate body position
+        bx0 = pad + (box - body_w) // 2
+        by0 = pad + box - foot_h - body_h
+
+        # Calculate eye positioning
+        eye_y = by0 + body_h * self.config.EYE_Y_FRAC
+
+        # Read asset contents
+        assets_path = self.config.assets_path
+
+        def read_asset_content(svg_path):
+            """Extract inner content from SVG file."""
+            root = ET.parse(svg_path).getroot()
+            return "".join(ET.tostring(c, encoding="unicode") for c in root)
+
+        eye_groups = {}
+
+        # Open eyes (base state)
+        open_eye_file = assets_path / "eyes" / "open" / f"{open_eye_idx + 1}.svg"
+        if open_eye_file.exists():
+            content = read_asset_content(open_eye_file)
+            eye_groups['open'] = f'<g class="open">{content}</g>'
+
+        # Closed eyes
+        closed_eye_file = assets_path / "eyes" / "closed" / f"{closed_eye_idx + 1}.svg"
+        if closed_eye_file.exists():
+            content = read_asset_content(closed_eye_file)
+            eye_groups['closed'] = f'<g class="closed">{content}</g>'
+
+        # Emote variants
+        for emote in ['happy', 'sad', 'surprised', 'angry', 'bored']:
+            emote_file = assets_path / "eyes" / "open" / f"emote_{emote}_{open_eye_idx + 1}.svg"
+            if emote_file.exists():
+                content = read_asset_content(emote_file)
+                eye_groups[emote] = f'<g class="{emote}">{content}</g>'
+
+        # Calculate scale and position
+        # Get dimensions from first eye asset
+        x0, y0, w, h, *_ = self.config.open_eyes[open_eye_idx]
+
+        eyes_w = body_w * self.config.EYES_W_FRAC
+        scale = eyes_w / w
+        eyes_h = h * scale
+
+        # Position eyes - center horizontally and at eye_y vertically
+        cx = (bx0 + bx0 + body_w) / 2
+        eyes_x = cx - eyes_w / 2
+        eyes_y = max(by0 + eyes_h / 2, min(by0 + body_h - eyes_h / 2, eye_y)) - eyes_h / 2
+
+        # Build nested structure with transform
+        nested_groups = '\n  '.join(eye_groups.values())
+        return f'<g class="eyes" transform="translate({eyes_x},{eyes_y}) scale({scale}) translate({-x0},{-y0})">\n  {nested_groups}\n</g>'
+
     def generate_agent_svg(self,
                           shape: Tuple[int, int],
                           open_eye_index: int,
