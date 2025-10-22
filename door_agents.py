@@ -245,8 +245,8 @@ class DoorAgentGenerator:
         by1 = by0 + body_h
         cx = (bx0 + bx1) / 2
 
-        # Body rectangle
-        body_rect = f'<rect x="{bx0}" y="{by0}" width="{body_w}" height="{body_h}" fill="{body_color}" stroke="{self.config.OUTLINE}" stroke-width="{self.config.STROKE}"/>'
+        # Body rectangle with rounded corners
+        body_rect = f'<rect x="{bx0}" y="{by0}" width="{body_w}" height="{body_h}" rx="2" fill="{body_color}" stroke="{self.config.OUTLINE}" stroke-width="{self.config.STROKE}"/>'
 
         # Vertical line
         vert_line = f'<line x1="{cx}" y1="{by0}" x2="{cx}" y2="{by1}" stroke="{self.config.OUTLINE}" stroke-width="{self.config.STROKE}"/>'
@@ -463,7 +463,8 @@ class DoorAgentGenerator:
 
     def _generate_universal_eyes(self, open_eye_idx: int, closed_eye_idx: int,
                                  email: str, shape: Tuple[int, int],
-                                 cell_size: float, pad: float) -> str:
+                                 cell_size: float, pad: float,
+                                 avatar_id: str) -> tuple:
         """Generate universal eyes with all states as nested groups.
 
         Args:
@@ -473,11 +474,13 @@ class DoorAgentGenerator:
             shape: (width, height) tuple
             cell_size: Size of grid cell
             pad: Padding amount
+            avatar_id: Unique avatar ID for namespacing clipPath IDs
 
         Returns:
-            SVG string with nested eye groups for all 7 states (open, closed, happy, sad, surprised, angry, bored)
+            Tuple of (clipPath defs SVG string, eye groups SVG string) for 7 states (open, closed, happy, sad, surprised, angry, bored)
         """
         import xml.etree.ElementTree as ET
+        import re
 
         w_tiles, h_tiles = shape
         box = cell_size - 2 * pad
@@ -499,10 +502,38 @@ class DoorAgentGenerator:
         # Read asset contents
         assets_path = self.config.assets_path
 
+        all_clipPaths = []
+
         def read_asset_content(svg_path):
-            """Extract inner content from SVG file."""
+            """Extract inner content from SVG file, separating clipPaths and content."""
             root = ET.parse(svg_path).getroot()
-            return "".join(ET.tostring(c, encoding="unicode") for c in root)
+            clipPaths = []
+            content_elements = []
+
+            for child in root:
+                tag = child.tag
+                if tag.endswith('clipPath'):
+                    # Extract clipPath and namespace its ID
+                    clip_id = child.get('id')
+                    if clip_id:
+                        # Namespace the ID with avatar ID
+                        new_clip_id = f"{avatar_id}-{clip_id}"
+                        child.set('id', new_clip_id)
+                        clipPaths.append(ET.tostring(child, encoding="unicode"))
+                else:
+                    content_elements.append(child)
+
+            # Update clip-path references in content to use namespaced IDs
+            content_str = "".join(ET.tostring(c, encoding="unicode") for c in content_elements)
+
+            # Replace url(#id) with url(#avatar-id-id)
+            content_str = re.sub(
+                r'url\(#([^)]+)\)',
+                lambda m: f'url(#{avatar_id}-{m.group(1)})',
+                content_str
+            )
+
+            return clipPaths, content_str
 
         # Collect all eye dimensions first to find max height for centering
         eye_data = {}
@@ -511,14 +542,16 @@ class DoorAgentGenerator:
         open_eye_file = assets_path / "eyes" / "open" / f"{open_eye_idx + 1}.svg"
         if open_eye_file.exists():
             ex0, ey0, ew, eh, *_ = self.config.open_eyes[open_eye_idx]
-            content = read_asset_content(open_eye_file)
+            clipPaths, content = read_asset_content(open_eye_file)
+            all_clipPaths.extend(clipPaths)
             eye_data['open'] = (ex0, ey0, ew, eh, content)
 
         # Closed eyes
         closed_eye_file = assets_path / "eyes" / "closed" / f"{closed_eye_idx + 1}.svg"
         if closed_eye_file.exists():
             ex0, ey0, ew, eh, *_ = self.config.closed_eyes[closed_eye_idx]
-            content = read_asset_content(closed_eye_file)
+            clipPaths, content = read_asset_content(closed_eye_file)
+            all_clipPaths.extend(clipPaths)
             eye_data['closed'] = (ex0, ey0, ew, eh, content)
 
         # Emote variants
@@ -529,7 +562,8 @@ class DoorAgentGenerator:
                     ex0, ey0, ew, eh, content_svg = variants[open_eye_idx]
                     emote_file = assets_path / "eyes" / "open" / f"emote_{emote}_{open_eye_idx + 1}.svg"
                     if emote_file.exists():
-                        content = read_asset_content(emote_file)
+                        clipPaths, content = read_asset_content(emote_file)
+                        all_clipPaths.extend(clipPaths)
                         eye_data[emote] = (ex0, ey0, ew, eh, content)
 
         # Find max height for the bounding box
@@ -565,7 +599,11 @@ class DoorAgentGenerator:
 
         # Build nested structure with transform
         nested_groups = '\n  '.join(eye_groups.values())
-        return f'<g class="eyes" transform="translate({eyes_x},{eyes_y}) scale({scale}) translate({-ref_x0},{-ref_y0})">\n  {nested_groups}\n</g>'
+        eyes_svg = f'<g class="eyes" transform="translate({eyes_x},{eyes_y}) scale({scale}) translate({-ref_x0},{-ref_y0})">\n  {nested_groups}\n</g>'
+
+        # Return clipPaths and eyes SVG
+        clipPath_defs = "".join(all_clipPaths)
+        return clipPath_defs, eyes_svg
 
     def _generate_universal_mouths(self, open_mouth_idx: int, closed_mouth_idx: int,
                                    email: str, shape: Tuple[int, int],
@@ -753,18 +791,12 @@ class DoorAgentGenerator:
             - 5 vowels (vowel_a, vowel_e, vowel_i, vowel_o, vowel_u)
         """
         css_rules = []
+        a = avatar_id  # Short alias for compactness
 
-        # Hide all groups by default
-        css_rules.append(f'#{avatar_id} .eyes > g, #{avatar_id} .mouths > g {{ display: none; }}')
-
-        # Neutral/default state (same as idle_0)
-        css_rules.append(
-            f'#{avatar_id}.neutral .eyes > .open, '
-            f'#{avatar_id}.neutral .mouths > .closed {{ display: block; }}'
-        )
+        # Default: open eyes, closed mouth
+        css_rules.append(f'#{a} .eyes>g,#{a} .mouths>g{{opacity:0}}#{a} .eyes>.open,#{a} .mouths>.closed{{opacity:1}}')
 
         # Idle frame rules (10 frames with independent eye/mouth combinations)
-        # These create variety in the idle animation cycle
         idle_frames = [
             ('idle_0', 'open', 'closed'),      # Default resting state
             ('idle_1', 'open', 'open'),        # Slight smile
@@ -778,43 +810,53 @@ class DoorAgentGenerator:
             ('idle_9', 'open', 'closed'),      # Return to rest
         ]
 
+        # Combine all state rules into single line per state
         for frame, eye_class, mouth_class in idle_frames:
-            css_rules.append(
-                f'#{avatar_id}.{frame} .eyes > .{eye_class}, '
-                f'#{avatar_id}.{frame} .mouths > .{mouth_class} {{ display: block; }}'
-            )
+            css_rules.append(f'#{a}.{frame} .eyes>g,#{a}.{frame} .mouths>g{{opacity:0}}#{a}.{frame} .eyes>.{eye_class},#{a}.{frame} .mouths>.{mouth_class}{{opacity:1}}')
 
-        # Emote rules (matching eye/mouth pairs for expressive states)
+        # Emote rules (matching eye/mouth pairs)
         for emote in ['happy', 'sad', 'surprised', 'angry', 'bored']:
-            css_rules.append(
-                f'#{avatar_id}.{emote} .eyes > .{emote}, '
-                f'#{avatar_id}.{emote} .mouths > .{emote} {{ display: block; }}'
-            )
+            css_rules.append(f'#{a}.{emote} .eyes>g,#{a}.{emote} .mouths>g{{opacity:0}}#{a}.{emote} .eyes>.{emote},#{a}.{emote} .mouths>.{emote}{{opacity:1}}')
 
-        # Vowel rules (open eyes + vowel mouths for lip-sync)
+        # Vowel rules (open eyes + vowel mouths)
         for vowel in ['a', 'e', 'i', 'o', 'u']:
-            css_rules.append(
-                f'#{avatar_id}.vowel_{vowel} .eyes > .open, '
-                f'#{avatar_id}.vowel_{vowel} .mouths > .vowel_{vowel} {{ display: block; }}'
-            )
+            css_rules.append(f'#{a}.vowel_{vowel} .eyes>g,#{a}.vowel_{vowel} .mouths>g{{opacity:0}}#{a}.vowel_{vowel} .eyes>.open,#{a}.vowel_{vowel} .mouths>.vowel_{vowel}{{opacity:1}}')
 
-        # Interactive pseudo-class rules for hover and active states
-        # Combine with each state for proper specificity
-        all_states = ['neutral'] + [f'idle_{i}' for i in range(10)] + ['happy', 'sad', 'surprised', 'angry', 'bored'] + [f'vowel_{v}' for v in ['a', 'e', 'i', 'o', 'u']]
+        # Interactive pseudo-class rules (hover/active) - use !important for specificity
+        css_rules.append(f'#{a}:hover .eyes>g{{opacity:0!important}}#{a}:hover .eyes>.closed{{opacity:1!important}}')
+        css_rules.append(f'#{a}:active .mouths>g{{opacity:0!important}}#{a}:active .mouths>.open{{opacity:1!important}}')
 
-        # :hover closes eyes (blink effect) - combine with all states for specificity
-        hover_selectors = ', '.join([f'#{avatar_id}.{state}:hover .eyes > g' for state in all_states])
-        css_rules.append(f'{hover_selectors} {{ display: none; }}')
+        # Idle animation keyframes
+        css_rules.append(f'#{a}.idle .eyes>g,#{a}.idle .mouths>g{{opacity:0}}')
 
-        hover_closed_selectors = ', '.join([f'#{avatar_id}.{state}:hover .eyes > .closed' for state in all_states])
-        css_rules.append(f'{hover_closed_selectors} {{ display: block; }}')
+        idle_frame_classes = [
+            ('open', 'closed'),   # idle_0 (0-10%)
+            ('open', 'open'),     # idle_1 (10-20%)
+            ('closed', 'closed'), # idle_2 (20-30%)
+            ('happy', 'closed'),  # idle_3 (30-40%)
+            ('open', 'closed'),   # idle_4 (40-50%)
+            ('sad', 'closed'),    # idle_5 (50-60%)
+            ('open', 'bored'),    # idle_6 (60-70%)
+            ('bored', 'bored'),   # idle_7 (70-80%)
+            ('open', 'open'),     # idle_8 (80-90%)
+            ('open', 'closed'),   # idle_9 (90-100%)
+        ]
 
-        # :active opens mouth (click/press effect) - combine with all states for specificity
-        active_selectors = ', '.join([f'#{avatar_id}.{state}:active .mouths > g' for state in all_states])
-        css_rules.append(f'{active_selectors} {{ display: none; }}')
+        # Track which frames each class appears in
+        eye_frames = {}
+        mouth_frames = {}
+        for i, (eye_class, mouth_class) in enumerate(idle_frame_classes):
+            eye_frames.setdefault(eye_class, []).append(i)
+            mouth_frames.setdefault(mouth_class, []).append(i)
 
-        active_open_selectors = ', '.join([f'#{avatar_id}.{state}:active .mouths > .open' for state in all_states])
-        css_rules.append(f'{active_open_selectors} {{ display: block; }}')
+        # Generate compact keyframe animations
+        for eye_class, frame_indices in eye_frames.items():
+            kf = ''.join([f'{i*10}%,{(i+1)*10 if i<9 else 100}%{{opacity:{1 if i in frame_indices else 0}}}' for i in range(10)])
+            css_rules.append(f'@keyframes {a}-idle-eye-{eye_class}{{{kf}}}#{a}.idle .eyes>.{eye_class}{{animation:{a}-idle-eye-{eye_class} 3s steps(1) infinite}}')
+
+        for mouth_class, frame_indices in mouth_frames.items():
+            kf = ''.join([f'{i*10}%,{(i+1)*10 if i<9 else 100}%{{opacity:{1 if i in frame_indices else 0}}}' for i in range(10)])
+            css_rules.append(f'@keyframes {a}-idle-mouth-{mouth_class}{{{kf}}}#{a}.idle .mouths>.{mouth_class}{{animation:{a}-idle-mouth-{mouth_class} 3s steps(1) infinite}}')
 
         return '<style>\n' + '\n'.join(css_rules) + '\n</style>'
 
@@ -1025,12 +1067,15 @@ class DoorAgentGenerator:
 
         feet_fill = body_color if feet_match_body else node_color
 
+        # Generate avatar ID (needed for clipPath namespacing in universal mode)
+        avatar_id = self._generate_avatar_id(email) if email else "avatar-default"
+
         # Generate eyes and mouths based on mode
         if universal:
             # Universal mode: generate all eye/mouth states with nested groups
-            eyes_svg = self._generate_universal_eyes(
+            eye_clipPaths, eyes_svg = self._generate_universal_eyes(
                 open_eye_index, closed_eye_index, email,
-                shape, self.config.CELL, self.config.PAD
+                shape, self.config.CELL, self.config.PAD, avatar_id
             )
             mouths_svg = self._generate_universal_mouths(
                 open_mouth_index, closed_mouth_index, email,
@@ -1038,10 +1083,10 @@ class DoorAgentGenerator:
                 open_eye_index, closed_eye_index
             )
             # Generate CSS rules for state control
-            avatar_id = self._generate_avatar_id(email) if email else "avatar-default"
             css_block = self._generate_css_rules(avatar_id)
         else:
             # Legacy mode: generate single eye/mouth state
+            eye_clipPaths = ""
             eyes_svg = self._generate_legacy_eyes(
                 open_eye_index, closed_eye_index,
                 shape, self.config.CELL, self.config.PAD,
@@ -1097,14 +1142,15 @@ class DoorAgentGenerator:
             g.append(hair_front)
 
         # Assemble final SVG
-        avatar_id = self._generate_avatar_id(email) if email else "avatar-default"
         svg_content = "".join(g)
 
-        # Build SVG with CSS block if universal mode
+        # Build SVG with CSS block and clipPath defs if universal mode
         svg_tag = f'<svg id="{avatar_id}" class="agent {frame}" width="{self.config.CELL}" height="{self.config.CELL}" viewBox="0 0 {self.config.CELL} {self.config.CELL}" xmlns="http://www.w3.org/2000/svg">'
 
-        if universal and css_block:
-            return f'{svg_tag}\n{css_block}\n{svg_content}</svg>'
+        if universal and (css_block or eye_clipPaths):
+            # Add defs section for clipPaths if present
+            defs_section = f'<defs>{eye_clipPaths}</defs>\n' if eye_clipPaths else ""
+            return f'{svg_tag}\n{defs_section}{css_block}\n{svg_content}</svg>'
         else:
             return f'{svg_tag}{svg_content}</svg>'
 

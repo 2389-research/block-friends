@@ -366,6 +366,105 @@ console.log(config); // Avatar configuration details</code></pre>
                 </ul>
                 <p><strong><a href="/animations.html" style="color: #667eea; text-decoration: none; border-bottom: 2px solid #667eea;">View Animation Documentation & Live Demo →</a></strong></p>
             </section>
+
+            <section id="css-control">
+                <h2>CSS State Control (Universal SVG)</h2>
+                <p>Universal SVG avatars contain all animation states in a single file (~3.8 KB gzipped). Switch between states instantly using CSS classes - no additional HTTP requests needed. The "idle" state automatically animates through 10 frames.</p>
+
+                <div class="demo-section">
+                    <h3>Interactive Demo</h3>
+                    <p style="margin-bottom: 1rem;">Select a state to see the avatar change in real-time (idle animates automatically):</p>
+
+                    <div style="display: flex; gap: 2rem; align-items: flex-start; flex-wrap: wrap;">
+                        <div style="flex: 0 0 auto;">
+                            <div id="cssAvatarContainer" style="display: flex; align-items: center; justify-content: center; width: 120px; height: 120px; border: 2px solid #667eea; border-radius: 8px; padding: 0.5rem; background: white;"></div>
+                        </div>
+
+                        <div style="flex: 1; min-width: 250px;">
+                            <label for="stateSelect" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Choose State:</label>
+                            <select id="stateSelect" style="width: 100%; padding: 0.75rem; border: 2px solid #ddd; border-radius: 6px; font-size: 1rem; background: white; cursor: pointer;">
+                                <optgroup label="Default">
+                                    <option value="" selected>(default) - Open eyes, closed mouth</option>
+                                </optgroup>
+                                <optgroup label="Animation">
+                                    <option value="idle">idle - Automatic animation (10 frames)</option>
+                                </optgroup>
+                                <optgroup label="Emotes (5 states)">
+                                    <option value="happy">happy - Wide smile</option>
+                                    <option value="sad">sad - Downturned mouth</option>
+                                    <option value="surprised">surprised - Wide eyes, open mouth</option>
+                                    <option value="angry">angry - Furrowed, angry expression</option>
+                                    <option value="bored">bored - Half-closed eyes</option>
+                                </optgroup>
+                                <optgroup label="Vowels (5 states)">
+                                    <option value="vowel_a">vowel_a - Mouth open for 'ah'</option>
+                                    <option value="vowel_e">vowel_e - Mouth wide for 'eh'</option>
+                                    <option value="vowel_i">vowel_i - Mouth narrow for 'ee'</option>
+                                    <option value="vowel_o">vowel_o - Mouth round for 'oh'</option>
+                                    <option value="vowel_u">vowel_u - Mouth pursed for 'oo'</option>
+                                </optgroup>
+                            </select>
+
+                            <div style="margin-top: 1rem; padding: 1rem; background: #f0f0f0; border-radius: 6px;">
+                                <strong>Current class:</strong> <code id="currentClass" style="background: #2d2d2d; color: #f8f8f2; padding: 0.2rem 0.5rem; border-radius: 3px;">agent</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 2rem;">Code Example</h3>
+                <p>Switching states is as simple as changing the SVG's CSS class:</p>
+                <pre><code>// Fetch the universal SVG once
+const response = await fetch('/avatar/user@example.com.svg');
+const svgText = await response.text();
+
+// Parse and insert into DOM (use DOMParser to preserve CSS selectors)
+const parser = new DOMParser();
+const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+const svgElement = svgDoc.documentElement;
+document.getElementById('container').appendChild(svgElement);
+
+// Switch states instantly by changing the class
+svgElement.className.baseVal = 'agent happy';      // Show happy emote
+svgElement.className.baseVal = 'agent idle_0';     // Back to idle
+svgElement.className.baseVal = 'agent vowel_a';    // Lip-sync to 'ah' sound
+
+// Idle animation loop (breathing/bobbing effect)
+const idleFrames = ['idle_0', 'idle_1', 'idle_2', 'idle_3', 'idle_2', 'idle_1'];
+let frameIndex = 0;
+setInterval(() => {
+    svgElement.className.baseVal = `agent ${idleFrames[frameIndex]}`;
+    frameIndex = (frameIndex + 1) % idleFrames.length;
+}, 150); // ~6.7 FPS for smooth breathing</code></pre>
+
+                <h3>Performance Benefits</h3>
+                <div class="features" style="margin-top: 1rem;">
+                    <div class="feature">
+                        <h3>📦 Single File</h3>
+                        <p>All 20 states in one SVG (~3.8 KB gzipped) vs 20 separate files (92.3 KB total uncompressed)</p>
+                    </div>
+                    <div class="feature">
+                        <h3>⚡ Instant Switching</h3>
+                        <p>Zero latency state changes - just CSS class manipulation, no network requests</p>
+                    </div>
+                    <div class="feature">
+                        <h3>🎯 Better Caching</h3>
+                        <p>Single immutable resource means perfect browser cache hit rate</p>
+                    </div>
+                    <div class="feature">
+                        <h3>🚀 95% Fewer Requests</h3>
+                        <p>Load 1 file instead of 20 for complete animation support</p>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 2rem;">Available States</h3>
+                <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                    <li><strong>Idle frames (10):</strong> <code>idle_0</code> through <code>idle_9</code> - Independent eye/mouth combinations for natural idle animation</li>
+                    <li><strong>Emotes (5):</strong> <code>happy</code>, <code>sad</code>, <code>surprised</code>, <code>angry</code>, <code>bored</code> - Matching eye/mouth pairs for expressions</li>
+                    <li><strong>Vowels (5):</strong> <code>vowel_a</code>, <code>vowel_e</code>, <code>vowel_i</code>, <code>vowel_o</code>, <code>vowel_u</code> - Open eyes with vowel mouths for lip-sync</li>
+                </ul>
+                <p style="margin-top: 1rem;">All states use the format <code>agent [state_name]</code> as the CSS class on the root <code>&lt;svg&gt;</code> element.</p>
+            </section>
         </div>
 
         <footer>
@@ -438,7 +537,42 @@ console.log(config); // Avatar configuration details</code></pre>
         // Generate random avatars on load
         window.addEventListener('load', () => {
             generateMultiple();
+            initializeCssDemo();
         });
+
+        // CSS state control demo
+        async function initializeCssDemo() {
+            const container = document.getElementById('cssAvatarContainer');
+            const select = document.getElementById('stateSelect');
+            const classDisplay = document.getElementById('currentClass');
+
+            // Fetch a universal SVG avatar (with cache-busting timestamp)
+            const response = await fetch(`/avatar/css-demo@example.com.svg?v=${Date.now()}`);
+            const svgText = await response.text();
+
+            // Parse using DOMParser to preserve CSS selectors
+            const parser = new DOMParser();
+            const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+            const svgElement = svgDoc.documentElement;
+
+            // Set initial state to just "agent" (default - open eyes, closed mouth)
+            svgElement.className.baseVal = 'agent';
+
+            // Add to container
+            container.appendChild(svgElement);
+
+            // Handle state changes
+            select.addEventListener('change', (e) => {
+                const state = e.target.value;
+                if (state) {
+                    svgElement.className.baseVal = `agent ${state}`;
+                    classDisplay.textContent = `agent ${state}`;
+                } else {
+                    svgElement.className.baseVal = 'agent';
+                    classDisplay.textContent = 'agent';
+                }
+            });
+        }
     </script>
 </body>
 </html>
