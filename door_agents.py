@@ -216,6 +216,43 @@ class DoorAgentGenerator:
         hash_hex = hashlib.sha256(input_string.encode('utf-8')).hexdigest()
         return f"avatar-{hash_hex[:12]}"
 
+    def _generate_body(self, shape: Tuple[int, int], body_color: str, cell_size: float, pad: float) -> str:
+        """Generate body rectangle and vertical line.
+
+        Args:
+            shape: (width, height) tuple in grid units
+            body_color: Hex color string
+            cell_size: Size of grid cell
+            pad: Padding amount
+
+        Returns:
+            SVG string for body elements
+        """
+        w_tiles, h_tiles = shape
+        box = cell_size - 2 * pad
+        foot_h_frac = self.config.FOOT_H_FRAC
+
+        # Calculate body dimensions
+        scale = (box - box * foot_h_frac) / 7
+        body_w = int(w_tiles * scale)
+        body_h = int(h_tiles * scale)
+        foot_h = int(box * foot_h_frac)
+
+        # Calculate body position
+        bx0 = pad + (box - body_w) // 2
+        by0 = pad + box - foot_h - body_h
+        bx1 = bx0 + body_w
+        by1 = by0 + body_h
+        cx = (bx0 + bx1) / 2
+
+        # Body rectangle
+        body_rect = f'<rect x="{bx0}" y="{by0}" width="{body_w}" height="{body_h}" fill="{body_color}" stroke="{self.config.OUTLINE}" stroke-width="{self.config.STROKE}"/>'
+
+        # Vertical line
+        vert_line = f'<line x1="{cx}" y1="{by0}" x2="{cx}" y2="{by1}" stroke="{self.config.OUTLINE}" stroke-width="{self.config.STROKE}"/>'
+
+        return body_rect + vert_line
+
     def _resolve_hair_color(self, hair_color_spec: str, body_fill: str) -> str:
         """Resolve hair color based on data-color specification."""
         if hair_color_spec == "currentColor":
@@ -445,10 +482,8 @@ class DoorAgentGenerator:
             g.append(f'<g transform="{body_transform}">')
 
         # Body and core elements
-        g.append(f'<rect x="{bx0}" y="{by0}" width="{body_w}" height="{body_h}" '
-                 f'fill="{body_color}" stroke="{self.config.OUTLINE}" stroke-width="{self.config.STROKE}"/>')
-        g.append(f'<line x1="{cx}" y1="{by0}" x2="{cx}" y2="{by1}" '
-                 f'stroke="{self.config.OUTLINE}" stroke-width="{self.config.STROKE}"/>')
+        body_svg = self._generate_body(shape, body_color, self.config.CELL, self.config.PAD)
+        g.append(body_svg)
 
         # Nodes
         for nx in (left_node, right_node):
