@@ -32,10 +32,10 @@ def test_idle_animation_frames_have_blink_and_sway():
     config = DoorAgentConfig()
     generator = DoorAgentGenerator(config)
 
-    # Test all 4 idle frames
+    # Test all 4 idle frames (use legacy mode for frame-specific animation)
     for frame_num in range(4):
         frame = f"idle_{frame_num}"
-        svg_content, config_info = generator.generate_deterministic("test@example.com", frame=frame)
+        svg_content, config_info = generator.generate_deterministic("test@example.com", frame=frame, universal=False)
 
         # All frames should have valid output
         assert svg_content is not None
@@ -66,32 +66,32 @@ def test_idle_animation_frames_have_blink_and_sway():
 
 
 def test_emote_frames_control_eye_and_mouth_states():
-    """Emote frames should control eye/mouth open/closed states."""
+    """Emote frames should control eye/mouth open/closed states (legacy mode)."""
     config = DoorAgentConfig()
     generator = DoorAgentGenerator(config)
 
-    # Test happy emote
-    svg_content, config_info = generator.generate_deterministic("test@example.com", frame="happy")
+    # Test happy emote (use legacy mode for frame-specific state overrides)
+    svg_content, config_info = generator.generate_deterministic("test@example.com", frame="happy", universal=False)
     assert config_info["eye_override"] == "open"
     assert config_info["mouth_override"] == "open"
 
     # Test sad emote
-    svg_content, config_info = generator.generate_deterministic("test@example.com", frame="sad")
+    svg_content, config_info = generator.generate_deterministic("test@example.com", frame="sad", universal=False)
     assert config_info["eye_override"] == "open"
     assert config_info["mouth_override"] == "closed"
 
     # Test surprised emote
-    svg_content, config_info = generator.generate_deterministic("test@example.com", frame="surprised")
+    svg_content, config_info = generator.generate_deterministic("test@example.com", frame="surprised", universal=False)
     assert config_info["eye_override"] == "open"
     assert config_info["mouth_override"] == "open"
 
     # Test angry emote
-    svg_content, config_info = generator.generate_deterministic("test@example.com", frame="angry")
+    svg_content, config_info = generator.generate_deterministic("test@example.com", frame="angry", universal=False)
     assert config_info["eye_override"] == "open"
     assert config_info["mouth_override"] == "closed"
 
     # Test bored emote
-    svg_content, config_info = generator.generate_deterministic("test@example.com", frame="bored")
+    svg_content, config_info = generator.generate_deterministic("test@example.com", frame="bored", universal=False)
     assert config_info["eye_override"] == "closed"
     assert config_info["mouth_override"] == "closed"
 
@@ -165,7 +165,7 @@ def test_asset_naming_conventions():
 
 
 def test_all_emotes_generate_correct_state_overrides():
-    """Test that all 5 emotes produce the expected eye/mouth state overrides."""
+    """Test that all 5 emotes produce the expected eye/mouth state overrides (legacy mode)."""
     config = DoorAgentConfig()
     generator = DoorAgentGenerator(config)
 
@@ -181,7 +181,7 @@ def test_all_emotes_generate_correct_state_overrides():
     }
 
     for emote, expected in expected_states.items():
-        svg_content, config_info = generator.generate_deterministic(test_input, frame=emote)
+        svg_content, config_info = generator.generate_deterministic(test_input, frame=emote, universal=False)
 
         # Verify state overrides
         assert config_info['eye_override'] == expected['eye'], \
@@ -233,7 +233,7 @@ def test_idle_animation_blink_on_frame_2():
 
 
 def test_idle_animation_body_sway_transforms():
-    """Test that idle animation applies correct body sway transforms."""
+    """Test that idle animation applies correct body sway transforms (legacy mode)."""
     config = DoorAgentConfig()
     generator = DoorAgentGenerator(config)
 
@@ -249,7 +249,7 @@ def test_idle_animation_body_sway_transforms():
 
     for frame_num, expected_transform in expected_transforms.items():
         frame = f"idle_{frame_num}"
-        svg_content, config_info = generator.generate_deterministic(test_input, frame=frame)
+        svg_content, config_info = generator.generate_deterministic(test_input, frame=frame, universal=False)
 
         assert config_info['body_transform'] == expected_transform, \
             f"Frame {frame_num} has incorrect transform: expected '{expected_transform}', got '{config_info['body_transform']}'"

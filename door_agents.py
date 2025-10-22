@@ -695,36 +695,25 @@ class DoorAgentGenerator:
 
         return '<style>\n' + '\n'.join(css_rules) + '\n</style>'
 
-    def generate_agent_svg(self,
-                          shape: Tuple[int, int],
-                          open_eye_index: int,
-                          closed_eye_index: int,
-                          open_mouth_index: int,
-                          closed_mouth_index: int,
-                          hair_index: Optional[int],
-                          body_color: str,
-                          node_color: str,
-                          feet_match_body: bool,
-                          hair_color_hash_byte: int = 0,
-                          eye_override: Optional[str] = None,
-                          mouth_override: Optional[str] = None,
-                          body_transform: str = '',
-                          emote_name: Optional[str] = None,
-                          eye_emote: Optional[str] = None,
-                          mouth_emote: Optional[str] = None,
-                          email: Optional[str] = None,
-                          frame: str = "neutral") -> str:
-        """Generate a single agent SVG with specified parameters.
+    def _generate_legacy_eyes(self, open_eye_index: int, closed_eye_index: int,
+                              shape: Tuple[int, int], cell_size: float, pad: float,
+                              eye_override: Optional[str], emote_name: Optional[str],
+                              eye_emote: Optional[str]) -> Tuple[str, float, float, float, float]:
+        """Generate single eye state for legacy mode.
 
-        Animation parameters:
+        Args:
+            open_eye_index: Index for open eye asset
+            closed_eye_index: Index for closed eye asset
+            shape: (width, height) tuple
+            cell_size: Size of grid cell
+            pad: Padding amount
             eye_override: "open" or "closed" to override default eye state
-            mouth_override: "open" or "closed" to override default mouth state
-            body_transform: SVG transform string for body positioning (e.g., "translate(1.5, 0)")
-            emote_name: Emote name for using variant assets (e.g., "happy", "sad")
-            email: Email or input string for generating avatar ID (optional)
-            frame: Animation frame identifier for CSS class (default: "neutral")
-        """
+            emote_name: Emote name for using variant assets
+            eye_emote: Eye-specific emote override
 
+        Returns:
+            Tuple of (eyes_svg, eyes_x, eyes_y, scale, eye_scale_multiplier)
+        """
         w_tiles, h_tiles = shape
         scale = (self.config.BOX - self.config.BOX * self.config.FOOT_H_FRAC) / 7
         body_w = int(w_tiles * scale)
@@ -736,8 +725,6 @@ class DoorAgentGenerator:
         bx1 = bx0 + body_w
         by1 = by0 + body_h
         cx = (bx0 + bx1) / 2
-
-        feet_fill = body_color if feet_match_body else node_color
 
         # Determine which emote to use for eyes (prefer eye_emote over emote_name)
         effective_eye_emote = eye_emote if eye_emote is not None else emote_name
@@ -773,7 +760,7 @@ class DoorAgentGenerator:
         eyes_w = body_w * self.config.EYES_W_FRAC * eye_scale_multiplier
         se = eyes_w / ew
         eyes_h = eh * se
-        max_eyes_h = body_h * self.config.EYE_MAX_HEIGHT_FRAC * eye_scale_multiplier  # Scale max constraint too
+        max_eyes_h = body_h * self.config.EYE_MAX_HEIGHT_FRAC * eye_scale_multiplier
         if eyes_h > max_eyes_h:
             eyes_h = max_eyes_h
             se = eyes_h / eh
@@ -782,6 +769,43 @@ class DoorAgentGenerator:
         target_eye_center_y = by0 + body_h * self.config.EYE_Y_FRAC
         clamped_eye_center_y = max(by0 + eyes_h / 2, min(by1 - eyes_h / 2, target_eye_center_y))
         eyes_y = clamped_eye_center_y - eyes_h / 2
+
+        # Return transformed eye SVG
+        eye_svg_with_transform = (f'<g transform="translate({eyes_x},{eyes_y}) scale({se}) '
+                                  f'translate({-ex0}, {-ey0})">{eyes_svg}</g>')
+
+        return eye_svg_with_transform
+
+    def _generate_legacy_mouths(self, open_mouth_index: int, closed_mouth_index: int,
+                                shape: Tuple[int, int], cell_size: float, pad: float,
+                                mouth_override: Optional[str], emote_name: Optional[str],
+                                mouth_emote: Optional[str]) -> str:
+        """Generate single mouth state for legacy mode.
+
+        Args:
+            open_mouth_index: Index for open mouth asset
+            closed_mouth_index: Index for closed mouth asset
+            shape: (width, height) tuple
+            cell_size: Size of grid cell
+            pad: Padding amount
+            mouth_override: "open" or "closed" to override default mouth state
+            emote_name: Emote name for using variant assets
+            mouth_emote: Mouth-specific emote override
+
+        Returns:
+            SVG string for mouth with transform
+        """
+        w_tiles, h_tiles = shape
+        scale = (self.config.BOX - self.config.BOX * self.config.FOOT_H_FRAC) / 7
+        body_w = int(w_tiles * scale)
+        body_h = int(h_tiles * scale)
+        foot_h = int(self.config.BOX * self.config.FOOT_H_FRAC)
+
+        bx0 = self.config.PAD + (self.config.BOX - body_w) // 2
+        by0 = self.config.PAD + self.config.BOX - foot_h - body_h
+        bx1 = bx0 + body_w
+        by1 = by0 + body_h
+        cx = (bx0 + bx1) / 2
 
         # Determine which emote to use for mouth (prefer mouth_emote over emote_name)
         effective_mouth_emote = mouth_emote if mouth_emote is not None else emote_name
@@ -808,6 +832,7 @@ class DoorAgentGenerator:
         else:
             # Default to open mouths for neutral/base render
             mx0, my0, mw, mh, mouth_svg, _, _, _, _, _, _ = self.config.open_mouths[open_mouth_index]
+
         # Determine if this is an excited mouth (index in upper half)
         excited = open_mouth_index >= len(self.config.open_mouths) // 2
         mw_ratio = self.config.MOUTH_W_EXC if excited else self.config.MOUTH_W_REST
@@ -824,6 +849,86 @@ class DoorAgentGenerator:
         target_mouth_center_y = by0 + body_h * self.config.MOUTH_Y_FRAC
         clamped_mouth_center_y = max(by0 + mouth_h / 2, min(by1 - mouth_h / 2, target_mouth_center_y))
         mouth_y = clamped_mouth_center_y - mouth_h / 2
+
+        # Return transformed mouth SVG
+        mouth_svg_with_transform = (f'<g transform="translate({mouth_x},{mouth_y}) scale({sm}) '
+                                    f'translate({-mx0}, {-my0})">{mouth_svg}</g>')
+
+        return mouth_svg_with_transform
+
+    def generate_agent_svg(self,
+                          shape: Tuple[int, int],
+                          open_eye_index: int,
+                          closed_eye_index: int,
+                          open_mouth_index: int,
+                          closed_mouth_index: int,
+                          hair_index: Optional[int],
+                          body_color: str,
+                          node_color: str,
+                          feet_match_body: bool,
+                          hair_color_hash_byte: int = 0,
+                          eye_override: Optional[str] = None,
+                          mouth_override: Optional[str] = None,
+                          body_transform: str = '',
+                          emote_name: Optional[str] = None,
+                          eye_emote: Optional[str] = None,
+                          mouth_emote: Optional[str] = None,
+                          email: Optional[str] = None,
+                          frame: str = "neutral",
+                          universal: bool = True) -> str:
+        """Generate a single agent SVG with specified parameters.
+
+        Animation parameters:
+            eye_override: "open" or "closed" to override default eye state
+            mouth_override: "open" or "closed" to override default mouth state
+            body_transform: SVG transform string for body positioning (e.g., "translate(1.5, 0)")
+            emote_name: Emote name for using variant assets (e.g., "happy", "sad")
+            email: Email or input string for generating avatar ID (optional)
+            frame: Animation frame identifier for CSS class (default: "neutral")
+            universal: If True, generate universal SVG with all states; if False, use legacy single-frame (default: True)
+        """
+
+        w_tiles, h_tiles = shape
+        scale = (self.config.BOX - self.config.BOX * self.config.FOOT_H_FRAC) / 7
+        body_w = int(w_tiles * scale)
+        body_h = int(h_tiles * scale)
+        foot_h = int(self.config.BOX * self.config.FOOT_H_FRAC)
+
+        bx0 = self.config.PAD + (self.config.BOX - body_w) // 2
+        by0 = self.config.PAD + self.config.BOX - foot_h - body_h
+        bx1 = bx0 + body_w
+        by1 = by0 + body_h
+        cx = (bx0 + bx1) / 2
+
+        feet_fill = body_color if feet_match_body else node_color
+
+        # Generate eyes and mouths based on mode
+        if universal:
+            # Universal mode: generate all eye/mouth states with nested groups
+            eyes_svg = self._generate_universal_eyes(
+                open_eye_index, closed_eye_index, email,
+                shape, self.config.CELL, self.config.PAD
+            )
+            mouths_svg = self._generate_universal_mouths(
+                open_mouth_index, closed_mouth_index, email,
+                shape, self.config.CELL, self.config.PAD
+            )
+            # Generate CSS rules for state control
+            avatar_id = self._generate_avatar_id(email) if email else "avatar-default"
+            css_block = self._generate_css_rules(avatar_id)
+        else:
+            # Legacy mode: generate single eye/mouth state
+            eyes_svg = self._generate_legacy_eyes(
+                open_eye_index, closed_eye_index,
+                shape, self.config.CELL, self.config.PAD,
+                eye_override, emote_name, eye_emote
+            )
+            mouths_svg = self._generate_legacy_mouths(
+                open_mouth_index, closed_mouth_index,
+                shape, self.config.CELL, self.config.PAD,
+                mouth_override, emote_name, mouth_emote
+            )
+            css_block = ""
 
         g = []
 
@@ -851,13 +956,9 @@ class DoorAgentGenerator:
         feet_svg = self._generate_feet(shape, body_color, node_color, feet_match_body, self.config.CELL, self.config.PAD)
         g.append(feet_svg)
 
-        # Eyes
-        g.append(f'<g transform="translate({eyes_x},{eyes_y}) scale({se}) '
-                 f'translate({-ex0}, {-ey0})">{eyes_svg}</g>')
-
-        # Mouth
-        g.append(f'<g transform="translate({mouth_x},{mouth_y}) scale({sm}) '
-                 f'translate({-mx0}, {-my0})">{mouth_svg}</g>')
+        # Eyes and mouths (already formatted with transforms)
+        g.append(eyes_svg)
+        g.append(mouths_svg)
 
         # Close body transform group if needed
         if body_transform:
@@ -871,15 +972,17 @@ class DoorAgentGenerator:
         if hair_front:
             g.append(hair_front)
 
-        # Generate avatar ID and wrap in SVG tag
+        # Assemble final SVG
         avatar_id = self._generate_avatar_id(email) if email else "avatar-default"
         svg_content = "".join(g)
 
-        return (f'<svg id="{avatar_id}" class="agent {frame}" '
-                f'width="{self.config.CELL}" height="{self.config.CELL}" '
-                f'viewBox="0 0 {self.config.CELL} {self.config.CELL}" '
-                f'xmlns="http://www.w3.org/2000/svg">'
-                f'{svg_content}</svg>')
+        # Build SVG with CSS block if universal mode
+        svg_tag = f'<svg id="{avatar_id}" class="agent {frame}" width="{self.config.CELL}" height="{self.config.CELL}" viewBox="0 0 {self.config.CELL} {self.config.CELL}" xmlns="http://www.w3.org/2000/svg">'
+
+        if universal and css_block:
+            return f'{svg_tag}\n{css_block}\n{svg_content}</svg>'
+        else:
+            return f'{svg_tag}{svg_content}</svg>'
 
     def _get_frame_modifications(self, frame: str, hash_bytes: bytes) -> Dict:
         """Get frame-specific modifications for animation.
@@ -1069,15 +1172,17 @@ class DoorAgentGenerator:
 
         return svg_content, config_info
 
-    def generate_deterministic(self, input_string: str, frame: str = "neutral") -> Tuple[str, Dict]:
+    def generate_deterministic(self, input_string: str, frame: str = "neutral", universal: bool = True) -> Tuple[str, Dict]:
         """Generate a deterministic agent from input string (e.g., email).
 
         Args:
             input_string: Seed string for deterministic generation
-            frame: Animation frame identifier (default: "neutral")
-                   Options: "neutral", "idle_0" through "idle_3",
+            frame: Animation frame identifier or initial class for universal mode (default: "neutral")
+                   Options: "neutral", "idle_0" through "idle_9",
                            "happy", "sad", "surprised", "angry", "bored",
-                           "vowel_A", "vowel_E", "vowel_I", "vowel_O", "vowel_U"
+                           "vowel_a", "vowel_e", "vowel_i", "vowel_o", "vowel_u"
+            universal: If True, generate universal SVG with all states (default: True)
+                      If False, use legacy single-frame mode
         """
         # Generate SHA-256 hash
         hash_bytes = hashlib.sha256(input_string.encode('utf-8')).digest()
@@ -1129,7 +1234,8 @@ class DoorAgentGenerator:
             eye_emote=frame_mods.get('eye_emote'),
             mouth_emote=frame_mods.get('mouth_emote'),
             email=input_string,
-            frame=frame
+            frame=frame,
+            universal=universal
         )
 
         # Determine if mouth represents excited state (based on open mouth)
