@@ -253,6 +253,45 @@ class DoorAgentGenerator:
 
         return body_rect + vert_line
 
+    def _generate_nodes(self, shape: Tuple[int, int], node_color: str, cell_size: float, pad: float) -> str:
+        """Generate side node circles.
+
+        Args:
+            shape: (width, height) tuple in grid units
+            node_color: Hex color string
+            cell_size: Size of grid cell
+            pad: Padding amount
+
+        Returns:
+            SVG string for node circles
+        """
+        w_tiles, h_tiles = shape
+        box = cell_size - 2 * pad
+        foot_h_frac = self.config.FOOT_H_FRAC
+
+        # Calculate body dimensions (same as in _generate_body)
+        scale = (box - box * foot_h_frac) / 7
+        body_w = int(w_tiles * scale)
+        body_h = int(h_tiles * scale)
+        foot_h = int(box * foot_h_frac)
+
+        # Calculate body position
+        bx0 = pad + (box - body_w) // 2
+        by0 = pad + box - foot_h - body_h
+        bx1 = bx0 + body_w
+
+        # Calculate node properties
+        node_r = int(body_w * self.config.NODE_R_FRAC)
+        node_y = by0 + body_h * self.config.NODE_Y_FRAC
+        left_node = bx0 - node_r
+        right_node = bx1 + node_r
+
+        # Generate node circles
+        left_circle = f'<circle cx="{left_node}" cy="{node_y}" r="{node_r}" fill="{node_color}" stroke="{self.config.OUTLINE}" stroke-width="{self.config.STROKE}"/>'
+        right_circle = f'<circle cx="{right_node}" cy="{node_y}" r="{node_r}" fill="{node_color}" stroke="{self.config.OUTLINE}" stroke-width="{self.config.STROKE}"/>'
+
+        return left_circle + right_circle
+
     def _resolve_hair_color(self, hair_color_spec: str, body_fill: str) -> str:
         """Resolve hair color based on data-color specification."""
         if hair_color_spec == "currentColor":
@@ -414,12 +453,6 @@ class DoorAgentGenerator:
         clamped_mouth_center_y = max(by0 + mouth_h / 2, min(by1 - mouth_h / 2, target_mouth_center_y))
         mouth_y = clamped_mouth_center_y - mouth_h / 2
 
-        # Nodes
-        node_r = int(body_w * self.config.NODE_R_FRAC)
-        node_y = by0 + body_h * self.config.NODE_Y_FRAC
-        left_node = bx0 - node_r
-        right_node = bx1 + node_r
-
         # Feet
         foot_w = int(body_w * 0.26)
         left_foot = cx - body_w / 4 - foot_w / 2
@@ -486,9 +519,8 @@ class DoorAgentGenerator:
         g.append(body_svg)
 
         # Nodes
-        for nx in (left_node, right_node):
-            g.append(f'<circle cx="{nx}" cy="{node_y}" r="{node_r}" '
-                     f'fill="{node_color}" stroke="{self.config.OUTLINE}" stroke-width="{self.config.STROKE}"/>')
+        nodes_svg = self._generate_nodes(shape, node_color, self.config.CELL, self.config.PAD)
+        g.append(nodes_svg)
 
         # Feet
         for fx in (left_foot, right_foot):
