@@ -134,3 +134,56 @@ To test a specific hair asset during development:
 - **Hair #8**: Leaves (front, 8% position-y, green colors only)
 - **Hair #9**: Bow (front, -10% position-y, bright colors)
 - **Hair #10+**: Additional styles with various positioning
+
+## Universal SVG Generation
+
+The avatar system now generates universal SVGs by default - single SVG files containing all 20 states (eyes and mouths) controlled via CSS classes. This represents a major architectural improvement over the legacy single-frame approach.
+
+**Architecture:**
+- `generate_agent_svg()` is refactored into composable functions for better maintainability
+- `universal=True` (default) generates nested `<g>` groups for all eye/mouth states with CSS visibility control
+- `universal=False` (legacy mode) generates single-frame SVG using original approach
+
+**Key functions:**
+- `_generate_avatar_id()` - Deterministic unique ID from input string (e.g., `avatar-973dfe463ec8`)
+- `_generate_body()` - Body rectangle and vertical center line
+- `_generate_nodes()` - Side node circles
+- `_generate_feet()` - Foot rectangles (color matches body or nodes)
+- `_generate_hair()` - Hair rendering with z-order support (behind/front)
+- `_generate_universal_eyes()` - Nested eye groups for all 7 eye states (open, closed, happy, sad, surprised, angry, bored)
+- `_generate_universal_mouths()` - Nested mouth groups for all 12 mouth states (open, closed, 5 emotes, 5 vowels)
+- `_generate_css_rules()` - Scoped CSS rules for state visibility control (prefixed with avatar ID)
+- `_generate_legacy_eyes()` - Single eye state for legacy mode
+- `_generate_legacy_mouths()` - Single mouth state for legacy mode
+
+**API:**
+- Default: `GET /avatar/{input}.svg` - Universal SVG with all 20 states (~19.7 KB, ~3.8 KB gzipped)
+- Legacy: `GET /avatar/{input}.svg?legacy=true` - Single-frame SVG (~4.6 KB average)
+- Frame: `?frame=happy` - Sets initial CSS class on universal SVG, or frame for legacy mode
+
+**Performance Benefits:**
+- 78.6% bandwidth reduction (uncompressed): 19.7 KB vs 92.3 KB for all 20 frames
+- 16.7% bandwidth reduction (gzipped): 3.8 KB vs 4.6 KB total
+- 95% fewer HTTP requests: 1 instead of 20
+- Instant client-side state switching via CSS class changes
+- Better browser caching (single immutable resource)
+
+**Client-Side Usage:**
+```javascript
+// Fetch once
+fetch('/avatar/user@example.com.svg')
+    .then(r => r.text())
+    .then(svg => {
+        document.body.innerHTML = svg;
+        // Switch states by changing class
+        const svgEl = document.querySelector('svg');
+        svgEl.className.baseVal = 'agent happy';
+    });
+```
+
+**Available States:**
+- **Idle frames (10):** `idle_0` through `idle_9` - independent eye/mouth combinations for natural idle animation
+- **Emotes (5):** `happy`, `sad`, `surprised`, `angry`, `bored` - matching eye/mouth pairs for expressions
+- **Vowels (5):** `vowel_a`, `vowel_e`, `vowel_i`, `vowel_o`, `vowel_u` - open eyes with vowel mouths for lip-sync
+
+See `docs/universal-svg.md` for comprehensive documentation including API usage, structure details, client-side examples, performance analysis, and migration guide.
