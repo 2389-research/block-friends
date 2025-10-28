@@ -9,9 +9,10 @@ import json
 import zipfile
 import io
 from pathlib import Path
-from fastapi import FastAPI, Response, HTTPException
+from fastapi import FastAPI, Response, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
 import uvicorn
@@ -29,6 +30,27 @@ app = FastAPI(
     description="Deterministic avatar generation service with 1.27 billion unique variants",
     version="1.0.0"
 )
+
+# Add CORS middleware to allow cross-origin requests (public API)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Public API - allow all origins for embedding
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Security headers middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    # Add security headers for all responses
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"  # Allow embedding in iframes from same origin
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    # Note: Not adding CSP since we serve SVG images that may be embedded anywhere
+    return response
 
 # Initialize the door agent system
 config = DoorAgentConfig()
