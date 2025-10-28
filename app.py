@@ -9,7 +9,7 @@ import json
 import zipfile
 import io
 from pathlib import Path
-from fastapi import FastAPI, Response, HTTPException
+from fastapi import FastAPI, Response, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,6 +18,9 @@ from typing import List
 import uvicorn
 import cairosvg
 from PyPDF2 import PdfWriter, PdfReader
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from door_agents import DoorAgentConfig, DoorAgentGenerator, AVATAR_SYSTEM_VERSION
 
@@ -30,6 +33,11 @@ app = FastAPI(
     description="Deterministic avatar generation service with 1.27 billion unique variants",
     version="1.0.0"
 )
+
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Add CORS middleware to allow cross-origin requests
 app.add_middleware(
@@ -389,7 +397,8 @@ async def sitemap():
     raise HTTPException(status_code=404, detail="Sitemap page not found")
 
 @app.get("/avatar/{input_param}.svg")
-async def get_avatar(input_param: str, frame: str = "neutral", legacy: bool = False):
+@limiter.limit("100/minute")
+async def get_avatar(request: Request, input_param: str, frame: str = "neutral", legacy: bool = False):
     """
     Generate and serve avatar SVG for given input.
 
@@ -429,7 +438,8 @@ async def get_avatar(input_param: str, frame: str = "neutral", legacy: bool = Fa
         raise HTTPException(status_code=500, detail=f"Error generating avatar: {str(e)}")
 
 @app.get("/avatar/{input_param}.png")
-async def get_avatar_png(input_param: str, frame: str = "neutral", legacy: bool = False):
+@limiter.limit("100/minute")
+async def get_avatar_png(request: Request, input_param: str, frame: str = "neutral", legacy: bool = False):
     """
     Generate and serve avatar PNG for given input.
 
@@ -567,7 +577,8 @@ async def get_avatar_frames(input_param: str):
         raise HTTPException(status_code=500, detail=f"Error getting avatar frames: {str(e)}")
 
 @app.get("/avatar/{input_param}/bundle")
-async def get_avatar_bundle(input_param: str, animations: str = "idle,emotes,vowels"):
+@limiter.limit("10/minute")
+async def get_avatar_bundle(request: Request, input_param: str, animations: str = "idle,emotes,vowels"):
     """
     Generate a ZIP bundle containing PDF animations for an avatar via GET request.
 
@@ -606,7 +617,8 @@ async def get_avatar_bundle(input_param: str, animations: str = "idle,emotes,vow
         raise HTTPException(status_code=500, detail=f"Error generating PDF bundle: {str(e)}")
 
 @app.post("/avatar/bundle")
-async def create_avatar_bundle(request: BundleRequest):
+@limiter.limit("10/minute")
+async def create_avatar_bundle(request_obj: Request, request: BundleRequest):
     """
     Generate a ZIP bundle containing PDF animations for an avatar via POST request.
 
