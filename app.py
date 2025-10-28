@@ -228,7 +228,7 @@ async def generate_pdf_bundle(input_string: str, animations: List[str]) -> bytes
     # Define frame sequences for each animation type
     frame_sequences = {
         "idle": {
-            "frames": ["idle_0", "idle_1", "idle_2", "idle_3"],
+            "frames": ["idle_0", "idle_1", "idle_2", "idle_3", "idle_4", "idle_5", "idle_6", "idle_7", "idle_8", "idle_9"],
             "fps": 4,
             "loop": True
         },
@@ -395,7 +395,7 @@ async def get_avatar(input_param: str, frame: str = "neutral", legacy: bool = Fa
 
     - **input_param**: Any string (email, username, hash, etc.)
     - **frame**: Animation frame (default: "neutral")
-        - Options: "neutral", "idle_0" through "idle_3",
+        - Options: "neutral", "idle_0" through "idle_9",
                   "happy", "sad", "surprised", "angry", "bored",
                   "vowel_A", "vowel_E", "vowel_I", "vowel_O", "vowel_U"
     - **legacy**: If true, use legacy single-frame mode (default: false for universal mode)
@@ -435,7 +435,7 @@ async def get_avatar_png(input_param: str, frame: str = "neutral", legacy: bool 
 
     - **input_param**: Any string (email, username, hash, etc.)
     - **frame**: Animation frame (default: "neutral")
-        - Options: "neutral", "idle_0" through "idle_3",
+        - Options: "neutral", "idle_0" through "idle_9",
                   "happy", "sad", "surprised", "angry", "bored",
                   "vowel_A", "vowel_E", "vowel_I", "vowel_O", "vowel_U"
     - **legacy**: If true, use legacy single-frame mode (default: false for universal mode)
@@ -525,13 +525,13 @@ async def get_avatar_frames(input_param: str):
                     }
                 },
                 "idle": {
-                    "description": "Breathing animation loop",
-                    "frame_count": 4,
-                    "frames": ["idle_0", "idle_1", "idle_2", "idle_3"],
+                    "description": "Idle animation with varied expressions",
+                    "frame_count": 10,
+                    "frames": ["idle_0", "idle_1", "idle_2", "idle_3", "idle_4", "idle_5", "idle_6", "idle_7", "idle_8", "idle_9"],
                     "fps": 4,
                     "urls": {
-                        "svg": [f"/avatar/{input_param}.svg?frame=idle_{i}" for i in range(4)],
-                        "png": [f"/avatar/{input_param}.png?frame=idle_{i}" for i in range(4)]
+                        "svg": [f"/avatar/{input_param}.svg?frame=idle_{i}" for i in range(10)],
+                        "png": [f"/avatar/{input_param}.png?frame=idle_{i}" for i in range(10)]
                     }
                 },
                 "emotes": {
@@ -557,7 +557,7 @@ async def get_avatar_frames(input_param: str):
                     }
                 }
             },
-            "total_frames": 15
+            "total_frames": 21
         }
 
         return frames_info

@@ -14,7 +14,7 @@ A comprehensive avatar generation system that creates procedurally generated "do
 ### **Animation System (v2.0)**
 - **🎭 5 Emotes**: happy, sad, surprised, angry, bored with unique expressions
 - **👁️ Open/Closed States**: Independent control of eye and mouth states
-- **💫 Idle Animation**: 4-frame breathing animation with blink + body sway
+- **💫 Idle Animation**: 10-frame idle animation with varied expressions
 - **📦 Animation Bundles**: GET bundled frame data for all animations
 
 ### **Massive Variety**
@@ -123,7 +123,7 @@ GET /avatar/{input}.svg?frame={frame}
 - `GET /avatar/973dfe463ec85785.svg` - Serve cached avatar by hash
 
 **Frame Options:**
-- `idle_0`, `idle_1`, `idle_2`, `idle_3` - 4-frame idle animation (blink + sway)
+- `idle_0` through `idle_9` - 10-frame idle animation with varied expressions
 - `happy`, `sad`, `surprised`, `angry`, `bored` - 5 emote expressions
 - No frame parameter = default state (open eyes, closed mouth)
 
@@ -264,16 +264,22 @@ The v2.0 emote system provides rich animation support with 5 distinct emotes and
 
 ### **Idle Animation**
 
-The idle animation creates a subtle "breathing" effect with 4 frames:
+The idle animation provides varied expressions with 10 frames:
 
 ```
-Frame 0: Eyes open,  Mouth closed, Body sways left  (-1.5px)  (250ms)
-Frame 1: Eyes open,  Mouth closed, Body at center            (250ms)
-Frame 2: Eyes closed, Mouth closed, Body sways right (+1.5px) (250ms) - BLINK
-Frame 3: Eyes open,  Mouth closed, Body at center            (250ms)
+Frame 0: Eyes open,  Mouth closed (neutral)
+Frame 1: Eyes open,  Mouth open
+Frame 2: Eyes closed, Mouth closed (blink)
+Frame 3: Eyes happy, Mouth closed (subtle smile)
+Frame 4: Eyes open,  Mouth closed
+Frame 5: Eyes sad,   Mouth closed (subtle sadness)
+Frame 6: Eyes open,  Mouth bored
+Frame 7: Eyes bored, Mouth bored (full boredom)
+Frame 8: Eyes open,  Mouth open
+Frame 9: Eyes open,  Mouth closed
 ```
 
-**Total cycle time:** 1 second (4 frames × 250ms)
+**Recommended cycle:** 4 FPS (250ms per frame) for smooth idle animation
 
 ### **Frame State System**
 
