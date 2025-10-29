@@ -1188,7 +1188,7 @@ class DoorAgentGenerator:
         shadow_width = content_width * 1.2
         shadow_height = content_width * 0.15
         shadow_cx = content_center_x
-        shadow_cy = self.config.CELL - 3  # 3px overlap with feet
+        shadow_cy = by1  # Center shadow at bottom of body (where feet sit)
         shadow_rx = shadow_width / 2
         shadow_ry = shadow_height / 2
 
