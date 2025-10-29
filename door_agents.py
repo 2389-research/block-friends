@@ -1193,11 +1193,11 @@ class DoorAgentGenerator:
         shadow_rx = shadow_width / 2
         shadow_ry = shadow_height / 2
 
-        # Create shadow blur filter
-        shadow_filter = f'<filter id="{avatar_id}-shadow-blur"><feGaussianBlur in="SourceGraphic" stdDeviation="1.5"/></filter>'
+        # Create shadow blur filter (subtle blur)
+        shadow_filter = f'<filter id="{avatar_id}-shadow-blur"><feGaussianBlur in="SourceGraphic" stdDeviation="0.8"/></filter>'
 
-        # Create shadow ellipse
-        shadow_ellipse = f'<ellipse cx="{shadow_cx}" cy="{shadow_cy}" rx="{shadow_rx}" ry="{shadow_ry}" fill="#808080" opacity="0.45" filter="url(#{avatar_id}-shadow-blur)"/>'
+        # Create shadow ellipse (darker, less blurred)
+        shadow_ellipse = f'<ellipse cx="{shadow_cx}" cy="{shadow_cy}" rx="{shadow_rx}" ry="{shadow_ry}" fill="#808080" opacity="0.6" filter="url(#{avatar_id}-shadow-blur)"/>'
 
         # Assemble final SVG
         svg_content = "".join(g)
