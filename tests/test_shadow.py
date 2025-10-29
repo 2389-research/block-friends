@@ -45,8 +45,8 @@ def test_shadow_positioned_at_bottom():
     assert match, "Shadow ellipse should have cy attribute"
 
     shadow_cy = float(match.group(1))
-    # Shadow centered at bottom of body (where feet sit), typically around 50 for standard body
-    assert 45 <= shadow_cy <= 52, f"Shadow cy should be at body bottom, got {shadow_cy}"
+    # Shadow below feet: body_bottom + foot_height + 1, typically around 53 for standard avatar
+    assert 51 <= shadow_cy <= 54, f"Shadow cy should be below feet, got {shadow_cy}"
 
 def test_shadow_renders_behind_body():
     """Test that shadow appears before body in SVG (renders behind)."""

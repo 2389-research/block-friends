@@ -1188,7 +1188,8 @@ class DoorAgentGenerator:
         shadow_width = content_width * 1.2
         shadow_height = content_width * 0.15
         shadow_cx = content_center_x
-        shadow_cy = by1  # Center shadow at bottom of body (where feet sit)
+        # Position shadow below feet: body bottom (by1) + feet height + small offset
+        shadow_cy = by1 + foot_h + 1  # Just below feet for grounded appearance
         shadow_rx = shadow_width / 2
         shadow_ry = shadow_height / 2
 
