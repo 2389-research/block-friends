@@ -1130,6 +1130,8 @@ class DoorAgentGenerator:
         g.append(nodes_svg)
 
         # Update bounds with node positions (nodes are circles with radius node_r)
+        # Nodes are centered at (bx0 - node_r) and (bx1 + node_r)
+        # Bounding box extends ±node_r from center: center - r to center + r
         node_r = int(body_w * self.config.NODE_R_FRAC)
         node_left_x = bx0 - node_r - node_r  # left_node - node_r
         node_right_x = bx1 + node_r + node_r  # right_node + node_r
