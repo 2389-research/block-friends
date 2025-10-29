@@ -1204,12 +1204,15 @@ class DoorAgentGenerator:
         # Build SVG with CSS block and clipPath defs if universal mode
         svg_tag = f'<svg id="{avatar_id}" class="agent {frame}" width="{self.config.CELL}" height="{self.config.CELL}" viewBox="0 0 {self.config.CELL} {self.config.CELL}" xmlns="http://www.w3.org/2000/svg">'
 
-        if universal and (css_block or eye_clipPaths):
-            # Add defs section for clipPaths if present
-            defs_section = f'<defs>{eye_clipPaths}</defs>\n' if eye_clipPaths else ""
-            return f'{svg_tag}\n{defs_section}{css_block}\n{svg_content}</svg>'
+        if universal and (css_block or eye_clipPaths or shadow_filter):
+            # Add defs section for clipPaths and shadow filter
+            defs_content = eye_clipPaths + shadow_filter if eye_clipPaths else shadow_filter
+            defs_section = f'<defs>{defs_content}</defs>\n' if defs_content else ""
+            return f'{svg_tag}\n{defs_section}{css_block}\n{shadow_ellipse}{svg_content}</svg>'
         else:
-            return f'{svg_tag}{svg_content}</svg>'
+            # Legacy mode - still needs defs for shadow filter
+            defs_section = f'<defs>{shadow_filter}</defs>' if shadow_filter else ""
+            return f'{svg_tag}{defs_section}{shadow_ellipse}{svg_content}</svg>'
 
     def _get_frame_modifications(self, frame: str, hash_bytes: bytes) -> Dict:
         """Get frame-specific modifications for animation.

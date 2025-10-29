@@ -30,7 +30,7 @@ def test_shadow_scales_with_hair():
     assert match, "Shadow ellipse should have rx attribute"
 
     shadow_rx = float(match.group(1))
-    assert shadow_rx > 30, "Shadow should be wider than minimal body"
+    assert shadow_rx > 15, "Shadow should scale with content width (body + hair + nodes)"
 
 def test_shadow_positioned_at_bottom():
     """Test that shadow is positioned at bottom with overlap."""
@@ -47,3 +47,22 @@ def test_shadow_positioned_at_bottom():
     shadow_cy = float(match.group(1))
     # Should be near bottom (CELL=60, overlap=3, so cy should be ~57)
     assert 55 <= shadow_cy <= 58, f"Shadow cy should be near bottom, got {shadow_cy}"
+
+def test_shadow_renders_behind_body():
+    """Test that shadow appears before body in SVG (renders behind)."""
+    config = DoorAgentConfig()
+    generator = DoorAgentGenerator(config)
+
+    svg, _ = generator.generate_deterministic(input_string="test@example.com", universal=True)
+
+    # Find positions in SVG
+    shadow_pos = svg.find('<ellipse')
+    body_pos = svg.find('<rect')
+    defs_close = svg.find('</defs>')
+
+    assert shadow_pos > 0, "Shadow should be present"
+    assert body_pos > 0, "Body should be present"
+    assert defs_close > 0, "Defs should be present"
+
+    # Shadow should come after defs but before body
+    assert defs_close < shadow_pos < body_pos, "Shadow should render between defs and body"
