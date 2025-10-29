@@ -858,6 +858,9 @@ class DoorAgentGenerator:
             kf = ''.join([f'{i*10}%,{(i+1)*10 if i<9 else 100}%{{opacity:{1 if i in frame_indices else 0}}}' for i in range(10)])
             css_rules.append(f'@keyframes {a}-idle-mouth-{mouth_class}{{{kf}}}#{a}.idle .mouths>.{mouth_class}{{animation:{a}-idle-mouth-{mouth_class} 3s steps(1) infinite}}')
 
+        # Shadow visibility control
+        css_rules.append(f'#{a}.no-shadow .shadow{{opacity:0}}')
+
         return '<style>\n' + '\n'.join(css_rules) + '\n</style>'
 
     def _generate_legacy_eyes(self, open_eye_index: int, closed_eye_index: int,
@@ -1040,7 +1043,8 @@ class DoorAgentGenerator:
                           mouth_emote: Optional[str] = None,
                           email: Optional[str] = None,
                           frame: str = "neutral",
-                          universal: bool = True) -> str:
+                          universal: bool = True,
+                          shadow: bool = True) -> str:
         """Generate a single agent SVG with specified parameters.
 
         Animation parameters:
@@ -1051,6 +1055,7 @@ class DoorAgentGenerator:
             email: Email or input string for generating avatar ID (optional)
             frame: Animation frame identifier for CSS class (default: "neutral")
             universal: If True, generate universal SVG with all states; if False, use legacy single-frame (default: True)
+            shadow: If True, show shadow (default: True). If False, add 'no-shadow' class to hide shadow
         """
 
         w_tiles, h_tiles = shape
@@ -1233,7 +1238,7 @@ class DoorAgentGenerator:
         shadow_filter = f'<filter id="{avatar_id}-shadow-blur"><feGaussianBlur in="SourceGraphic" stdDeviation="0.8"/></filter>'
 
         # Create shadow ellipse (darker, less blurred)
-        shadow_ellipse = f'<ellipse cx="{shadow_cx}" cy="{shadow_cy}" rx="{shadow_rx}" ry="{shadow_ry}" fill="#808080" opacity="0.6" filter="url(#{avatar_id}-shadow-blur)"/>'
+        shadow_ellipse = f'<ellipse class="shadow" cx="{shadow_cx}" cy="{shadow_cy}" rx="{shadow_rx}" ry="{shadow_ry}" fill="#808080" opacity="0.6" filter="url(#{avatar_id}-shadow-blur)"/>'
 
         # Update bounds to include shadow (with blur expansion)
         # Blur adds ~2*stdDeviation pixels around the ellipse
@@ -1263,7 +1268,9 @@ class DoorAgentGenerator:
 
         # Build SVG with CSS block and clipPath defs if universal mode
         # Keep width/height as CELL for consistent display size, but use calculated viewBox
-        svg_tag = f'<svg id="{avatar_id}" class="agent {frame}" width="{self.config.CELL}" height="{self.config.CELL}" viewBox="{viewbox_x} {viewbox_y} {viewbox_width} {viewbox_height}" xmlns="http://www.w3.org/2000/svg">'
+        # Add no-shadow class if shadow is disabled
+        shadow_class = "" if shadow else " no-shadow"
+        svg_tag = f'<svg id="{avatar_id}" class="agent {frame}{shadow_class}" width="{self.config.CELL}" height="{self.config.CELL}" viewBox="{viewbox_x} {viewbox_y} {viewbox_width} {viewbox_height}" xmlns="http://www.w3.org/2000/svg">'
 
         if universal and (css_block or eye_clipPaths or shadow_filter):
             # Add defs section for clipPaths and shadow filter
@@ -1463,7 +1470,7 @@ class DoorAgentGenerator:
 
         return svg_content, config_info
 
-    def generate_deterministic(self, input_string: str, frame: str = "neutral", universal: bool = True) -> Tuple[str, Dict]:
+    def generate_deterministic(self, input_string: str, frame: str = "neutral", universal: bool = True, shadow: bool = True) -> Tuple[str, Dict]:
         """Generate a deterministic agent from input string (e.g., email).
 
         Args:
@@ -1474,6 +1481,7 @@ class DoorAgentGenerator:
                            "vowel_a", "vowel_e", "vowel_i", "vowel_o", "vowel_u"
             universal: If True, generate universal SVG with all states (default: True)
                       If False, use legacy single-frame mode
+            shadow: If True, show shadow (default: True). If False, add 'no-shadow' class to hide shadow
         """
         # Generate SHA-256 hash
         hash_bytes = hashlib.sha256(input_string.encode('utf-8')).digest()
@@ -1526,7 +1534,8 @@ class DoorAgentGenerator:
             mouth_emote=frame_mods.get('mouth_emote'),
             email=input_string,
             frame=frame,
-            universal=universal
+            universal=universal,
+            shadow=shadow
         )
 
         # Determine if mouth represents excited state (based on open mouth)

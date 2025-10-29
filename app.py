@@ -70,7 +70,7 @@ class BundleRequest(BaseModel):
     input: str
     animations: List[str] = ["idle", "emotes", "vowels"]
 
-async def get_or_generate_avatar_content(input_string: str, frame: str = "neutral", universal: bool = True) -> tuple[str, str]:
+async def get_or_generate_avatar_content(input_string: str, frame: str = "neutral", universal: bool = True, shadow: bool = True) -> tuple[str, str]:
     """
     Gets avatar SVG content from file cache or generates it, ensuring thread-safety.
     Returns (svg_content, hash_hex) tuple.
@@ -79,11 +79,13 @@ async def get_or_generate_avatar_content(input_string: str, frame: str = "neutra
         input_string: Input string for deterministic generation
         frame: Animation frame (default: "neutral")
         universal: If True, generate universal SVG with all states (default: True)
+        shadow: If True, show shadow (default: True). If False, hide shadow via CSS
     """
     hash_hex = hashlib.sha256(input_string.encode('utf-8')).hexdigest()[:16]
-    # Include frame and universal mode in cache key for frame-specific caching
+    # Include frame, universal mode, and shadow in cache key for variant caching
     cache_suffix = f"_{frame}" if frame != "neutral" else ""
     cache_suffix += "_legacy" if not universal else ""
+    cache_suffix += "_noshadow" if not shadow else ""
     cache_key = f"{hash_hex}{cache_suffix}"
     cache_path = CACHE_DIR / f"{cache_key}.svg"
 
@@ -110,8 +112,8 @@ async def get_or_generate_avatar_content(input_string: str, frame: str = "neutra
             except IOError as e:
                 logger.error(f"Error reading cached avatar after lock {cache_path}: {e}")
 
-        # Generate new avatar with frame and universal parameters
-        svg_content_raw, _ = generator.generate_deterministic(input_string, frame=frame, universal=universal)
+        # Generate new avatar with frame, universal, and shadow parameters
+        svg_content_raw, _ = generator.generate_deterministic(input_string, frame=frame, universal=universal, shadow=shadow)
 
         # Only wrap in container for legacy mode
         # Universal mode has ID and CSS rules that need to be on the root <svg>
@@ -389,7 +391,7 @@ async def sitemap():
     raise HTTPException(status_code=404, detail="Sitemap page not found")
 
 @app.get("/avatar/{input_param}.svg")
-async def get_avatar(input_param: str, frame: str = "neutral", legacy: bool = False):
+async def get_avatar(input_param: str, frame: str = "neutral", legacy: bool = False, shadow: bool = True):
     """
     Generate and serve avatar SVG for given input.
 
@@ -399,6 +401,7 @@ async def get_avatar(input_param: str, frame: str = "neutral", legacy: bool = Fa
                   "happy", "sad", "surprised", "angry", "bored",
                   "vowel_A", "vowel_E", "vowel_I", "vowel_O", "vowel_U"
     - **legacy**: If true, use legacy single-frame mode (default: false for universal mode)
+    - **shadow**: If true, show shadow (default: true). If false, hide shadow via CSS
     - Returns SVG image with proper content-type headers
     - Cached results are served immediately for performance
     """
@@ -406,8 +409,8 @@ async def get_avatar(input_param: str, frame: str = "neutral", legacy: bool = Fa
         # Convert legacy parameter to universal (universal = not legacy)
         universal = not legacy
 
-        # Get or generate avatar content with consistent hash, frame, and universal mode
-        svg_content, hash_hex = await get_or_generate_avatar_content(input_param, frame=frame, universal=universal)
+        # Get or generate avatar content with consistent hash, frame, universal mode, and shadow
+        svg_content, hash_hex = await get_or_generate_avatar_content(input_param, frame=frame, universal=universal, shadow=shadow)
 
         # Consistent ETag generation from canonical hash
         etag = f'"{hash_hex}"'
