@@ -799,14 +799,14 @@ class DoorAgentGenerator:
         # Idle frame rules (10 frames with independent eye/mouth combinations)
         idle_frames = [
             ('idle_0', 'open', 'closed'),      # Default resting state
-            ('idle_1', 'open', 'open'),        # Slight smile
+            ('idle_1', 'open', 'angry'),       # Subtle expression change
             ('idle_2', 'closed', 'closed'),    # Blink
             ('idle_3', 'happy', 'closed'),     # Slight happiness
             ('idle_4', 'open', 'closed'),      # Return to rest
             ('idle_5', 'sad', 'closed'),       # Slight sadness
-            ('idle_6', 'open', 'bored'),       # Slight boredom
+            ('idle_6', 'open', 'angry'),       # Subtle expression change
             ('idle_7', 'bored', 'bored'),      # Full boredom
-            ('idle_8', 'open', 'open'),        # Slight smile again
+            ('idle_8', 'open', 'angry'),       # Subtle expression change
             ('idle_9', 'open', 'closed'),      # Return to rest
         ]
 
@@ -831,14 +831,14 @@ class DoorAgentGenerator:
 
         idle_frame_classes = [
             ('open', 'closed'),   # idle_0 (0-10%)
-            ('open', 'open'),     # idle_1 (10-20%)
-            ('closed', 'closed'), # idle_2 (20-30%)
+            ('open', 'angry'),    # idle_1 (10-20%) - subtle expression change
+            ('closed', 'closed'), # idle_2 (20-30%) - blink
             ('happy', 'closed'),  # idle_3 (30-40%)
             ('open', 'closed'),   # idle_4 (40-50%)
             ('sad', 'closed'),    # idle_5 (50-60%)
-            ('open', 'bored'),    # idle_6 (60-70%)
+            ('open', 'angry'),    # idle_6 (60-70%) - subtle expression change
             ('bored', 'bored'),   # idle_7 (70-80%)
-            ('open', 'open'),     # idle_8 (80-90%)
+            ('open', 'angry'),    # idle_8 (80-90%) - subtle expression change
             ('open', 'closed'),   # idle_9 (90-100%)
         ]
 
@@ -849,14 +849,14 @@ class DoorAgentGenerator:
             eye_frames.setdefault(eye_class, []).append(i)
             mouth_frames.setdefault(mouth_class, []).append(i)
 
-        # Generate compact keyframe animations
+        # Generate compact keyframe animations (6s duration for slower, less jumpy animation)
         for eye_class, frame_indices in eye_frames.items():
             kf = ''.join([f'{i*10}%,{(i+1)*10 if i<9 else 100}%{{opacity:{1 if i in frame_indices else 0}}}' for i in range(10)])
-            css_rules.append(f'@keyframes {a}-idle-eye-{eye_class}{{{kf}}}#{a}.idle .eyes>.{eye_class}{{animation:{a}-idle-eye-{eye_class} 3s steps(1) infinite}}')
+            css_rules.append(f'@keyframes {a}-idle-eye-{eye_class}{{{kf}}}#{a}.idle .eyes>.{eye_class}{{animation:{a}-idle-eye-{eye_class} 6s steps(1) infinite}}')
 
         for mouth_class, frame_indices in mouth_frames.items():
             kf = ''.join([f'{i*10}%,{(i+1)*10 if i<9 else 100}%{{opacity:{1 if i in frame_indices else 0}}}' for i in range(10)])
-            css_rules.append(f'@keyframes {a}-idle-mouth-{mouth_class}{{{kf}}}#{a}.idle .mouths>.{mouth_class}{{animation:{a}-idle-mouth-{mouth_class} 3s steps(1) infinite}}')
+            css_rules.append(f'@keyframes {a}-idle-mouth-{mouth_class}{{{kf}}}#{a}.idle .mouths>.{mouth_class}{{animation:{a}-idle-mouth-{mouth_class} 6s steps(1) infinite}}')
 
         # Shadow visibility control
         css_rules.append(f'#{a}.no-shadow .shadow{{opacity:0}}')
