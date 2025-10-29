@@ -405,6 +405,13 @@ console.log(config); // Avatar configuration details</code></pre>
                                 </optgroup>
                             </select>
 
+                            <div style="margin-top: 1rem;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                    <input type="checkbox" id="shadowToggle" checked style="width: 18px; height: 18px; cursor: pointer;">
+                                    <span style="font-weight: bold;">Show Shadow</span>
+                                </label>
+                            </div>
+
                             <div style="margin-top: 1rem; padding: 1rem; background: #f0f0f0; border-radius: 6px;">
                                 <strong>Current class:</strong> <code id="currentClass" style="background: #2d2d2d; color: #f8f8f2; padding: 0.2rem 0.5rem; border-radius: 3px;">agent</code>
                             </div>
@@ -579,12 +586,30 @@ svgElement.classList.remove('no-shadow'); // Show shadow
             // Handle state changes
             select.addEventListener('change', (e) => {
                 const state = e.target.value;
+                const shadowToggle = document.getElementById('shadowToggle');
+                const noShadow = !shadowToggle.checked ? ' no-shadow' : '';
+
                 if (state) {
-                    svgElement.className.baseVal = `agent ${state}`;
-                    classDisplay.textContent = `agent ${state}`;
+                    svgElement.className.baseVal = `agent ${state}${noShadow}`;
+                    classDisplay.textContent = `agent ${state}${noShadow}`;
                 } else {
-                    svgElement.className.baseVal = 'agent';
-                    classDisplay.textContent = 'agent';
+                    svgElement.className.baseVal = `agent${noShadow}`;
+                    classDisplay.textContent = `agent${noShadow}`;
+                }
+            });
+
+            // Handle shadow toggle
+            const shadowToggle = document.getElementById('shadowToggle');
+            shadowToggle.addEventListener('change', (e) => {
+                const state = select.value;
+                const noShadow = !e.target.checked ? ' no-shadow' : '';
+
+                if (state) {
+                    svgElement.className.baseVal = `agent ${state}${noShadow}`;
+                    classDisplay.textContent = `agent ${state}${noShadow}`;
+                } else {
+                    svgElement.className.baseVal = `agent${noShadow}`;
+                    classDisplay.textContent = `agent${noShadow}`;
                 }
             });
         }
