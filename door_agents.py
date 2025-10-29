@@ -1129,6 +1129,13 @@ class DoorAgentGenerator:
         nodes_svg = self._generate_nodes(shape, node_color, self.config.CELL, self.config.PAD)
         g.append(nodes_svg)
 
+        # Update bounds with node positions (nodes are circles with radius node_r)
+        node_r = int(body_w * self.config.NODE_R_FRAC)
+        node_left_x = bx0 - node_r - node_r  # left_node - node_r
+        node_right_x = bx1 + node_r + node_r  # right_node + node_r
+        min_x = min(min_x, node_left_x)
+        max_x = max(max_x, node_right_x)
+
         # Feet
         feet_svg = self._generate_feet(shape, body_color, node_color, feet_match_body, self.config.CELL, self.config.PAD)
         g.append(feet_svg)
@@ -1148,6 +1155,29 @@ class DoorAgentGenerator:
         )
         if hair_front:
             g.append(hair_front)
+
+        # Update bounds with hair position (if hair present)
+        if hair_index is not None:
+            # Get hair asset data
+            hx0, hy0, hw, hh, hair_svg, hair_z_order, hair_width_percent, hair_position_x, hair_position_y, hair_anchor, hair_color_spec = self.config.HAIRS[hair_index]
+
+            # Calculate hair dimensions (same logic as in _generate_hair)
+            hair_w = body_w * (hair_width_percent / 100)
+
+            # Calculate hair X position
+            if hair_position_x == "cell-center":
+                hair_x = self.config.PAD + (self.config.CELL - 2 * self.config.PAD) / 2 - hair_w / 2
+            elif hair_position_x.endswith("%"):
+                percent = float(hair_position_x[:-1]) / 100
+                hair_x = cx + (hair_w * percent) - hair_w / 2
+            else:  # "body-center" or default
+                hair_x = cx - hair_w / 2
+
+            # Update bounds with hair position
+            hair_left = hair_x
+            hair_right = hair_x + hair_w
+            min_x = min(min_x, hair_left)
+            max_x = max(max_x, hair_right)
 
         # Assemble final SVG
         svg_content = "".join(g)
