@@ -1065,6 +1065,10 @@ class DoorAgentGenerator:
         by1 = by0 + body_h
         cx = (bx0 + bx1) / 2
 
+        # Initialize bounding box tracking for shadow calculation
+        min_x = float('inf')
+        max_x = float('-inf')
+
         feet_fill = body_color if feet_match_body else node_color
 
         # Generate avatar ID (needed for clipPath namespacing in universal mode)
@@ -1116,6 +1120,10 @@ class DoorAgentGenerator:
         # Body and core elements
         body_svg = self._generate_body(shape, body_color, self.config.CELL, self.config.PAD)
         g.append(body_svg)
+
+        # Update bounds with body position
+        min_x = min(min_x, bx0)
+        max_x = max(max_x, bx0 + body_w)
 
         # Nodes
         nodes_svg = self._generate_nodes(shape, node_color, self.config.CELL, self.config.PAD)
