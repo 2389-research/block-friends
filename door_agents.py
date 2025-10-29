@@ -1235,6 +1235,18 @@ class DoorAgentGenerator:
         # Create shadow ellipse (darker, less blurred)
         shadow_ellipse = f'<ellipse cx="{shadow_cx}" cy="{shadow_cy}" rx="{shadow_rx}" ry="{shadow_ry}" fill="#808080" opacity="0.6" filter="url(#{avatar_id}-shadow-blur)"/>'
 
+        # Update bounds to include shadow (with blur expansion)
+        # Blur adds ~2*stdDeviation pixels around the ellipse
+        blur_expansion = 0.8 * 2
+        shadow_left = shadow_cx - shadow_rx - blur_expansion
+        shadow_right = shadow_cx + shadow_rx + blur_expansion
+        shadow_top = shadow_cy - shadow_ry - blur_expansion
+        shadow_bottom = shadow_cy + shadow_ry + blur_expansion
+        min_x = min(min_x, shadow_left)
+        max_x = max(max_x, shadow_right)
+        min_y = min(min_y, shadow_top)
+        max_y = max(max_y, shadow_bottom)
+
         # Assemble final SVG
         svg_content = "".join(g)
 
