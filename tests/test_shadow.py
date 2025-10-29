@@ -31,3 +31,19 @@ def test_shadow_scales_with_hair():
 
     shadow_rx = float(match.group(1))
     assert shadow_rx > 30, "Shadow should be wider than minimal body"
+
+def test_shadow_positioned_at_bottom():
+    """Test that shadow is positioned at bottom with overlap."""
+    config = DoorAgentConfig()
+    generator = DoorAgentGenerator(config)
+
+    svg, _ = generator.generate_deterministic(input_string="test@example.com", universal=True)
+
+    # Extract ellipse cy (center y)
+    import re
+    match = re.search(r'<ellipse[^>]*cy="([^"]+)"', svg)
+    assert match, "Shadow ellipse should have cy attribute"
+
+    shadow_cy = float(match.group(1))
+    # Should be near bottom (CELL=60, overlap=3, so cy should be ~57)
+    assert 55 <= shadow_cy <= 58, f"Shadow cy should be near bottom, got {shadow_cy}"

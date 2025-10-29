@@ -1181,6 +1181,23 @@ class DoorAgentGenerator:
             min_x = min(min_x, hair_left)
             max_x = max(max_x, hair_right)
 
+        # Calculate shadow dimensions from content bounds
+        content_width = max_x - min_x
+        content_center_x = (min_x + max_x) / 2
+
+        shadow_width = content_width * 1.2
+        shadow_height = content_width * 0.15
+        shadow_cx = content_center_x
+        shadow_cy = self.config.CELL - 3  # 3px overlap with feet
+        shadow_rx = shadow_width / 2
+        shadow_ry = shadow_height / 2
+
+        # Create shadow blur filter
+        shadow_filter = f'<filter id="{avatar_id}-shadow-blur"><feGaussianBlur in="SourceGraphic" stdDeviation="1.5"/></filter>'
+
+        # Create shadow ellipse
+        shadow_ellipse = f'<ellipse cx="{shadow_cx}" cy="{shadow_cy}" rx="{shadow_rx}" ry="{shadow_ry}" fill="#808080" opacity="0.45" filter="url(#{avatar_id}-shadow-blur)"/>'
+
         # Assemble final SVG
         svg_content = "".join(g)
 
