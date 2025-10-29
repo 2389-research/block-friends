@@ -1065,9 +1065,11 @@ class DoorAgentGenerator:
         by1 = by0 + body_h
         cx = (bx0 + bx1) / 2
 
-        # Initialize bounding box tracking for shadow calculation
+        # Initialize bounding box tracking for shadow calculation and viewBox
         min_x = float('inf')
         max_x = float('-inf')
+        min_y = float('inf')
+        max_y = float('-inf')
 
         feet_fill = body_color if feet_match_body else node_color
 
@@ -1124,6 +1126,8 @@ class DoorAgentGenerator:
         # Update bounds with body position
         min_x = min(min_x, bx0)
         max_x = max(max_x, bx0 + body_w)
+        min_y = min(min_y, by0)
+        max_y = max(max_y, by1)
 
         # Nodes
         nodes_svg = self._generate_nodes(shape, node_color, self.config.CELL, self.config.PAD)
@@ -1135,12 +1139,18 @@ class DoorAgentGenerator:
         node_r = int(body_w * self.config.NODE_R_FRAC)
         node_left_x = bx0 - node_r - node_r  # left_node - node_r
         node_right_x = bx1 + node_r + node_r  # right_node + node_r
+        node_y = by0 + body_h * self.config.NODE_Y_FRAC
         min_x = min(min_x, node_left_x)
         max_x = max(max_x, node_right_x)
+        min_y = min(min_y, node_y - node_r)
+        max_y = max(max_y, node_y + node_r)
 
         # Feet
         feet_svg = self._generate_feet(shape, body_color, node_color, feet_match_body, self.config.CELL, self.config.PAD)
         g.append(feet_svg)
+
+        # Update bounds with feet position
+        max_y = max(max_y, by1 + foot_h)
 
         # Eyes and mouths (already formatted with transforms)
         g.append(eyes_svg)
@@ -1165,6 +1175,8 @@ class DoorAgentGenerator:
 
             # Calculate hair dimensions (same logic as in _generate_hair)
             hair_w = body_w * (hair_width_percent / 100)
+            sh = hair_w / hw
+            hair_h = hh * sh
 
             # Calculate hair X position
             if hair_position_x == "cell-center":
@@ -1175,11 +1187,35 @@ class DoorAgentGenerator:
             else:  # "body-center" or default
                 hair_x = cx - hair_w / 2
 
+            # Calculate hair Y position (same logic as in _generate_hair)
+            eyes_y_approx = by0 + body_h * self.config.EYE_Y_FRAC
+            if hair_position_y == "between-body-eyes":
+                base_y = (by0 + eyes_y_approx) / 2
+            elif hair_position_y == "eyes":
+                base_y = eyes_y_approx
+            elif hair_position_y.endswith("%"):
+                percent = float(hair_position_y[:-1]) / 100
+                base_y = by0 + (hair_h * percent)
+            else:  # "above-body" or default
+                base_y = by0
+
+            # Apply anchor offset
+            if hair_anchor == "bottom":
+                hair_y = base_y - hair_h
+            elif hair_anchor == "center":
+                hair_y = base_y - hair_h / 2
+            else:  # "top" or default
+                hair_y = base_y
+
             # Update bounds with hair position
             hair_left = hair_x
             hair_right = hair_x + hair_w
+            hair_top = hair_y
+            hair_bottom = hair_y + hair_h
             min_x = min(min_x, hair_left)
             max_x = max(max_x, hair_right)
+            min_y = min(min_y, hair_top)
+            max_y = max(max_y, hair_bottom)
 
         # Calculate shadow dimensions from content bounds
         content_width = max_x - min_x
@@ -1202,8 +1238,20 @@ class DoorAgentGenerator:
         # Assemble final SVG
         svg_content = "".join(g)
 
+        # Calculate viewBox from content bounds
+        content_bbox_width = max_x - min_x
+        content_bbox_height = max_y - min_y
+
+        # Add padding to viewBox (10% on each side)
+        viewbox_padding = max(content_bbox_width, content_bbox_height) * 0.1
+        viewbox_x = min_x - viewbox_padding
+        viewbox_y = min_y - viewbox_padding
+        viewbox_width = content_bbox_width + 2 * viewbox_padding
+        viewbox_height = content_bbox_height + 2 * viewbox_padding
+
         # Build SVG with CSS block and clipPath defs if universal mode
-        svg_tag = f'<svg id="{avatar_id}" class="agent {frame}" width="{self.config.CELL}" height="{self.config.CELL}" viewBox="0 0 {self.config.CELL} {self.config.CELL}" xmlns="http://www.w3.org/2000/svg">'
+        # Keep width/height as CELL for consistent display size, but use calculated viewBox
+        svg_tag = f'<svg id="{avatar_id}" class="agent {frame}" width="{self.config.CELL}" height="{self.config.CELL}" viewBox="{viewbox_x} {viewbox_y} {viewbox_width} {viewbox_height}" xmlns="http://www.w3.org/2000/svg">'
 
         if universal and (css_block or eye_clipPaths or shadow_filter):
             # Add defs section for clipPaths and shadow filter
