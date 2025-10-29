@@ -801,12 +801,12 @@ class DoorAgentGenerator:
             ('idle_0', 'open', 'closed'),      # Default resting state
             ('idle_1', 'open', 'angry'),       # Subtle expression change
             ('idle_2', 'closed', 'closed'),    # Blink
-            ('idle_3', 'happy', 'closed'),     # Slight happiness
-            ('idle_4', 'open', 'closed'),      # Return to rest
-            ('idle_5', 'sad', 'closed'),       # Slight sadness
-            ('idle_6', 'open', 'angry'),       # Subtle expression change
+            ('idle_3', 'open', 'closed'),      # Resting
+            ('idle_4', 'open', 'closed'),      # Resting
+            ('idle_5', 'open', 'closed'),      # Resting
+            ('idle_6', 'bored', 'angry'),      # Bored expression
             ('idle_7', 'bored', 'bored'),      # Full boredom
-            ('idle_8', 'open', 'angry'),       # Subtle expression change
+            ('idle_8', 'bored', 'angry'),      # Bored expression
             ('idle_9', 'open', 'closed'),      # Return to rest
         ]
 
@@ -833,12 +833,12 @@ class DoorAgentGenerator:
             ('open', 'closed'),   # idle_0 (0-10%)
             ('open', 'angry'),    # idle_1 (10-20%) - subtle expression change
             ('closed', 'closed'), # idle_2 (20-30%) - blink
-            ('happy', 'closed'),  # idle_3 (30-40%)
-            ('open', 'closed'),   # idle_4 (40-50%)
-            ('sad', 'closed'),    # idle_5 (50-60%)
-            ('open', 'angry'),    # idle_6 (60-70%) - subtle expression change
-            ('bored', 'bored'),   # idle_7 (70-80%)
-            ('open', 'angry'),    # idle_8 (80-90%) - subtle expression change
+            ('open', 'closed'),   # idle_3 (30-40%) - resting
+            ('open', 'closed'),   # idle_4 (40-50%) - resting
+            ('open', 'closed'),   # idle_5 (50-60%) - resting
+            ('bored', 'angry'),   # idle_6 (60-70%) - bored expression
+            ('bored', 'bored'),   # idle_7 (70-80%) - full boredom
+            ('bored', 'angry'),   # idle_8 (80-90%) - bored expression
             ('open', 'closed'),   # idle_9 (90-100%)
         ]
 
