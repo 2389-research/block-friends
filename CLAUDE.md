@@ -207,4 +207,4 @@ Avatars now include a ground shadow for depth and visual grounding.
 - Filter namespaced with avatar_id to prevent conflicts
 - Works in both universal and legacy modes
 
-See `docs/plans/2025-10-29-avatar-shadow.md` for full design rationale.
+See `docs/plans/2025-10-29-avatar-shadow-design.md` for full design rationale.
