@@ -799,14 +799,14 @@ class DoorAgentGenerator:
         # Idle frame rules (10 frames with independent eye/mouth combinations)
         idle_frames = [
             ('idle_0', 'open', 'closed'),      # Default resting state
-            ('idle_1', 'open', 'angry'),       # Subtle expression change
-            ('idle_2', 'closed', 'closed'),    # Blink
-            ('idle_3', 'open', 'closed'),      # Resting
+            ('idle_1', 'open', 'bored'),       # Subtle bored expression
+            ('idle_2', 'closed', 'bored'),     # Blink with bored mouth
+            ('idle_3', 'open', 'bored'),       # Bored
             ('idle_4', 'open', 'closed'),      # Resting
             ('idle_5', 'open', 'closed'),      # Resting
-            ('idle_6', 'bored', 'angry'),      # Bored expression
+            ('idle_6', 'bored', 'closed'),     # Bored eyes, neutral mouth
             ('idle_7', 'bored', 'bored'),      # Full boredom
-            ('idle_8', 'bored', 'angry'),      # Bored expression
+            ('idle_8', 'bored', 'closed'),     # Bored eyes, neutral mouth
             ('idle_9', 'open', 'closed'),      # Return to rest
         ]
 
@@ -831,14 +831,14 @@ class DoorAgentGenerator:
 
         idle_frame_classes = [
             ('open', 'closed'),   # idle_0 (0-10%)
-            ('open', 'angry'),    # idle_1 (10-20%) - subtle expression change
-            ('closed', 'closed'), # idle_2 (20-30%) - blink
-            ('open', 'closed'),   # idle_3 (30-40%) - resting
-            ('open', 'closed'),   # idle_4 (40-50%) - resting
-            ('open', 'closed'),   # idle_5 (50-60%) - resting
-            ('bored', 'angry'),   # idle_6 (60-70%) - bored expression
-            ('bored', 'bored'),   # idle_7 (70-80%) - full boredom
-            ('bored', 'angry'),   # idle_8 (80-90%) - bored expression
+            ('open', 'bored'),    # idle_1 (10-20%)
+            ('closed', 'bored'),  # idle_2 (20-30%)
+            ('open', 'bored'),    # idle_3 (30-40%)
+            ('open', 'closed'),   # idle_4 (40-50%)
+            ('open', 'closed'),   # idle_5 (50-60%)
+            ('bored', 'closed'),  # idle_6 (60-70%)
+            ('bored', 'bored'),   # idle_7 (70-80%)
+            ('bored', 'closed'),  # idle_8 (80-90%)
             ('open', 'closed'),   # idle_9 (90-100%)
         ]
 
