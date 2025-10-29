@@ -435,7 +435,22 @@ let frameIndex = 0;
 setInterval(() => {
     svgElement.className.baseVal = `agent ${idleFrames[frameIndex]}`;
     frameIndex = (frameIndex + 1) % idleFrames.length;
-}, 150); // ~6.7 FPS for smooth breathing</code></pre>
+}, 150); // ~6.7 FPS for smooth breathing
+
+// Shadow visibility control
+svgElement.classList.add('no-shadow');    // Hide shadow
+svgElement.classList.remove('no-shadow'); // Show shadow</code></pre>
+
+                <h3>Shadow Control</h3>
+                <p>Avatars include a ground shadow by default. You can hide it using the <code>no-shadow</code> CSS class or the <code>shadow</code> URL parameter:</p>
+                <pre><code>// Via CSS class (client-side)
+svgElement.classList.add('no-shadow');    // Hide shadow
+svgElement.classList.remove('no-shadow'); // Show shadow
+
+// Via URL parameter (server-side)
+/avatar/user@example.com.svg              // Shadow visible (default)
+/avatar/user@example.com.svg?shadow=false // Shadow hidden
+/avatar/user@example.com.svg?frame=happy&shadow=false // Combined params</code></pre>
 
                 <h3>Performance Benefits</h3>
                 <div class="features" style="margin-top: 1rem;">
