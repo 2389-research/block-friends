@@ -189,14 +189,14 @@ async def svg_to_pdf(svg_content: str) -> bytes:
 
 async def generate_pdf_bundle(input_string: str, animations: List[str]) -> bytes:
     """
-    Generate a ZIP bundle containing PDF animations and metadata.
+    Generate a ZIP bundle containing multi-page PDF animations and metadata.
 
     Args:
         input_string: Input string for deterministic generation
         animations: List of animation types to include ("idle", "emotes", "vowels")
 
     Returns:
-        ZIP file bytes containing PDFs and metadata.json
+        ZIP file bytes containing multi-page PDFs and metadata.json
     """
     hash_hex = hashlib.sha256(input_string.encode('utf-8')).hexdigest()[:16]
 
@@ -205,21 +205,23 @@ async def generate_pdf_bundle(input_string: str, animations: List[str]) -> bytes
         "idle": {
             "frames": ["idle_0", "idle_1", "idle_2", "idle_3"],
             "fps": 4,
-            "loop": True
+            "loop": True,
+            "description": "Breathing/idle animation"
         },
         "emotes": {
-            "happy": ["happy"],
-            "sad": ["sad"],
-            "surprised": ["surprised"],
-            "angry": ["angry"],
-            "bored": ["bored"]
+            "joy": {"weights": [0, 25, 50, 100, 50, 25, 0], "fps": 12},
+            "sorrow": {"weights": [0, 25, 50, 100, 50, 25, 0], "fps": 12},
+            "surprised": {"weights": [0, 25, 50, 100, 50, 25, 0], "fps": 12},
+            "angry": {"weights": [0, 25, 50, 100, 50, 25, 0], "fps": 12},
+            "bored": {"weights": [0, 25, 50, 100, 50, 25, 0], "fps": 12},
+            "fun": {"weights": [0, 25, 50, 100, 50, 25, 0], "fps": 12}
         },
         "vowels": {
-            "A": ["vowel_A"],
-            "E": ["vowel_E"],
-            "I": ["vowel_I"],
-            "O": ["vowel_O"],
-            "U": ["vowel_U"]
+            "A": {"weights": [0, 50, 100, 50, 0], "fps": 10},
+            "E": {"weights": [0, 50, 100, 50, 0], "fps": 10},
+            "I": {"weights": [0, 50, 100, 50, 0], "fps": 10},
+            "O": {"weights": [0, 50, 100, 50, 0], "fps": 10},
+            "U": {"weights": [0, 50, 100, 50, 0], "fps": 10}
         }
     }
 
@@ -264,44 +266,66 @@ async def generate_pdf_bundle(input_string: str, animations: List[str]) -> bytes
 
         # Generate emotes if requested
         if "emotes" in animations:
-            for emote_name, frames in frame_sequences["emotes"].items():
+            for emote_name, emote_spec in frame_sequences["emotes"].items():
                 emote_writer = PdfWriter()
+                weights = emote_spec["weights"]
 
-                for frame in frames:
-                    svg_content, _ = await get_or_generate_avatar_content(input_string, frame=frame)
-                    pdf_bytes = await svg_to_pdf(svg_content)
+                for weight in weights:
+                    # Generate transition frame
+                    svg_content, _ = generator.generate_transition(input_string, emote_name, weight)
+
+                    # Wrap in container
+                    cell_size = config.CELL
+                    wrapped_svg = f'<svg viewBox="0 0 {cell_size} {cell_size}" xmlns="http://www.w3.org/2000/svg">{svg_content}</svg>'
+
+                    # Convert to PDF page
+                    pdf_bytes = await svg_to_pdf(wrapped_svg)
                     pdf_reader = PdfReader(io.BytesIO(pdf_bytes))
                     emote_writer.add_page(pdf_reader.pages[0])
 
+                # Write PDF to ZIP
                 emote_pdf_buffer = io.BytesIO()
                 emote_writer.write(emote_pdf_buffer)
                 emote_pdf_buffer.seek(0)
                 zip_file.writestr(f"emote_{emote_name}.pdf", emote_pdf_buffer.read())
 
             metadata["animations"]["emotes"] = {
-                "files": {name: f"emote_{name}.pdf" for name in frame_sequences["emotes"].keys()},
-                "count": len(frame_sequences["emotes"])
+                "frame_count": 7,
+                "frames": [0, 25, 50, 100, 50, 25, 0],
+                "fps": 12,
+                "emotes": list(frame_sequences["emotes"].keys())
             }
 
         # Generate vowels if requested
         if "vowels" in animations:
-            for vowel, frames in frame_sequences["vowels"].items():
+            for vowel, vowel_spec in frame_sequences["vowels"].items():
                 vowel_writer = PdfWriter()
+                weights = vowel_spec["weights"]
 
-                for frame in frames:
-                    svg_content, _ = await get_or_generate_avatar_content(input_string, frame=frame)
-                    pdf_bytes = await svg_to_pdf(svg_content)
+                for weight in weights:
+                    # Generate transition frame
+                    svg_content, _ = generator.generate_transition(input_string, vowel, weight)
+
+                    # Wrap in container
+                    cell_size = config.CELL
+                    wrapped_svg = f'<svg viewBox="0 0 {cell_size} {cell_size}" xmlns="http://www.w3.org/2000/svg">{svg_content}</svg>'
+
+                    # Convert to PDF page
+                    pdf_bytes = await svg_to_pdf(wrapped_svg)
                     pdf_reader = PdfReader(io.BytesIO(pdf_bytes))
                     vowel_writer.add_page(pdf_reader.pages[0])
 
+                # Write PDF to ZIP
                 vowel_pdf_buffer = io.BytesIO()
                 vowel_writer.write(vowel_pdf_buffer)
                 vowel_pdf_buffer.seek(0)
                 zip_file.writestr(f"vowel_{vowel}.pdf", vowel_pdf_buffer.read())
 
             metadata["animations"]["vowels"] = {
-                "files": {vowel: f"vowel_{vowel}.pdf" for vowel in frame_sequences["vowels"].keys()},
-                "count": len(frame_sequences["vowels"])
+                "frame_count": 5,
+                "frames": [0, 50, 100, 50, 0],
+                "fps": 10,
+                "vowels": list(frame_sequences["vowels"].keys())
             }
 
         # Write metadata JSON
