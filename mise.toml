@@ -1,2 +1,7 @@
 [tools]
 python = "latest"
+
+[env]
+# Required for cairocffi to find the Homebrew-installed Cairo library on macOS
+DYLD_FALLBACK_LIBRARY_PATH = "/opt/homebrew/opt/cairo/lib"
+DYLD_LIBRARY_PATH = "/opt/homebrew/opt/cairo/lib"

@@ -517,6 +517,91 @@ async def get_avatar_frames(input_param: str):
         logger.exception(f"Unhandled error in get_avatar_frames for {input_param}")
         raise HTTPException(status_code=500, detail=f"Error getting avatar frames: {str(e)}")
 
+@app.get("/avatar/{input_param}/transition/{emote}/{weight}")
+async def get_transition_frame(input_param: str, emote: str, weight: int):
+    """
+    Generate a single transition frame between neutral and an emotional expression.
+
+    - **input_param**: Any string (email, username, hash, etc.)
+    - **emote**: Expression name (joy, sorrow, surprised, angry, bored, fun, A, E, I, O, U)
+    - **weight**: Animation progress as percentage (0-100)
+
+    Returns an SVG image showing the transition at the specified weight.
+
+    Examples:
+    - /avatar/user@example.com/transition/joy/0 - Neutral face
+    - /avatar/user@example.com/transition/joy/50 - Halfway to joy
+    - /avatar/user@example.com/transition/joy/100 - Full joy expression
+    """
+    # Validate inputs (outside try block so HTTPException propagates)
+    valid_emotes = ['joy', 'sorrow', 'surprised', 'angry', 'bored', 'fun']
+    valid_vowels = ['A', 'E', 'I', 'O', 'U']
+
+    if emote not in valid_emotes and emote not in valid_vowels:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid emote '{emote}'. Must be one of: {', '.join(valid_emotes + valid_vowels)}"
+        )
+
+    if not 0 <= weight <= 100:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Weight must be between 0 and 100, got {weight}"
+        )
+
+    try:
+
+        # Generate hash for caching
+        hash_hex = hashlib.sha256(input_param.encode('utf-8')).hexdigest()[:16]
+        cache_key = f"{hash_hex}_transition_{emote}_{weight}"
+        cache_path = CACHE_DIR / f"{cache_key}.svg"
+
+        # Check cache first
+        if cache_path.exists():
+            try:
+                svg_content = await asyncio.to_thread(cache_path.read_text)
+                logger.info(f"Cache hit for transition {cache_key}")
+                return Response(content=svg_content, media_type="image/svg+xml")
+            except IOError as e:
+                logger.error(f"Error reading cached transition {cache_path}: {e}")
+
+        logger.info(f"Cache miss for transition {cache_key}, generating")
+
+        # Generate transition frame
+        async with file_write_lock:
+            # Double-check cache after acquiring lock
+            if cache_path.exists():
+                try:
+                    svg_content = await asyncio.to_thread(cache_path.read_text)
+                    logger.info(f"Cache hit after lock for transition {cache_key}")
+                    return Response(content=svg_content, media_type="image/svg+xml")
+                except IOError as e:
+                    logger.error(f"Error reading cached transition after lock {cache_path}: {e}")
+
+            # Generate new transition frame
+            svg_content, metadata = generator.generate_transition(input_param, emote, weight)
+
+            # Wrap in properly sized container
+            cell_size = config.CELL
+            wrapped_svg = f'<svg viewBox="0 0 {cell_size} {cell_size}" xmlns="http://www.w3.org/2000/svg">{svg_content}</svg>'
+
+            # Write to cache
+            try:
+                await asyncio.to_thread(cache_path.write_text, wrapped_svg)
+                logger.info(f"Cached transition to {cache_path}")
+            except IOError as e:
+                logger.error(f"Error writing cache file {cache_path}: {e}")
+
+        return Response(content=wrapped_svg, media_type="image/svg+xml")
+
+    except ValueError as e:
+        logger.error(f"Validation error for transition: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+    except Exception as e:
+        logger.exception(f"Unhandled error generating transition for {input_param}")
+        raise HTTPException(status_code=500, detail=f"Error generating transition: {str(e)}")
+
 @app.get("/avatar/{input_param}/bundle")
 async def get_avatar_bundle(input_param: str, animations: str = "idle,emotes,vowels"):
     """
