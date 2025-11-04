@@ -332,6 +332,42 @@ curl http://localhost:8000/avatar/test.svg/info
 - Pillow 11.3+ (future raster rendering)
 - Gunicorn (production deployment)
 
+## 🎭 Animation Transitions
+
+The avatar service supports smooth transitions between neutral and emotional expressions.
+
+### Quick Start
+
+```bash
+# Get a transition frame
+curl http://localhost:8000/avatar/myname/transition/joy/50 -o avatar.svg
+
+# Get complete animation bundle
+curl "http://localhost:8000/avatar/myname/bundle?animations=emotes" -o animations.zip
+```
+
+### Interactive Demo
+
+Visit http://localhost:8000/static/transitions-demo.html to test transitions interactively.
+
+### Available Expressions
+
+**Emotes** (7 frames each):
+- `joy`, `sorrow`, `surprised`, `angry`, `bored`, `fun`
+
+**Vowels** (5 frames each - for lip-sync):
+- `A`, `E`, `I`, `O`, `U`
+
+### Documentation
+
+See [docs/transitions-api.md](docs/transitions-api.md) for complete API documentation including:
+- Opacity crossfade architecture
+- All API endpoints with examples
+- Animation sequences and frame counts
+- JavaScript and Python usage examples
+- Performance benchmarks
+- Best practices for web, games, and chat applications
+
 ## 📄 License
 
 MIT License - Feel free to use in your projects!
