@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avatar Animation Transitions Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+        }
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: inline-block;
+            width: 120px;
+            font-weight: 500;
+        }
+        input, select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        input[type="range"] {
+            width: 300px;
+        }
+        .weight-value {
+            display: inline-block;
+            width: 50px;
+            text-align: right;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .preview {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        #avatar-preview {
+            max-width: 400px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+        }
+        .animation-controls {
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 0 5px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .info {
+            margin-top: 10px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Avatar Animation Transitions Demo</h1>
+
+    <div class="controls">
+        <h2>Controls</h2>
+
+        <div class="control-group">
+            <label for="input-string">Avatar Input:</label>
+            <input type="text" id="input-string" value="test@example.com" placeholder="Enter email or text">
+        </div>
+
+        <div class="control-group">
+            <label for="emote-select">Expression:</label>
+            <select id="emote-select">
+                <option value="joy">Joy</option>
+                <option value="sorrow">Sorrow</option>
+                <option value="surprised">Surprised</option>
+                <option value="angry">Angry</option>
+                <option value="bored">Bored</option>
+                <option value="fun">Fun</option>
+                <option value="A">Vowel A</option>
+                <option value="E">Vowel E</option>
+                <option value="I">Vowel I</option>
+                <option value="O">Vowel O</option>
+                <option value="U">Vowel U</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="weight-slider">Weight:</label>
+            <input type="range" id="weight-slider" min="0" max="100" value="0" step="1">
+            <span class="weight-value" id="weight-display">0%</span>
+        </div>
+
+        <div class="animation-controls">
+            <button id="animate-btn">Play Animation</button>
+            <button id="stop-btn" disabled>Stop</button>
+        </div>
+
+        <div class="info" id="info-text">
+            Drag the slider to see smooth transitions between neutral and full expression.
+        </div>
+    </div>
+
+    <div class="preview">
+        <h2>Preview</h2>
+        <img id="avatar-preview" src="/avatar/test@example.com/transition/joy/0" alt="Avatar Preview">
+    </div>
+
+    <script>
+        const inputString = document.getElementById('input-string');
+        const emoteSelect = document.getElementById('emote-select');
+        const weightSlider = document.getElementById('weight-slider');
+        const weightDisplay = document.getElementById('weight-display');
+        const avatarPreview = document.getElementById('avatar-preview');
+        const animateBtn = document.getElementById('animate-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const infoText = document.getElementById('info-text');
+
+        let animationInterval = null;
+
+        function updateAvatar() {
+            const input = inputString.value || 'test@example.com';
+            const emote = emoteSelect.value;
+            const weight = weightSlider.value;
+
+            const url = `/avatar/${encodeURIComponent(input)}/transition/${emote}/${weight}`;
+            avatarPreview.src = url;
+
+            weightDisplay.textContent = `${weight}%`;
+
+            // Update info text
+            if (weight == 0) {
+                infoText.textContent = 'Neutral face (0%)';
+            } else if (weight == 100) {
+                infoText.textContent = `Full ${emote} expression (100%)`;
+            } else {
+                infoText.textContent = `${weight}% transition to ${emote}`;
+            }
+        }
+
+        function playAnimation() {
+            stopAnimation();
+
+            // Animation sequence: 0 -> 25 -> 50 -> 75 -> 100 -> 75 -> 50 -> 25 -> 0
+            const sequence = [0, 25, 50, 75, 100, 75, 50, 25, 0];
+            let currentIndex = 0;
+
+            animateBtn.disabled = true;
+            stopBtn.disabled = false;
+
+            animationInterval = setInterval(() => {
+                weightSlider.value = sequence[currentIndex];
+                updateAvatar();
+
+                currentIndex++;
+                if (currentIndex >= sequence.length) {
+                    currentIndex = 0;
+                }
+            }, 100); // 100ms per frame = 10 FPS
+        }
+
+        function stopAnimation() {
+            if (animationInterval) {
+                clearInterval(animationInterval);
+                animationInterval = null;
+            }
+            animateBtn.disabled = false;
+            stopBtn.disabled = true;
+        }
+
+        // Event listeners
+        inputString.addEventListener('input', updateAvatar);
+        emoteSelect.addEventListener('change', updateAvatar);
+        weightSlider.addEventListener('input', updateAvatar);
+        animateBtn.addEventListener('click', playAnimation);
+        stopBtn.addEventListener('click', stopAnimation);
+
+        // Initialize
+        updateAvatar();
+    </script>
+</body>
+</html>
