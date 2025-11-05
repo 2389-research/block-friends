@@ -1,3 +1,5 @@
+<!-- ABOUTME: Interactive demo page for avatar transition animations -->
+<!-- ABOUTME: Provides manual control and automated playback for emote/vowel animations -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -277,6 +279,11 @@
             // Reset animations if playing
             if (emoteInterval) stopEmoteAnimation();
             if (vowelInterval) stopVowelAnimation();
+            // Reset emote/vowel avatars to new avatar at weight 0
+            const emote = emoteSelect.value;
+            const vowel = vowelSelect.value;
+            emoteAvatar.src = `/avatar/${encodeURIComponent(currentInput)}/transition/${emote}/0`;
+            vowelAvatar.src = `/avatar/${encodeURIComponent(currentInput)}/transition/vowel_${vowel}/0`;
         });
 
         // Emote animation
@@ -367,6 +374,9 @@
 
         // Initialize
         updateManualAvatar();
+        // Initialize emote and vowel avatars with weight 0
+        emoteAvatar.src = `/avatar/${encodeURIComponent(currentInput)}/transition/${emoteSelect.value}/0`;
+        vowelAvatar.src = `/avatar/${encodeURIComponent(currentInput)}/transition/vowel_${vowelSelect.value}/0`;
     </script>
 </body>
 </html>
