@@ -1562,3 +1562,86 @@ class DoorAgentGenerator:
         }
 
         return svg_content, config_info
+
+    def generate_transition(self, input_string: str, emote: str, weight: int) -> str:
+        """Generate transition between neutral avatar and emote variant.
+
+        Creates an SVG with two layers:
+        - Base layer: neutral avatar at (1 - weight/100) opacity
+        - Emote layer: emote avatar at (weight/100) opacity
+
+        Args:
+            input_string: Seed string for deterministic generation
+            emote: Emote name ("happy", "sad", "surprised", "angry", "bored")
+                   or vowel ("vowel_a", "vowel_e", "vowel_i", "vowel_o", "vowel_u")
+            weight: Transition weight from 0 (all base) to 100 (all emote)
+
+        Returns:
+            SVG string with layered transition
+
+        Raises:
+            ValueError: If emote is unknown or weight is out of bounds
+        """
+        # Validate inputs
+        valid_emotes = ["happy", "sad", "surprised", "angry", "bored"]
+        valid_vowels = ["vowel_a", "vowel_e", "vowel_i", "vowel_o", "vowel_u"]
+        all_valid = valid_emotes + valid_vowels
+
+        if emote not in all_valid:
+            raise ValueError(f"Unknown emote: {emote}. Valid options: {all_valid}")
+
+        if not 0 <= weight <= 100:
+            raise ValueError(f"Weight must be between 0 and 100, got {weight}")
+
+        # Calculate opacities
+        weight_frac = weight / 100.0
+        base_opacity = 1.0 - weight_frac
+        emote_opacity = weight_frac
+
+        # Generate base avatar (neutral)
+        base_svg, _ = self.generate_deterministic(input_string, frame="neutral", universal=False, shadow=True)
+
+        # Generate emote avatar
+        emote_svg, _ = self.generate_deterministic(input_string, frame=emote, universal=False, shadow=True)
+
+        # Extract inner content from both SVGs (remove <svg> wrapper)
+        # We need to extract everything between <svg...> and </svg>
+        import re
+
+        def extract_svg_inner(svg_str):
+            """Extract content between <svg...> and </svg> tags."""
+            # Find opening tag end
+            match = re.search(r'<svg[^>]*>', svg_str)
+            if not match:
+                raise ValueError("Invalid SVG: no opening <svg> tag")
+            start = match.end()
+
+            # Find closing tag
+            end = svg_str.rfind('</svg>')
+            if end == -1:
+                raise ValueError("Invalid SVG: no closing </svg> tag")
+
+            return svg_str[start:end].strip()
+
+        def extract_svg_viewbox(svg_str):
+            """Extract viewBox attribute from SVG."""
+            match = re.search(r'viewBox="([^"]*)"', svg_str)
+            if match:
+                return match.group(1)
+            return "0 0 20 20"  # Default fallback
+
+        base_inner = extract_svg_inner(base_svg)
+        emote_inner = extract_svg_inner(emote_svg)
+        viewbox = extract_svg_viewbox(base_svg)
+
+        # Construct layered SVG
+        layered_svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="{viewbox}" width="1200" height="1200">
+  <g id="base-layer" opacity="{base_opacity}">
+{base_inner}
+  </g>
+  <g id="emote-layer" opacity="{emote_opacity}">
+{emote_inner}
+  </g>
+</svg>'''
+
+        return layered_svg
