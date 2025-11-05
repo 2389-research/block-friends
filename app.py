@@ -471,6 +471,66 @@ async def get_avatar_png(input_param: str, frame: str = "neutral", legacy: bool 
         logger.exception(f"Unhandled error in get_avatar_png for {input_param}")
         raise HTTPException(status_code=500, detail=f"Error generating PNG avatar: {str(e)}")
 
+@app.get("/avatar/{input}/transition/{emote}/{weight}",
+         response_class=Response,
+         summary="Get transition between neutral and emote",
+         description="Generate avatar transition with opacity blending")
+async def get_avatar_transition(input: str, emote: str, weight: int):
+    """
+    Generate avatar transition between neutral and emote states.
+
+    Args:
+        input: Email or string for deterministic avatar generation
+        emote: Emote name (happy, sad, surprised, angry, bored) or vowel (vowel_a, vowel_e, etc.)
+        weight: Blend weight from 0 (all base) to 100 (all emote)
+
+    Returns:
+        SVG image with layered transition
+    """
+    try:
+        # Generate cache key
+        hash_hex = hashlib.sha256(input.encode('utf-8')).hexdigest()[:16]
+        cache_key = f"{hash_hex}_transition_{emote}_{weight}"
+        cache_path = CACHE_DIR / f"{cache_key}.svg"
+
+        # Try to read from cache
+        if cache_path.exists():
+            try:
+                svg_content = await asyncio.to_thread(cache_path.read_text)
+                logger.info(f"Transition cache hit: {cache_key}")
+                return Response(content=svg_content, media_type="image/svg+xml")
+            except IOError as e:
+                logger.error(f"Error reading cached transition {cache_path}: {e}")
+
+        # Generate transition
+        async with file_write_lock:
+            # Double-check cache after acquiring lock
+            if cache_path.exists():
+                svg_content = await asyncio.to_thread(cache_path.read_text)
+                logger.info(f"Transition cache hit after lock: {cache_key}")
+                return Response(content=svg_content, media_type="image/svg+xml")
+
+            # Generate transition
+            svg_content = await asyncio.to_thread(
+                generator.generate_transition, input, emote, weight
+            )
+
+            # Write to cache
+            try:
+                await asyncio.to_thread(cache_path.write_text, svg_content)
+                logger.info(f"Generated and cached transition: {cache_key}")
+            except IOError as e:
+                logger.error(f"Error writing transition cache {cache_path}: {e}")
+
+            return Response(content=svg_content, media_type="image/svg+xml")
+
+    except ValueError as e:
+        logger.error(f"Invalid transition request: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error generating transition: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
 @app.get("/avatar/{input_param}.svg/info")
 async def get_avatar_info(input_param: str, frame: str = "neutral"):
     """
