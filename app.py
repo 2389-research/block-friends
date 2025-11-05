@@ -569,6 +569,73 @@ async def get_avatar_transition(input: str, emote: str, weight: int):
         logger.error(f"Error generating transition: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+@app.get("/avatar/{input}/animation/{animation_name}",
+         summary="Get single animation PDF",
+         description="Generate a multi-page PDF for a single emote or vowel animation")
+async def get_single_animation_pdf(input: str, animation_name: str):
+    """
+    Generate a multi-page PDF for a single animation.
+
+    - **input**: Avatar input (email, username, etc.)
+    - **animation_name**: Emote name (happy, sad, etc.) or vowel (a, e, i, o, u)
+    - Returns a PDF with multiple pages representing the animation frames
+    """
+    try:
+        # Determine if this is an emote or vowel
+        emotes = ["happy", "sad", "surprised", "angry", "bored"]
+        vowels = ["a", "e", "i", "o", "u"]
+
+        if animation_name in emotes:
+            # Emote animation: 7 frames
+            weight_sequence = [0, 25, 50, 100, 50, 25, 0]
+            emote_name = animation_name
+        elif animation_name in vowels:
+            # Vowel animation: 5 frames
+            weight_sequence = [0, 50, 100, 50, 0]
+            emote_name = f"vowel_{animation_name}"
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown animation: {animation_name}. Must be an emote (happy, sad, surprised, angry, bored) or vowel (a, e, i, o, u)"
+            )
+
+        # Create PDF writer
+        pdf_writer = PdfWriter()
+
+        # Generate a page for each frame in the sequence
+        for weight in weight_sequence:
+            # Generate transition frame
+            svg_content = await asyncio.to_thread(
+                generator.generate_transition, input, emote_name, weight
+            )
+
+            # Convert to PDF
+            pdf_bytes = await svg_to_pdf(svg_content)
+
+            # Add page to PDF
+            pdf_reader = PdfReader(io.BytesIO(pdf_bytes))
+            pdf_writer.add_page(pdf_reader.pages[0])
+
+        # Write PDF to buffer
+        pdf_buffer = io.BytesIO()
+        pdf_writer.write(pdf_buffer)
+        pdf_buffer.seek(0)
+
+        # Return PDF
+        filename = f"{animation_name}_animation.pdf"
+        return Response(
+            content=pdf_buffer.read(),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+
+    except ValueError as e:
+        logger.error(f"Invalid animation request: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error generating animation PDF: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
 @app.get("/avatar/{input_param}.svg/info")
 async def get_avatar_info(input_param: str, frame: str = "neutral"):
     """

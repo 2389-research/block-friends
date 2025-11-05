@@ -167,6 +167,43 @@
             outline: none;
             border-color: #667eea;
         }
+
+        .bundle-links {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .bundle-links h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .bundle-links .link-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .bundle-links a {
+            background: #764ba2;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background 0.3s ease;
+            display: inline-block;
+        }
+
+        .bundle-links a:hover {
+            background: #5a3a7d;
+        }
     </style>
 </head>
 <body>
@@ -177,6 +214,14 @@
             <label for="avatar-input">Avatar Input (email or string):</label>
             <input type="text" id="avatar-input" value="demo@example.com"
                    placeholder="Enter email or string">
+        </div>
+
+        <div class="bundle-links">
+            <h2>Download Complete Bundles</h2>
+            <div class="link-group">
+                <a href="#" id="bundle-all-emotes">All Emotes (ZIP)</a>
+                <a href="#" id="bundle-all-vowels">All Vowels (ZIP)</a>
+            </div>
         </div>
 
         <div class="demo-grid">
@@ -222,8 +267,8 @@
                         </select>
                     </div>
                     <button id="emote-play">Play Animation</button>
-                    <button id="download-emotes" style="background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-left: 10px;">
-                        Download Emote Bundle
+                    <button id="download-emote-pdf" style="background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-left: 10px;">
+                        Download PDF
                     </button>
                     <div class="animation-status" id="emote-status">Stopped</div>
                 </div>
@@ -247,8 +292,8 @@
                         </select>
                     </div>
                     <button id="vowel-play">Play Animation</button>
-                    <button id="download-vowels" style="background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-left: 10px;">
-                        Download Vowel Bundle
+                    <button id="download-vowel-pdf" style="background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-left: 10px;">
+                        Download PDF
                     </button>
                     <div class="animation-status" id="vowel-status">Stopped</div>
                 </div>
@@ -385,14 +430,57 @@
 
         vowelPlay.addEventListener('click', playVowelAnimation);
 
-        // Bundle downloads
-        const downloadEmotes = document.getElementById('download-emotes');
-        const downloadVowels = document.getElementById('download-vowels');
+        // Single animation downloads
+        const downloadEmotePdf = document.getElementById('download-emote-pdf');
+        const downloadVowelPdf = document.getElementById('download-vowel-pdf');
 
-        async function downloadBundle(button, animations, label) {
+        async function downloadSingleAnimation(button, animationName) {
             const originalText = button.textContent;
             button.textContent = 'Downloading...';
             button.disabled = true;
+
+            try {
+                const url = `/avatar/${encodeURIComponent(currentInput)}/animation/${animationName}`;
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error('Animation generation failed');
+                }
+
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = `${currentInput.replace(/[^a-zA-Z0-9]/g, '_')}_${animationName}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(downloadUrl);
+            } catch (error) {
+                alert('Failed to download animation: ' + error.message);
+            } finally {
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+        }
+
+        downloadEmotePdf.addEventListener('click', () => {
+            const emote = emoteSelect.value;
+            downloadSingleAnimation(downloadEmotePdf, emote);
+        });
+
+        downloadVowelPdf.addEventListener('click', () => {
+            const vowel = vowelSelect.value;
+            downloadSingleAnimation(downloadVowelPdf, vowel);
+        });
+
+        // Bundle downloads (all emotes or all vowels)
+        const bundleAllEmotes = document.getElementById('bundle-all-emotes');
+        const bundleAllVowels = document.getElementById('bundle-all-vowels');
+
+        async function downloadBundle(link, animations, label) {
+            const originalText = link.textContent;
+            link.textContent = 'Downloading...';
 
             try {
                 const animationsParam = animations.join(',');
@@ -415,13 +503,19 @@
             } catch (error) {
                 alert('Failed to download bundle: ' + error.message);
             } finally {
-                button.textContent = originalText;
-                button.disabled = false;
+                link.textContent = originalText;
             }
         }
 
-        downloadEmotes.addEventListener('click', () => downloadBundle(downloadEmotes, ['emotes'], 'emotes'));
-        downloadVowels.addEventListener('click', () => downloadBundle(downloadVowels, ['vowels'], 'vowels'));
+        bundleAllEmotes.addEventListener('click', (e) => {
+            e.preventDefault();
+            downloadBundle(bundleAllEmotes, ['emotes'], 'all_emotes');
+        });
+
+        bundleAllVowels.addEventListener('click', (e) => {
+            e.preventDefault();
+            downloadBundle(bundleAllVowels, ['vowels'], 'all_vowels');
+        });
 
         // Initialize
         updateManualAvatar();
