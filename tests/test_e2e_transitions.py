@@ -136,8 +136,8 @@ class TestTransitionWorkflow:
             base_opacity = float(base_match.group(1))
             emote_opacity = float(emote_match.group(1))
 
-            expected_base = 1.0 - (weight / 100.0)
-            expected_emote = weight / 100.0
+            expected_base = 1.0  # Base is always fully opaque
+            expected_emote = weight / 100.0  # Emote varies from 0 to 1
 
             assert abs(base_opacity - expected_base) < 0.01
             assert abs(emote_opacity - expected_emote) < 0.01

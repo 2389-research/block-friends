@@ -1594,8 +1594,9 @@ class DoorAgentGenerator:
             raise ValueError(f"Weight must be between 0 and 100, got {weight}")
 
         # Calculate opacities
+        # Base is always fully opaque, emote varies from 0 to 1
         weight_frac = weight / 100.0
-        base_opacity = 1.0 - weight_frac
+        base_opacity = 1.0
         emote_opacity = weight_frac
 
         # Generate base avatar (neutral)

@@ -18,7 +18,7 @@ def test_generate_transition_basic():
     assert 'xmlns="http://www.w3.org/2000/svg"' in svg_content
 
     # Verify both base and emote layers are present with opacity
-    assert '<g id="base-layer" opacity="0.5">' in svg_content
+    assert '<g id="base-layer" opacity="1.0">' in svg_content
     assert '<g id="emote-layer" opacity="0.5">' in svg_content
 
 
@@ -32,9 +32,9 @@ def test_generate_transition_weight_extremes():
     assert '<g id="base-layer" opacity="1.0">' in svg_0
     assert '<g id="emote-layer" opacity="0.0">' in svg_0
 
-    # Weight 100 = 0% base, 100% emote
+    # Weight 100 = 100% base (covered by 100% emote)
     svg_100 = generator.generate_transition("test@example.com", "happy", 100)
-    assert '<g id="base-layer" opacity="0.0">' in svg_100
+    assert '<g id="base-layer" opacity="1.0">' in svg_100
     assert '<g id="emote-layer" opacity="1.0">' in svg_100
 
 
