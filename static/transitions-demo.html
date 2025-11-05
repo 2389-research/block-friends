@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avatar Transitions Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 3em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .demo-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .demo-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .demo-card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .avatar-container {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 20px;
+            border: 3px solid #667eea;
+            border-radius: 15px;
+            overflow: hidden;
+            background: #f5f5f5;
+        }
+
+        .avatar-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.9em;
+        }
+
+        select, input[type="range"], button {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+
+        select:focus, input[type="range"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        input[type="range"] {
+            cursor: pointer;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s ease;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .value-display {
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .animation-status {
+            text-align: center;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .animation-status.playing {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .input-group {
+            margin-bottom: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .input-group input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        .input-group input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Avatar Transitions Demo</h1>
+
+        <div class="input-group">
+            <label for="avatar-input">Avatar Input (email or string):</label>
+            <input type="text" id="avatar-input" value="demo@example.com"
+                   placeholder="Enter email or string">
+        </div>
+
+        <div class="demo-grid">
+            <!-- Manual Control Demo -->
+            <div class="demo-card">
+                <h2>Manual Control</h2>
+                <div class="avatar-container">
+                    <img id="manual-avatar" src="" alt="Manual Avatar">
+                </div>
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="manual-emote">Emote:</label>
+                        <select id="manual-emote">
+                            <option value="happy">Happy</option>
+                            <option value="sad">Sad</option>
+                            <option value="surprised">Surprised</option>
+                            <option value="angry">Angry</option>
+                            <option value="bored">Bored</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="manual-weight">Weight: <span id="manual-weight-value">50</span>%</label>
+                        <input type="range" id="manual-weight" min="0" max="100" value="50">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Emote Animation Demo -->
+            <div class="demo-card">
+                <h2>Emote Animation</h2>
+                <div class="avatar-container">
+                    <img id="emote-avatar" src="" alt="Emote Avatar">
+                </div>
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="emote-select">Emote:</label>
+                        <select id="emote-select">
+                            <option value="happy">Happy</option>
+                            <option value="sad">Sad</option>
+                            <option value="surprised">Surprised</option>
+                            <option value="angry">Angry</option>
+                            <option value="bored">Bored</option>
+                        </select>
+                    </div>
+                    <button id="emote-play">Play Animation</button>
+                    <div class="animation-status" id="emote-status">Stopped</div>
+                </div>
+            </div>
+
+            <!-- Vowel Animation Demo -->
+            <div class="demo-card">
+                <h2>Vowel Lip-Sync</h2>
+                <div class="avatar-container">
+                    <img id="vowel-avatar" src="" alt="Vowel Avatar">
+                </div>
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="vowel-select">Vowel:</label>
+                        <select id="vowel-select">
+                            <option value="a">A</option>
+                            <option value="e">E</option>
+                            <option value="i">I</option>
+                            <option value="o">O</option>
+                            <option value="u">U</option>
+                        </select>
+                    </div>
+                    <button id="vowel-play">Play Animation</button>
+                    <div class="animation-status" id="vowel-status">Stopped</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const FRAME_DURATION = 300; // 300ms per frame (~3 FPS)
+        let currentInput = 'demo@example.com';
+        let emoteInterval = null;
+        let vowelInterval = null;
+
+        // Manual control
+        const manualAvatar = document.getElementById('manual-avatar');
+        const manualEmote = document.getElementById('manual-emote');
+        const manualWeight = document.getElementById('manual-weight');
+        const manualWeightValue = document.getElementById('manual-weight-value');
+        const avatarInput = document.getElementById('avatar-input');
+
+        function updateManualAvatar() {
+            const emote = manualEmote.value;
+            const weight = manualWeight.value;
+            const url = `/avatar/${encodeURIComponent(currentInput)}/transition/${emote}/${weight}`;
+            manualAvatar.src = url;
+            manualWeightValue.textContent = weight;
+        }
+
+        manualEmote.addEventListener('change', updateManualAvatar);
+        manualWeight.addEventListener('input', updateManualAvatar);
+        avatarInput.addEventListener('input', (e) => {
+            currentInput = e.target.value || 'demo@example.com';
+            updateManualAvatar();
+            // Reset animations if playing
+            if (emoteInterval) stopEmoteAnimation();
+            if (vowelInterval) stopVowelAnimation();
+        });
+
+        // Emote animation
+        const emoteAvatar = document.getElementById('emote-avatar');
+        const emoteSelect = document.getElementById('emote-select');
+        const emotePlay = document.getElementById('emote-play');
+        const emoteStatus = document.getElementById('emote-status');
+
+        const emoteFrames = [0, 25, 50, 100, 50, 25, 0];
+        let emoteFrameIndex = 0;
+
+        function playEmoteAnimation() {
+            if (emoteInterval) {
+                stopEmoteAnimation();
+                return;
+            }
+
+            emoteStatus.textContent = 'Playing...';
+            emoteStatus.classList.add('playing');
+            emotePlay.textContent = 'Stop Animation';
+            emoteFrameIndex = 0;
+
+            function nextFrame() {
+                const emote = emoteSelect.value;
+                const weight = emoteFrames[emoteFrameIndex];
+                const url = `/avatar/${encodeURIComponent(currentInput)}/transition/${emote}/${weight}`;
+                emoteAvatar.src = url;
+
+                emoteFrameIndex = (emoteFrameIndex + 1) % emoteFrames.length;
+            }
+
+            nextFrame();
+            emoteInterval = setInterval(nextFrame, FRAME_DURATION);
+        }
+
+        function stopEmoteAnimation() {
+            clearInterval(emoteInterval);
+            emoteInterval = null;
+            emoteStatus.textContent = 'Stopped';
+            emoteStatus.classList.remove('playing');
+            emotePlay.textContent = 'Play Animation';
+        }
+
+        emotePlay.addEventListener('click', playEmoteAnimation);
+
+        // Vowel animation
+        const vowelAvatar = document.getElementById('vowel-avatar');
+        const vowelSelect = document.getElementById('vowel-select');
+        const vowelPlay = document.getElementById('vowel-play');
+        const vowelStatus = document.getElementById('vowel-status');
+
+        const vowelFrames = [0, 50, 100, 50, 0];
+        let vowelFrameIndex = 0;
+
+        function playVowelAnimation() {
+            if (vowelInterval) {
+                stopVowelAnimation();
+                return;
+            }
+
+            vowelStatus.textContent = 'Playing...';
+            vowelStatus.classList.add('playing');
+            vowelPlay.textContent = 'Stop Animation';
+            vowelFrameIndex = 0;
+
+            function nextFrame() {
+                const vowel = vowelSelect.value;
+                const weight = vowelFrames[vowelFrameIndex];
+                const url = `/avatar/${encodeURIComponent(currentInput)}/transition/vowel_${vowel}/${weight}`;
+                vowelAvatar.src = url;
+
+                vowelFrameIndex = (vowelFrameIndex + 1) % vowelFrames.length;
+            }
+
+            nextFrame();
+            vowelInterval = setInterval(nextFrame, FRAME_DURATION);
+        }
+
+        function stopVowelAnimation() {
+            clearInterval(vowelInterval);
+            vowelInterval = null;
+            vowelStatus.textContent = 'Stopped';
+            vowelStatus.classList.remove('playing');
+            vowelPlay.textContent = 'Play Animation';
+        }
+
+        vowelPlay.addEventListener('click', playVowelAnimation);
+
+        // Initialize
+        updateManualAvatar();
+    </script>
+</body>
+</html>
