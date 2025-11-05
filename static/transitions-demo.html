@@ -252,6 +252,7 @@
 
     <script>
         const FRAME_DURATION = 150; // 150ms per frame (~6 FPS)
+        const PEAK_PAUSE_DURATION = 1000; // 1 second pause at peak frame
         let currentInput = 'demo@example.com';
         let emoteInterval = null;
         let vowelInterval = null;
@@ -313,14 +314,17 @@
                 emoteAvatar.src = url;
 
                 emoteFrameIndex = (emoteFrameIndex + 1) % emoteFrames.length;
+
+                // Use longer pause at peak frame (weight 100)
+                const delay = weight === 100 ? PEAK_PAUSE_DURATION : FRAME_DURATION;
+                emoteInterval = setTimeout(nextFrame, delay);
             }
 
             nextFrame();
-            emoteInterval = setInterval(nextFrame, FRAME_DURATION);
         }
 
         function stopEmoteAnimation() {
-            clearInterval(emoteInterval);
+            clearTimeout(emoteInterval);
             emoteInterval = null;
             emoteStatus.textContent = 'Stopped';
             emoteStatus.classList.remove('playing');
@@ -356,14 +360,17 @@
                 vowelAvatar.src = url;
 
                 vowelFrameIndex = (vowelFrameIndex + 1) % vowelFrames.length;
+
+                // Use longer pause at peak frame (weight 100)
+                const delay = weight === 100 ? PEAK_PAUSE_DURATION : FRAME_DURATION;
+                vowelInterval = setTimeout(nextFrame, delay);
             }
 
             nextFrame();
-            vowelInterval = setInterval(nextFrame, FRAME_DURATION);
         }
 
         function stopVowelAnimation() {
-            clearInterval(vowelInterval);
+            clearTimeout(vowelInterval);
             vowelInterval = null;
             vowelStatus.textContent = 'Stopped';
             vowelStatus.classList.remove('playing');

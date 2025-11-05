@@ -1276,11 +1276,13 @@ class DoorAgentGenerator:
             # Add defs section for clipPaths and shadow filter
             defs_content = eye_clipPaths + shadow_filter if eye_clipPaths else shadow_filter
             defs_section = f'<defs>{defs_content}</defs>\n' if defs_content else ""
-            return f'{svg_tag}\n{defs_section}{css_block}\n{shadow_ellipse}{svg_content}</svg>'
+            shadow_content = shadow_ellipse if shadow else ""
+            return f'{svg_tag}\n{defs_section}{css_block}\n{shadow_content}{svg_content}</svg>'
         else:
             # Legacy mode - still needs defs for shadow filter
             defs_section = f'<defs>{shadow_filter}</defs>' if shadow_filter else ""
-            return f'{svg_tag}{defs_section}{shadow_ellipse}{svg_content}</svg>'
+            shadow_content = shadow_ellipse if shadow else ""
+            return f'{svg_tag}{defs_section}{shadow_content}{svg_content}</svg>'
 
     def _get_frame_modifications(self, frame: str, hash_bytes: bytes) -> Dict:
         """Get frame-specific modifications for animation.
@@ -1600,10 +1602,10 @@ class DoorAgentGenerator:
         emote_opacity = weight_frac
 
         # Generate base avatar (neutral) with shadow
-        base_svg, _ = self.generate_deterministic(input_string, frame="neutral", universal=False, shadow=True)
+        base_svg, _ = self.generate_deterministic(input_string, frame="neutral", universal=True, shadow=True)
 
-        # Generate emote avatar without shadow (it's an overlay)
-        emote_svg, _ = self.generate_deterministic(input_string, frame=emote, universal=False, shadow=False)
+        # Generate emote avatar without shadow (it's an overlay) - CSS will hide it
+        emote_svg, _ = self.generate_deterministic(input_string, frame=emote, universal=True, shadow=False)
 
         # Extract inner content from both SVGs (remove <svg> wrapper)
         # We need to extract everything between <svg...> and </svg>
