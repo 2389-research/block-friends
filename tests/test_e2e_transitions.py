@@ -7,6 +7,7 @@ import hashlib
 import io
 import zipfile
 from pathlib import Path
+from PyPDF2 import PdfReader
 from fastapi.testclient import TestClient
 from app import app, CACHE_DIR
 from door_agents import DoorAgentConfig, DoorAgentGenerator
@@ -43,7 +44,7 @@ class TestTransitionWorkflow:
         assert response2.content == content1
 
     def test_bundle_contains_valid_transitions(self):
-        """Test that bundle contains valid transition SVGs."""
+        """Test that bundle contains valid multi-page PDFs."""
         response = client.post(
             "/avatar/bundle",
             json={"input": "bundle@example.com", "animations": ["emotes"]}
@@ -51,17 +52,20 @@ class TestTransitionWorkflow:
 
         assert response.status_code == 200
 
-        # Extract and validate SVGs
+        # Extract and validate PDFs
         zip_buffer = io.BytesIO(response.content)
         with zipfile.ZipFile(zip_buffer) as zf:
-            # Check one emote frame
-            frame_content = zf.read("emote_happy_weight_50.svg").decode('utf-8')
+            # Check one emote PDF
+            pdf_bytes = zf.read("emote_happy.pdf")
+            pdf_reader = PdfReader(io.BytesIO(pdf_bytes))
 
-            # Verify it's a valid transition SVG
-            assert '<svg' in frame_content
-            assert 'base-layer' in frame_content
-            assert 'emote-layer' in frame_content
-            assert 'opacity="0.5"' in frame_content
+            # Verify it's a valid multi-page PDF with 7 pages
+            assert len(pdf_reader.pages) == 7, "Happy emote PDF should have 7 pages"
+
+            # Verify each page is valid (can be read without error)
+            for i, page in enumerate(pdf_reader.pages):
+                # Just accessing the page should work without error
+                assert page is not None, f"Page {i} should be valid"
 
     def test_transition_determinism_across_api(self):
         """Test that same input produces identical transitions via API."""

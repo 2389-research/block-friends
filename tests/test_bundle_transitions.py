@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 # ABOUTME: Tests for PDF bundle with transition frames
-# ABOUTME: Validates multi-frame emote and vowel animations
+# ABOUTME: Validates multi-page PDF emote and vowel animations
 
 import pytest
 import zipfile
 import io
 import json
+from PyPDF2 import PdfReader
 from fastapi.testclient import TestClient
 from app import app
 
@@ -13,7 +14,7 @@ client = TestClient(app)
 
 
 def test_bundle_emotes_includes_transitions():
-    """Test that emotes bundle includes 7-frame transition sequence."""
+    """Test that emotes bundle includes multi-page PDFs (7 pages each)."""
     response = client.post(
         "/avatar/bundle",
         json={"input": "test@example.com", "animations": ["emotes"]}
@@ -27,18 +28,20 @@ def test_bundle_emotes_includes_transitions():
     with zipfile.ZipFile(zip_buffer) as zf:
         files = zf.namelist()
 
-        # Check for emote sequences (7 frames each)
+        # Check for emote PDFs (one per emote)
         emotes = ["happy", "sad", "surprised", "angry", "bored"]
         for emote in emotes:
-            # Each emote should have frames: 0, 25, 50, 100, 50, 25, 0
-            expected_frames = [f"emote_{emote}_weight_{w}.svg"
-                             for w in [0, 25, 50, 100, 50, 25, 0]]
-            for frame_file in expected_frames:
-                assert frame_file in files, f"Missing {frame_file} in bundle"
+            pdf_filename = f"emote_{emote}.pdf"
+            assert pdf_filename in files, f"Missing {pdf_filename} in bundle"
+
+            # Verify PDF has 7 pages (one for each frame: 0, 25, 50, 100, 50, 25, 0)
+            pdf_bytes = zf.read(pdf_filename)
+            pdf_reader = PdfReader(io.BytesIO(pdf_bytes))
+            assert len(pdf_reader.pages) == 7, f"{pdf_filename} should have 7 pages"
 
 
 def test_bundle_vowels_includes_transitions():
-    """Test that vowels bundle includes 5-frame transition sequence."""
+    """Test that vowels bundle includes multi-page PDFs (5 pages each)."""
     response = client.post(
         "/avatar/bundle",
         json={"input": "test@example.com", "animations": ["vowels"]}
@@ -51,18 +54,20 @@ def test_bundle_vowels_includes_transitions():
     with zipfile.ZipFile(zip_buffer) as zf:
         files = zf.namelist()
 
-        # Check for vowel sequences (5 frames each)
+        # Check for vowel PDFs (one per vowel)
         vowels = ["a", "e", "i", "o", "u"]
         for vowel in vowels:
-            # Each vowel should have frames: 0, 50, 100, 50, 0
-            expected_frames = [f"vowel_{vowel}_weight_{w}.svg"
-                             for w in [0, 50, 100, 50, 0]]
-            for frame_file in expected_frames:
-                assert frame_file in files, f"Missing {frame_file} in bundle"
+            pdf_filename = f"vowel_{vowel}.pdf"
+            assert pdf_filename in files, f"Missing {pdf_filename} in bundle"
+
+            # Verify PDF has 5 pages (one for each frame: 0, 50, 100, 50, 0)
+            pdf_bytes = zf.read(pdf_filename)
+            pdf_reader = PdfReader(io.BytesIO(pdf_bytes))
+            assert len(pdf_reader.pages) == 5, f"{pdf_filename} should have 5 pages"
 
 
 def test_bundle_metadata_includes_transitions():
-    """Test that metadata.json includes proper transition frame structure."""
+    """Test that metadata.json includes proper multi-page PDF structure."""
     response = client.post(
         "/avatar/bundle",
         json={"input": "test@example.com", "animations": ["emotes", "vowels"]}
@@ -82,66 +87,44 @@ def test_bundle_metadata_includes_transitions():
 
         # Validate emotes structure
         emotes = metadata["animations"]["emotes"]
-        assert "frames" in emotes
-        assert "sequences" in emotes
+        assert isinstance(emotes, dict)
 
-        # Check emotes frames list structure
-        assert isinstance(emotes["frames"], list)
-        assert len(emotes["frames"]) == 20  # 5 emotes × 4 unique weights
+        # Check each emote has correct structure
+        assert "happy" in emotes
+        happy = emotes["happy"]
+        assert happy["file"] == "emote_happy.pdf"
+        assert happy["frame_count"] == 7
+        assert happy["weights"] == [0, 25, 50, 100, 50, 25, 0]
+        assert happy["fps"] == 6.67
 
-        # Validate a sample frame object
-        happy_zero = next(f for f in emotes["frames"]
-                         if f["emote"] == "happy" and f["weight"] == 0)
-        assert happy_zero["filename"] == "emote_happy_weight_0.svg"
-        assert happy_zero["type"] == "emote"
-
-        # Check emotes sequences structure
-        assert isinstance(emotes["sequences"], dict)
-        assert "happy" in emotes["sequences"]
-        happy_seq = emotes["sequences"]["happy"]
-        assert len(happy_seq) == 7  # 7 frames in sequence
-        assert happy_seq == [
-            "emote_happy_weight_0.svg",
-            "emote_happy_weight_25.svg",
-            "emote_happy_weight_50.svg",
-            "emote_happy_weight_100.svg",
-            "emote_happy_weight_50.svg",
-            "emote_happy_weight_25.svg",
-            "emote_happy_weight_0.svg"
-        ]
+        # Verify all 5 emotes present
+        assert len(emotes) == 5
+        for emote_name in ["happy", "sad", "surprised", "angry", "bored"]:
+            assert emote_name in emotes
+            assert emotes[emote_name]["frame_count"] == 7
 
         # Validate vowels structure
         vowels = metadata["animations"]["vowels"]
-        assert "frames" in vowels
-        assert "sequences" in vowels
+        assert isinstance(vowels, dict)
 
-        # Check vowels frames list structure
-        assert isinstance(vowels["frames"], list)
-        assert len(vowels["frames"]) == 15  # 5 vowels × 3 unique weights
+        # Check each vowel has correct structure
+        assert "a" in vowels
+        a = vowels["a"]
+        assert a["file"] == "vowel_a.pdf"
+        assert a["frame_count"] == 5
+        assert a["weights"] == [0, 50, 100, 50, 0]
+        assert a["fps"] == 6.67
 
-        # Validate a sample frame object
-        a_zero = next(f for f in vowels["frames"]
-                     if f["vowel"] == "a" and f["weight"] == 0)
-        assert a_zero["filename"] == "vowel_a_weight_0.svg"
-        assert a_zero["type"] == "vowel"
-
-        # Check vowels sequences structure
-        assert isinstance(vowels["sequences"], dict)
-        assert "a" in vowels["sequences"]
-        a_seq = vowels["sequences"]["a"]
-        assert len(a_seq) == 5  # 5 frames in sequence
-        assert a_seq == [
-            "vowel_a_weight_0.svg",
-            "vowel_a_weight_50.svg",
-            "vowel_a_weight_100.svg",
-            "vowel_a_weight_50.svg",
-            "vowel_a_weight_0.svg"
-        ]
+        # Verify all 5 vowels present
+        assert len(vowels) == 5
+        for vowel_name in ["a", "e", "i", "o", "u"]:
+            assert vowel_name in vowels
+            assert vowels[vowel_name]["frame_count"] == 5
 
 
-def test_bundle_generates_only_unique_weight_files():
-    """Test that duplicate weights in sequences don't generate duplicate files."""
-    # Test emotes: should generate 20 files (4 weights × 5 emotes), not 35 (7 × 5)
+def test_bundle_generates_pdfs_not_individual_frames():
+    """Test that bundles contain multi-page PDFs, not individual frame files."""
+    # Test emotes: should generate 5 PDFs (one per emote), not individual frame files
     response = client.post(
         "/avatar/bundle",
         json={"input": "test@example.com", "animations": ["emotes"]}
@@ -151,24 +134,23 @@ def test_bundle_generates_only_unique_weight_files():
 
     zip_buffer = io.BytesIO(response.content)
     with zipfile.ZipFile(zip_buffer) as zf:
-        emote_files = [f for f in zf.namelist() if f.startswith("emote_")]
-        assert len(emote_files) == 20, f"Expected 20 unique emote files, got {len(emote_files)}"
+        files = zf.namelist()
 
-        # Verify each emote has exactly 4 weight files (0, 25, 50, 100)
-        emotes = ["happy", "sad", "surprised", "angry", "bored"]
-        for emote in emotes:
-            emote_weights = [f for f in emote_files if f"emote_{emote}_" in f]
-            assert len(emote_weights) == 4, f"{emote} should have 4 weight files, got {len(emote_weights)}"
+        # Count PDF files
+        emote_pdfs = [f for f in files if f.startswith("emote_") and f.endswith(".pdf")]
+        assert len(emote_pdfs) == 5, f"Expected 5 emote PDFs, got {len(emote_pdfs)}"
 
-        # Verify sequences reference the same files multiple times
-        metadata = json.loads(zf.read("metadata.json").decode('utf-8'))
-        happy_seq = metadata["animations"]["emotes"]["sequences"]["happy"]
-        assert len(happy_seq) == 7, "Happy sequence should have 7 frames"
-        # The sequence should reuse files: 0, 25, 50, 100, 50, 25, 0
-        assert happy_seq[1] == happy_seq[5], "Frame 1 and 5 should be the same file (weight 25)"
-        assert happy_seq[2] == happy_seq[4], "Frame 2 and 4 should be the same file (weight 50)"
+        # Verify no individual SVG/frame files
+        svg_files = [f for f in files if f.endswith(".svg")]
+        assert len(svg_files) == 0, "Should not have individual SVG files in bundle"
 
-    # Test vowels: should generate 15 files (3 weights × 5 vowels), not 25 (5 × 5)
+        # Verify each PDF has 7 pages
+        for pdf_file in emote_pdfs:
+            pdf_bytes = zf.read(pdf_file)
+            pdf_reader = PdfReader(io.BytesIO(pdf_bytes))
+            assert len(pdf_reader.pages) == 7, f"{pdf_file} should have 7 pages"
+
+    # Test vowels: should generate 5 PDFs (one per vowel)
     response = client.post(
         "/avatar/bundle",
         json={"input": "test@example.com", "animations": ["vowels"]}
@@ -178,22 +160,21 @@ def test_bundle_generates_only_unique_weight_files():
 
     zip_buffer = io.BytesIO(response.content)
     with zipfile.ZipFile(zip_buffer) as zf:
-        vowel_files = [f for f in zf.namelist() if f.startswith("vowel_")]
-        assert len(vowel_files) == 15, f"Expected 15 unique vowel files, got {len(vowel_files)}"
+        files = zf.namelist()
 
-        # Verify each vowel has exactly 3 weight files (0, 50, 100)
-        vowels = ["a", "e", "i", "o", "u"]
-        for vowel in vowels:
-            vowel_weights = [f for f in vowel_files if f"vowel_{vowel}_" in f]
-            assert len(vowel_weights) == 3, f"{vowel} should have 3 weight files, got {len(vowel_weights)}"
+        # Count PDF files
+        vowel_pdfs = [f for f in files if f.startswith("vowel_") and f.endswith(".pdf")]
+        assert len(vowel_pdfs) == 5, f"Expected 5 vowel PDFs, got {len(vowel_pdfs)}"
 
-        # Verify sequences reference the same files multiple times
-        metadata = json.loads(zf.read("metadata.json").decode('utf-8'))
-        a_seq = metadata["animations"]["vowels"]["sequences"]["a"]
-        assert len(a_seq) == 5, "Vowel 'a' sequence should have 5 frames"
-        # The sequence should reuse files: 0, 50, 100, 50, 0
-        assert a_seq[1] == a_seq[3], "Frame 1 and 3 should be the same file (weight 50)"
-        assert a_seq[0] == a_seq[4], "Frame 0 and 4 should be the same file (weight 0)"
+        # Verify no individual SVG files
+        svg_files = [f for f in files if f.endswith(".svg")]
+        assert len(svg_files) == 0, "Should not have individual SVG files in bundle"
+
+        # Verify each PDF has 5 pages
+        for pdf_file in vowel_pdfs:
+            pdf_bytes = zf.read(pdf_file)
+            pdf_reader = PdfReader(io.BytesIO(pdf_bytes))
+            assert len(pdf_reader.pages) == 5, f"{pdf_file} should have 5 pages"
 
 
 def test_bundle_all_animations():
@@ -212,10 +193,16 @@ def test_bundle_all_animations():
         # Should have idle PDF
         assert "idle.pdf" in files
 
-        # Should have emote transition frames
-        assert "emote_happy_weight_0.svg" in files
-        assert "emote_happy_weight_100.svg" in files
+        # Should have emote PDFs
+        assert "emote_happy.pdf" in files
+        assert "emote_sad.pdf" in files
 
-        # Should have vowel transition frames
-        assert "vowel_a_weight_0.svg" in files
-        assert "vowel_a_weight_100.svg" in files
+        # Should have vowel PDFs
+        assert "vowel_a.pdf" in files
+        assert "vowel_e.pdf" in files
+
+        # Verify metadata
+        metadata = json.loads(zf.read("metadata.json").decode('utf-8'))
+        assert "idle" in metadata["animations"]
+        assert "emotes" in metadata["animations"]
+        assert "vowels" in metadata["animations"]
