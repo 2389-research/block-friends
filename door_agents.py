@@ -1602,10 +1602,10 @@ class DoorAgentGenerator:
         emote_opacity = weight_frac
 
         # Generate base avatar (neutral) with shadow
-        base_svg, _ = self.generate_deterministic(input_string, frame="neutral", universal=True, shadow=True)
+        base_svg, _ = self.generate_deterministic(input_string, frame="neutral", universal=False, shadow=True)
 
-        # Generate emote avatar without shadow (it's an overlay) - CSS will hide it
-        emote_svg, _ = self.generate_deterministic(input_string, frame=emote, universal=True, shadow=False)
+        # Generate emote avatar without shadow (it's an overlay)
+        emote_svg, _ = self.generate_deterministic(input_string, frame=emote, universal=False, shadow=False)
 
         # Extract inner content from both SVGs (remove <svg> wrapper)
         # We need to extract everything between <svg...> and </svg>
