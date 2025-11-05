@@ -293,69 +293,81 @@ async def generate_pdf_bundle(input_string: str, animations: List[str]) -> bytes
         if "emotes" in animations:
             emotes = ["happy", "sad", "surprised", "angry", "bored"]
             weight_sequence = [0, 25, 50, 100, 50, 25, 0]
-            unique_weights = sorted(set(weight_sequence))  # [0, 25, 50, 100]
 
-            metadata["animations"]["emotes"] = {
-                "frames": [],
-                "sequences": {}
-            }
+            metadata["animations"]["emotes"] = {}
 
             for emote in emotes:
-                # Generate unique weight files
-                for weight in unique_weights:
+                # Create PDF writer for this emote
+                emote_writer = PdfWriter()
+
+                # Generate a page for each frame in the sequence
+                for weight in weight_sequence:
                     # Generate transition frame
                     svg_content = await asyncio.to_thread(
                         generator.generate_transition, input_string, emote, weight
                     )
-                    frame_name = f"emote_{emote}_weight_{weight}.svg"
-                    zip_file.writestr(frame_name, svg_content)
 
-                    # Add to frames list
-                    metadata["animations"]["emotes"]["frames"].append({
-                        "filename": frame_name,
-                        "type": "emote",
-                        "emote": emote,
-                        "weight": weight
-                    })
+                    # Convert to PDF
+                    pdf_bytes = await svg_to_pdf(svg_content)
 
-                # Store the animation sequence (references to files)
-                metadata["animations"]["emotes"]["sequences"][emote] = [
-                    f"emote_{emote}_weight_{w}.svg" for w in weight_sequence
-                ]
+                    # Add page to PDF
+                    pdf_reader = PdfReader(io.BytesIO(pdf_bytes))
+                    emote_writer.add_page(pdf_reader.pages[0])
+
+                # Write emote PDF to ZIP
+                emote_pdf_buffer = io.BytesIO()
+                emote_writer.write(emote_pdf_buffer)
+                emote_pdf_buffer.seek(0)
+                filename = f"emote_{emote}.pdf"
+                zip_file.writestr(filename, emote_pdf_buffer.read())
+
+                # Add to metadata
+                metadata["animations"]["emotes"][emote] = {
+                    "file": filename,
+                    "frame_count": len(weight_sequence),
+                    "weights": weight_sequence,
+                    "fps": 6.67  # ~150ms per frame
+                }
 
         # Generate vowel animations (5 frames: 0, 50, 100, 50, 0)
         if "vowels" in animations:
             vowels = ["a", "e", "i", "o", "u"]
             weight_sequence = [0, 50, 100, 50, 0]
-            unique_weights = sorted(set(weight_sequence))  # [0, 50, 100]
 
-            metadata["animations"]["vowels"] = {
-                "frames": [],
-                "sequences": {}
-            }
+            metadata["animations"]["vowels"] = {}
 
             for vowel in vowels:
-                # Generate unique weight files
-                for weight in unique_weights:
+                # Create PDF writer for this vowel
+                vowel_writer = PdfWriter()
+
+                # Generate a page for each frame in the sequence
+                for weight in weight_sequence:
                     # Generate transition frame
                     svg_content = await asyncio.to_thread(
                         generator.generate_transition, input_string, f"vowel_{vowel}", weight
                     )
-                    frame_name = f"vowel_{vowel}_weight_{weight}.svg"
-                    zip_file.writestr(frame_name, svg_content)
 
-                    # Add to frames list
-                    metadata["animations"]["vowels"]["frames"].append({
-                        "filename": frame_name,
-                        "type": "vowel",
-                        "vowel": vowel,
-                        "weight": weight
-                    })
+                    # Convert to PDF
+                    pdf_bytes = await svg_to_pdf(svg_content)
 
-                # Store the animation sequence (references to files)
-                metadata["animations"]["vowels"]["sequences"][vowel] = [
-                    f"vowel_{vowel}_weight_{w}.svg" for w in weight_sequence
-                ]
+                    # Add page to PDF
+                    pdf_reader = PdfReader(io.BytesIO(pdf_bytes))
+                    vowel_writer.add_page(pdf_reader.pages[0])
+
+                # Write vowel PDF to ZIP
+                vowel_pdf_buffer = io.BytesIO()
+                vowel_writer.write(vowel_pdf_buffer)
+                vowel_pdf_buffer.seek(0)
+                filename = f"vowel_{vowel}.pdf"
+                zip_file.writestr(filename, vowel_pdf_buffer.read())
+
+                # Add to metadata
+                metadata["animations"]["vowels"][vowel] = {
+                    "file": filename,
+                    "frame_count": len(weight_sequence),
+                    "weights": weight_sequence,
+                    "fps": 6.67  # ~150ms per frame
+                }
 
         # Write metadata JSON
         zip_file.writestr("metadata.json", json.dumps(metadata, indent=2))
