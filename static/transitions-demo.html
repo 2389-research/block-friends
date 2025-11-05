@@ -177,6 +177,9 @@
             <label for="avatar-input">Avatar Input (email or string):</label>
             <input type="text" id="avatar-input" value="demo@example.com"
                    placeholder="Enter email or string">
+            <button id="download-bundle" style="margin-left: 10px; padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                Download Bundle
+            </button>
         </div>
 
         <div class="demo-grid">
@@ -378,6 +381,46 @@
         }
 
         vowelPlay.addEventListener('click', playVowelAnimation);
+
+        // Bundle download
+        const downloadBundle = document.getElementById('download-bundle');
+        downloadBundle.addEventListener('click', async () => {
+            const originalText = downloadBundle.textContent;
+            downloadBundle.textContent = 'Downloading...';
+            downloadBundle.disabled = true;
+
+            try {
+                const response = await fetch('/avatar/bundle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        input: currentInput,
+                        animations: ['emotes', 'vowels']
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Bundle generation failed');
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${currentInput.replace(/[^a-zA-Z0-9]/g, '_')}_bundle.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } catch (error) {
+                alert('Failed to download bundle: ' + error.message);
+            } finally {
+                downloadBundle.textContent = originalText;
+                downloadBundle.disabled = false;
+            }
+        });
 
         // Initialize
         updateManualAvatar();
