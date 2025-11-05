@@ -177,9 +177,6 @@
             <label for="avatar-input">Avatar Input (email or string):</label>
             <input type="text" id="avatar-input" value="demo@example.com"
                    placeholder="Enter email or string">
-            <button id="download-bundle" style="margin-left: 10px; padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                Download Bundle
-            </button>
         </div>
 
         <div class="demo-grid">
@@ -225,6 +222,9 @@
                         </select>
                     </div>
                     <button id="emote-play">Play Animation</button>
+                    <button id="download-emotes" style="background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-left: 10px;">
+                        Download Emote Bundle
+                    </button>
                     <div class="animation-status" id="emote-status">Stopped</div>
                 </div>
             </div>
@@ -247,6 +247,9 @@
                         </select>
                     </div>
                     <button id="vowel-play">Play Animation</button>
+                    <button id="download-vowels" style="background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-left: 10px;">
+                        Download Vowel Bundle
+                    </button>
                     <div class="animation-status" id="vowel-status">Stopped</div>
                 </div>
             </div>
@@ -382,12 +385,14 @@
 
         vowelPlay.addEventListener('click', playVowelAnimation);
 
-        // Bundle download
-        const downloadBundle = document.getElementById('download-bundle');
-        downloadBundle.addEventListener('click', async () => {
-            const originalText = downloadBundle.textContent;
-            downloadBundle.textContent = 'Downloading...';
-            downloadBundle.disabled = true;
+        // Bundle downloads
+        const downloadEmotes = document.getElementById('download-emotes');
+        const downloadVowels = document.getElementById('download-vowels');
+
+        async function downloadBundle(button, animations, label) {
+            const originalText = button.textContent;
+            button.textContent = 'Downloading...';
+            button.disabled = true;
 
             try {
                 const response = await fetch('/avatar/bundle', {
@@ -397,7 +402,7 @@
                     },
                     body: JSON.stringify({
                         input: currentInput,
-                        animations: ['emotes', 'vowels']
+                        animations: animations
                     })
                 });
 
@@ -409,7 +414,7 @@
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `${currentInput.replace(/[^a-zA-Z0-9]/g, '_')}_bundle.zip`;
+                a.download = `${currentInput.replace(/[^a-zA-Z0-9]/g, '_')}_${label}.zip`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -417,10 +422,13 @@
             } catch (error) {
                 alert('Failed to download bundle: ' + error.message);
             } finally {
-                downloadBundle.textContent = originalText;
-                downloadBundle.disabled = false;
+                button.textContent = originalText;
+                button.disabled = false;
             }
-        });
+        }
+
+        downloadEmotes.addEventListener('click', () => downloadBundle(downloadEmotes, ['emotes'], 'emotes'));
+        downloadVowels.addEventListener('click', () => downloadBundle(downloadVowels, ['vowels'], 'vowels'));
 
         // Initialize
         updateManualAvatar();
