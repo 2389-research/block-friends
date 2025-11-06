@@ -230,7 +230,7 @@ def test_idle_animation_blink_on_frame_2():
             f"Idle frame {frame_num} should have open eyes"
 
 
-def test_idle_animation_body_sway_transforms():
+def test_idle_animation_uses_overrides_not_transforms():
     """Test that idle animation uses eye/mouth overrides instead of body transforms."""
     config = DoorAgentConfig()
     generator = DoorAgentGenerator(config)
