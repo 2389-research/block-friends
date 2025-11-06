@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Interactive Avatar Test</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 40px;
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        h1 {
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .info {
+            color: white;
+            background: rgba(0,0,0,0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px auto;
+            max-width: 600px;
+        }
+        .info code {
+            background: rgba(255,255,255,0.2);
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        #avatar-container {
+            margin: 40px auto;
+            display: inline-block;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        #avatar-container:hover {
+            transform: scale(1.05);
+        }
+        #avatar-container svg {
+            width: 200px;
+            height: 200px;
+            display: block;
+        }
+        .controls {
+            margin: 30px 0;
+        }
+        button {
+            margin: 5px;
+            padding: 12px 24px;
+            font-size: 14px;
+            border: none;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .current-state {
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            margin: 20px 0;
+            background: rgba(0,0,0,0.2);
+            padding: 10px;
+            border-radius: 5px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎭 Interactive Avatar Test</h1>
+
+    <div class="info">
+        <strong>Try it out!</strong><br>
+        • <code>Hover</code> over the avatar to close eyes (blink)<br>
+        • <code>Click/hold</code> on the avatar to open mouth<br>
+        • Use buttons below to switch between different states
+    </div>
+
+    <div class="current-state">
+        Current state: <span id="state-label">neutral</span>
+    </div>
+
+    <div id="avatar-container">
+        Loading avatar...
+    </div>
+
+    <div class="controls" id="controls">
+        <h3 style="color: white;">Switch States:</h3>
+    </div>
+
+    <script>
+        // Load universal SVG
+        fetch('http://localhost:8000/avatar/interactive-test@example.com.svg')
+            .then(r => r.text())
+            .then(svgText => {
+                // Parse SVG using DOMParser to avoid HTML entity escaping
+                const parser = new DOMParser();
+                const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+                const svg = svgDoc.documentElement;
+
+                const container = document.getElementById('avatar-container');
+                container.innerHTML = '';
+                container.appendChild(svg);
+
+                const stateLabel = document.getElementById('state-label');
+
+                // All available states
+                const states = [
+                    { name: 'neutral', label: 'Neutral' },
+                    { name: 'happy', label: '😊 Happy' },
+                    { name: 'sad', label: '😢 Sad' },
+                    { name: 'surprised', label: '😮 Surprised' },
+                    { name: 'angry', label: '😠 Angry' },
+                    { name: 'bored', label: '😑 Bored' },
+                    { name: 'idle_0', label: 'Idle 0' },
+                    { name: 'idle_1', label: 'Idle 1' },
+                    { name: 'idle_2', label: 'Idle 2 (blink)' },
+                    { name: 'vowel_a', label: 'Vowel: A' },
+                    { name: 'vowel_e', label: 'Vowel: E' },
+                    { name: 'vowel_i', label: 'Vowel: I' },
+                    { name: 'vowel_o', label: 'Vowel: O' },
+                    { name: 'vowel_u', label: 'Vowel: U' }
+                ];
+
+                const controls = document.getElementById('controls');
+
+                // Create buttons for each state
+                states.forEach(state => {
+                    const btn = document.createElement('button');
+                    btn.textContent = state.label;
+                    btn.onclick = () => {
+                        svg.className.baseVal = `agent ${state.name}`;
+                        stateLabel.textContent = state.name;
+                    };
+                    controls.appendChild(btn);
+                });
+            })
+            .catch(err => {
+                document.getElementById('avatar-container').innerHTML =
+                    '<p style="color: red;">Error loading SVG. Make sure the server is running at http://localhost:8000</p>';
+                console.error('Error:', err);
+            });
+    </script>
+</body>
+</html>
