@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Avatar Visual Test</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .test-group { margin: 40px 0; }
+        .avatar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; }
+        .avatar-item { text-align: center; }
+        .avatar-item img { border: 1px solid #ccc; }
+        button { margin: 5px; padding: 8px 12px; cursor: pointer; }
+        button:hover { background-color: #e0e0e0; }
+        #universal-container { margin: 20px 0; text-align: center; }
+        #universal-container svg {
+            width: 200px;
+            height: 200px;
+            border: 2px solid #333;
+        }
+        .current-state {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Universal SVG Visual Test</h1>
+
+    <div class="test-group">
+        <h2>Universal Mode - Change Class via JavaScript</h2>
+        <p>Click buttons to switch between different avatar states. The same SVG changes appearance via CSS.</p>
+        <div class="current-state">Current state: <span id="current-state">idle_0</span></div>
+        <div id="universal-container">Loading...</div>
+        <div id="controls"></div>
+    </div>
+
+    <script>
+        // Load universal SVG from server
+        fetch('http://localhost:8000/avatar/visual-test@example.com.svg')
+            .then(r => r.text())
+            .then(svgText => {
+                // Parse SVG using DOMParser to avoid HTML entity escaping
+                const parser = new DOMParser();
+                const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+                const svg = svgDoc.documentElement;
+
+                const container = document.getElementById('universal-container');
+                container.innerHTML = '';
+                container.appendChild(svg);
+
+                const states = [
+                    'idle_0', 'idle_1', 'idle_2', 'idle_3', 'idle_4',
+                    'idle_5', 'idle_6', 'idle_7', 'idle_8', 'idle_9',
+                    'happy', 'sad', 'surprised', 'angry', 'bored',
+                    'vowel_a', 'vowel_e', 'vowel_i', 'vowel_o', 'vowel_u'
+                ];
+
+                const controls = document.getElementById('controls');
+                const stateLabel = document.getElementById('current-state');
+
+                states.forEach(state => {
+                    const btn = document.createElement('button');
+                    btn.textContent = state;
+                    btn.onclick = () => {
+                        svg.className.baseVal = `agent ${state}`;
+                        stateLabel.textContent = state;
+                    };
+                    controls.appendChild(btn);
+                });
+
+                // Add auto-cycle button
+                let cycleInterval = null;
+                const cycleBtn = document.createElement('button');
+                cycleBtn.textContent = 'Auto-cycle states';
+                cycleBtn.style.marginTop = '20px';
+                cycleBtn.style.backgroundColor = '#4CAF50';
+                cycleBtn.style.color = 'white';
+                let currentIndex = 0;
+
+                cycleBtn.onclick = () => {
+                    if (cycleInterval) {
+                        clearInterval(cycleInterval);
+                        cycleInterval = null;
+                        cycleBtn.textContent = 'Auto-cycle states';
+                        cycleBtn.style.backgroundColor = '#4CAF50';
+                    } else {
+                        cycleInterval = setInterval(() => {
+                            currentIndex = (currentIndex + 1) % states.length;
+                            svg.className.baseVal = `agent ${states[currentIndex]}`;
+                            stateLabel.textContent = states[currentIndex];
+                        }, 1000);
+                        cycleBtn.textContent = 'Stop cycling';
+                        cycleBtn.style.backgroundColor = '#f44336';
+                    }
+                };
+
+                controls.appendChild(document.createElement('br'));
+                controls.appendChild(cycleBtn);
+            })
+            .catch(err => {
+                document.getElementById('universal-container').innerHTML =
+                    '<p style="color: red;">Error loading SVG. Make sure the server is running at http://localhost:8000</p>' +
+                    '<p>Start server with: <code>uv run python app.py</code></p>';
+                console.error('Error:', err);
+            });
+    </script>
+</body>
+</html>

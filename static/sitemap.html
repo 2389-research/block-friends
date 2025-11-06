@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sitemap - 2389 Avatar Service</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 2.5rem;
+        }
+
+        .intro {
+            color: #666;
+            margin-bottom: 3rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+        }
+
+        .section {
+            margin-bottom: 3rem;
+        }
+
+        .section h2 {
+            color: #764ba2;
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+            border-bottom: 2px solid #764ba2;
+            padding-bottom: 0.5rem;
+        }
+
+        .links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .link-card {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 10px;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .link-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .link-card h3 {
+            color: #333;
+            margin-bottom: 0.5rem;
+            font-size: 1.2rem;
+        }
+
+        .link-card p {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .link-card a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-block;
+            margin-top: 0.5rem;
+        }
+
+        .link-card a:hover {
+            text-decoration: underline;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: #667eea;
+            color: white;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-left: 0.5rem;
+        }
+
+        .badge.api {
+            background: #17a2b8;
+        }
+
+        .badge.test {
+            background: #ffc107;
+            color: #333;
+        }
+
+        footer {
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 2px solid #e0e0e0;
+            text-align: center;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗺️ Avatar Service Sitemap</h1>
+
+        <div class="intro">
+            <strong>Welcome to the 2389 Avatar Service!</strong> This service generates unique, deterministic avatars with 20 animation states. Below you'll find all available pages, API endpoints, and test pages.
+        </div>
+
+        <div class="section">
+            <h2>📄 User Pages</h2>
+            <div class="links">
+                <div class="link-card">
+                    <h3>Home / Landing Page</h3>
+                    <p>Main landing page with avatar generation demo and service overview.</p>
+                    <a href="/">Visit →</a>
+                </div>
+                <div class="link-card">
+                    <h3>Animations Documentation</h3>
+                    <p>Complete documentation of the 20-state animation system with live demo.</p>
+                    <a href="/animations.html">Visit →</a>
+                </div>
+                <div class="link-card">
+                    <h3>Sitemap (You Are Here)</h3>
+                    <p>Directory of all available pages and endpoints.</p>
+                    <a href="/sitemap.html">Visit →</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🧪 Test Pages</h2>
+            <div class="links">
+                <div class="link-card">
+                    <h3>Visual Test Page <span class="badge test">TEST</span></h3>
+                    <p>Interactive test page for visual regression testing. Switch between all 20 states with buttons.</p>
+                    <a href="/tests/visual_test.html" target="_blank">Open →</a>
+                </div>
+                <div class="link-card">
+                    <h3>Interactive Test Page <span class="badge test">TEST</span></h3>
+                    <p>Test page demonstrating hover (blink) and active (mouth open) interactions.</p>
+                    <a href="/tests/interactive_test.html" target="_blank">Open →</a>
+                </div>
+                <div class="link-card">
+                    <h3>Test Grid <span class="badge test">TEST</span></h3>
+                    <p>Grid view for testing multiple avatars at once.</p>
+                    <a href="/test-grid.html">Visit →</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔌 API Endpoints</h2>
+            <div class="links">
+                <div class="link-card">
+                    <h3>Avatar SVG <span class="badge api">API</span></h3>
+                    <p>Get avatar as SVG (universal mode with all 20 states).</p>
+                    <a href="/avatar/demo@2389.ai.svg" target="_blank">/avatar/{input}.svg</a>
+                    <p style="margin-top: 0.5rem; font-size: 0.85rem;"><code>?frame=happy</code> - Set initial state<br><code>?legacy=true</code> - Legacy single-frame mode</p>
+                </div>
+                <div class="link-card">
+                    <h3>Avatar PNG <span class="badge api">API</span></h3>
+                    <p>Get avatar as PNG image (requires frame parameter).</p>
+                    <a href="/avatar/demo@2389.ai.png?frame=happy" target="_blank">/avatar/{input}.png?frame={state}</a>
+                </div>
+                <div class="link-card">
+                    <h3>Avatar Info <span class="badge api">API</span></h3>
+                    <p>Get detailed information about an avatar's generation parameters.</p>
+                    <a href="/avatar/demo@2389.ai.svg/info" target="_blank">/avatar/{input}.svg/info</a>
+                </div>
+                <div class="link-card">
+                    <h3>Animation Frames <span class="badge api">API</span></h3>
+                    <p>Get metadata about all 20 available animation frames.</p>
+                    <a href="/avatar/demo@2389.ai.svg/frames" target="_blank">/avatar/{input}.svg/frames</a>
+                </div>
+                <div class="link-card">
+                    <h3>Avatar Bundle <span class="badge api">API</span></h3>
+                    <p>Get all frames as a ZIP bundle for download.</p>
+                    <a href="/avatar/demo@2389.ai/bundle" target="_blank">/avatar/{input}/bundle</a>
+                </div>
+                <div class="link-card">
+                    <h3>Version Info <span class="badge api">API</span></h3>
+                    <p>Get current version and feature information.</p>
+                    <a href="/version" target="_blank">/version</a>
+                </div>
+                <div class="link-card">
+                    <h3>Health Check <span class="badge api">API</span></h3>
+                    <p>Simple health check endpoint.</p>
+                    <a href="/health" target="_blank">/health</a>
+                </div>
+                <div class="link-card">
+                    <h3>Debug Info <span class="badge api">API</span></h3>
+                    <p>Detailed debug information for an avatar (development only).</p>
+                    <a href="/debug/avatar/demo@2389.ai" target="_blank">/debug/avatar/{input}</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🎨 Available Animation States</h2>
+            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 10px;">
+                <div style="margin-bottom: 1rem;">
+                    <strong>Emotes (5):</strong> <code>neutral</code>, <code>happy</code>, <code>sad</code>, <code>surprised</code>, <code>angry</code>, <code>bored</code>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <strong>Idle Frames (10):</strong> <code>idle_0</code> through <code>idle_9</code> - Independent eye/mouth combinations for natural idle animation
+                </div>
+                <div>
+                    <strong>Vowels (5):</strong> <code>vowel_a</code>, <code>vowel_e</code>, <code>vowel_i</code>, <code>vowel_o</code>, <code>vowel_u</code> - For lip-sync animation
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📚 Documentation</h2>
+            <div class="links">
+                <div class="link-card">
+                    <h3>Universal SVG Documentation</h3>
+                    <p>Technical documentation for the universal SVG feature (single SVG with CSS classes).</p>
+                    <a href="https://github.com/2389-research/block-friends" target="_blank">View in repo →</a>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>This service brought to you by the fine folks over at 2389 Research, Inc. Made in Chicago with love ❤️</p>
+        </footer>
+    </div>
+</body>
+</html>

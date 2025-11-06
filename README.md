@@ -1,6 +1,8 @@
-# Door Agent Avatar System
+# Door Agent Avatar System v2.0
 
-A comprehensive avatar generation system that creates procedurally generated "door agent" characters. Features both bulk sprite sheet generation and a deterministic web API service for individual avatars.
+> **⚠️ BREAKING CHANGES:** This is version 2.0 of the avatar system. Avatars generated from the same input will look different from v1.x due to hash byte allocation changes. See [Breaking Changes](#breaking-changes) section below.
+
+A comprehensive avatar generation system that creates procedurally generated "door agent" characters with animated emotes and expressions. Features both bulk sprite sheet generation and a deterministic web API service for individual avatars.
 
 ## 🚀 Features
 
@@ -9,6 +11,12 @@ A comprehensive avatar generation system that creates procedurally generated "do
 - **🔗 Deterministic Avatars**: Generate consistent avatars from any input (emails, usernames, etc.)
 - **🌐 Web API**: FastAPI service for HTTP avatar generation (`/avatar/{input}.svg`)
 
+### **Animation System (v2.0)**
+- **🎭 5 Emotes**: happy, sad, surprised, angry, bored with unique expressions
+- **👁️ Open/Closed States**: Independent control of eye and mouth states
+- **💫 Idle Animation**: 10-frame idle animation with varied expressions
+- **📦 Animation Bundles**: GET bundled frame data for all animations
+
 ### **Massive Variety**
 - **1.27 billion unique variants** from current asset collection
 - **100x more variety than traditional Gravatar systems**
@@ -16,9 +24,10 @@ A comprehensive avatar generation system that creates procedurally generated "do
 
 ### **Production Ready**
 - **File-based caching** for instant repeat requests
-- **Proper HTTP headers** with long-term caching
-- **Multiple output formats**: SVG, CSV data, CSS sprites
+- **Proper HTTP headers** with long-term caching and version tracking
+- **Multiple output formats**: SVG, PNG, CSS sprites, animation bundles
 - **Auto-generated API documentation**
+- **Ground Shadows**: Soft-edged shadows that scale with avatar content width for depth and visual grounding
 
 ## 🎯 Quick Start
 
@@ -59,21 +68,70 @@ curl http://localhost:8000/avatar/user@example.com.svg > avatar.svg
 curl http://localhost:8000/avatar/973dfe463ec85785.svg > cached.svg
 ```
 
+## ⚠️ Breaking Changes
+
+### **v2.0 Migration Notice**
+
+Version 2.0 introduces significant breaking changes to support the emote system. **There is no migration path** - avatars from v1.x will look different when generated with v2.0.
+
+#### **What Changed:**
+
+1. **Hash Byte Allocation Changed**
+   - v1.x used 2 byte indices for eyes and mouths
+   - v2.0 uses 4 byte indices: `open_eye_index`, `closed_eye_index`, `open_mouth_index`, `closed_mouth_index`
+   - This reallocation affects ALL avatars, even in default state
+
+2. **Asset Structure Reorganized**
+   - Assets moved from flat structure to hierarchical open/closed subdirectories
+   - v1.x: `assets/eyes/1.svg`, `assets/mouths/1.svg`
+   - v2.0: `assets/eyes/open/1.svg`, `assets/eyes/closed/1.svg`, `assets/mouths/open/1.svg`, `assets/mouths/closed/1.svg`
+
+3. **Emote Variants Added**
+   - New emote-specific assets: `emote_happy_1.svg`, `emote_sad_1.svg`, etc.
+   - Base assets (1.svg, 2.svg, etc.) used for idle animation
+   - Emote assets used for expressive states
+
+4. **No Backward Compatibility**
+   - Same input strings will generate different avatars in v2.0
+   - If you cached v1.x avatars, they will not match v2.0 outputs
+   - Consider this when upgrading production systems
+
+#### **Version Detection:**
+
+Check the system version before generating avatars:
+
+```bash
+# Query version endpoint
+curl http://localhost:8000/version
+# Returns: {"avatar_system_version": "2.0"}
+
+# Check response headers
+curl -I http://localhost:8000/avatar/test@example.com.svg
+# Returns: X-Avatar-System-Version: 2.0
+```
+
 ## 🌐 Web API
 
 ### **Avatar Generation Endpoint**
 ```http
-GET /avatar/{input}.svg
+GET /avatar/{input}.svg?frame={frame}
 ```
 
 **Examples:**
-- `GET /avatar/user@example.com.svg` - Generate from email
-- `GET /avatar/john.doe@company.com.svg` - Generate from any string
+- `GET /avatar/user@example.com.svg` - Generate default avatar
+- `GET /avatar/user@example.com.svg?frame=idle_0` - Idle animation frame 0
+- `GET /avatar/user@example.com.svg?frame=happy` - Happy emote
 - `GET /avatar/973dfe463ec85785.svg` - Serve cached avatar by hash
+
+**Frame Options:**
+- `idle_0` through `idle_9` - 10-frame idle animation with varied expressions
+- `happy`, `sad`, `surprised`, `angry`, `bored` - 5 emote expressions
+- No frame parameter = default state (open eyes, closed mouth)
 
 **Response:**
 - **Content-Type**: `image/svg+xml`
 - **Cache-Control**: `public, max-age=31536000` (1 year)
+- **X-Avatar-System-Version**: `2.0`
 - **Body**: SVG image (60×60px)
 
 ### **Avatar Configuration Endpoint**
@@ -99,9 +157,32 @@ GET /avatar/{input}.svg/info
 }
 ```
 
+### **Animation Bundle Endpoint**
+```http
+GET /avatar/{input}/bundle?animations=idle,happy,sad
+```
+
+**Examples:**
+- `GET /avatar/user@example.com/bundle?animations=idle` - Get all 4 idle frames
+- `GET /avatar/user@example.com/bundle?animations=idle,happy,sad,surprised,angry,bored` - Get all frames
+
+**Response:** JSON with frame data
+```json
+{
+  "input_string": "user@example.com",
+  "frames": {
+    "idle_0": "data:image/svg+xml;base64,...",
+    "idle_1": "data:image/svg+xml;base64,...",
+    "happy": "data:image/svg+xml;base64,...",
+    ...
+  }
+}
+```
+
 ### **Service Information**
 ```http
 GET /           # Service overview and usage
+GET /version    # Get avatar system version (returns {"avatar_system_version": "2.0"})
 GET /health     # Health check
 GET /docs       # Auto-generated API documentation
 ```
@@ -111,18 +192,37 @@ GET /docs       # Auto-generated API documentation
 ### **Project Structure**
 ```
 sprite-maker/
-├── generate.py           # Bulk sprite sheet generator
-├── avatar.py             # CLI single avatar generator  
-├── app.py                # FastAPI web service
-├── door_agents.py        # Shared generation library
-├── assets/               # SVG asset files
-│   ├── eyes/1.svg ... 6.svg
-│   ├── mouths/1.svg ... 10.svg
-│   └── hair/1.svg ... 16.svg
-└── out/                  # Generated outputs
-    ├── agents_sheet.svg  # Sprite sheet
-    ├── agents_config.csv # Agent configurations
-    └── avatar/           # Cached individual avatars
+├── generate.py                    # Bulk sprite sheet generator
+├── avatar.py                      # CLI single avatar generator
+├── app.py                         # FastAPI web service
+├── door_agents.py                 # Shared generation library
+├── generate_emote_variants.py     # Script to generate emote variant assets
+├── test-grid.html                 # Visual testing page for animations
+├── assets/                        # SVG asset files (v2.0 structure)
+│   ├── eyes/
+│   │   ├── open/                  # Open eye states
+│   │   │   ├── 1.svg ... 4.svg    # Base open eyes (idle animation)
+│   │   │   ├── emote_happy_1.svg  # Happy emote open eyes
+│   │   │   ├── emote_sad_1.svg    # Sad emote open eyes
+│   │   │   └── ...                # Other emote variants
+│   │   └── closed/                # Closed eye states
+│   │       ├── 1.svg ... 2.svg    # Base closed eyes (blink)
+│   │       ├── emote_angry_1.svg  # Angry emote closed eyes
+│   │       └── ...                # Other emote variants
+│   ├── mouths/
+│   │   ├── open/                  # Open mouth states
+│   │   │   ├── 1.svg ... 3.svg    # Base open mouths
+│   │   │   ├── emote_happy_1.svg  # Happy emote open mouths
+│   │   │   └── ...                # Other emote variants
+│   │   └── closed/                # Closed mouth states
+│   │       ├── 1.svg ... 7.svg    # Base closed mouths (idle)
+│   │       ├── emote_sad_1.svg    # Sad emote closed mouths
+│   │       └── ...                # Other emote variants
+│   └── hair/1.svg ... 16.svg      # Hair styles (unchanged)
+└── out/                           # Generated outputs
+    ├── agents_sheet.svg           # Sprite sheet
+    ├── agents_config.csv          # Agent configurations
+    └── avatar/                    # Cached individual avatars
 ```
 
 ### **Core Components**
@@ -147,11 +247,88 @@ sprite-maker/
 - File-based caching for performance
 - Proper HTTP headers and error handling
 
+## 🎭 Emote System (v2.0)
+
+### **Overview**
+
+The v2.0 emote system provides rich animation support with 5 distinct emotes and a 4-frame idle animation. Each avatar has independent control over eye and mouth states to create expressive animations.
+
+### **5 Emote Expressions**
+
+| Emote | Eyes | Mouth | Use Case |
+|-------|------|-------|----------|
+| **happy** | Open, upturned | Open, smiling | Positive reactions, success states |
+| **sad** | Closed, downturned | Closed, frowning | Negative feedback, failure states |
+| **surprised** | Wide open | Open, circular | Alerts, notifications, unexpected events |
+| **angry** | Narrow, angled | Open, frowning | Errors, conflicts, warnings |
+| **bored** | Half-closed | Closed, flat | Waiting states, idle timeouts |
+
+### **Idle Animation**
+
+The idle animation provides varied expressions with 10 frames:
+
+```
+Frame 0: Eyes open,  Mouth closed (neutral)
+Frame 1: Eyes open,  Mouth open
+Frame 2: Eyes closed, Mouth closed (blink)
+Frame 3: Eyes happy, Mouth closed (subtle smile)
+Frame 4: Eyes open,  Mouth closed
+Frame 5: Eyes sad,   Mouth closed (subtle sadness)
+Frame 6: Eyes open,  Mouth bored
+Frame 7: Eyes bored, Mouth bored (full boredom)
+Frame 8: Eyes open,  Mouth open
+Frame 9: Eyes open,  Mouth closed
+```
+
+**Recommended cycle:** 4 FPS (250ms per frame) for smooth idle animation
+
+### **Frame State System**
+
+Each frame is defined by two independent states:
+
+- **Eye State**: `open` or `closed`
+- **Mouth State**: `open` or `closed`
+
+This allows the system to deterministically select appropriate assets:
+
+```python
+# Example: "happy" emote
+eye_state = "open"    # Happy uses open eyes
+mouth_state = "open"  # Happy uses open mouth
+eye_index = open_eye_index    # Deterministic from hash
+mouth_index = open_mouth_index  # Deterministic from hash
+
+# System loads: assets/eyes/open/emote_happy_{eye_index}.svg
+#               assets/mouths/open/emote_happy_{mouth_index}.svg
+```
+
+### **Asset Selection Logic**
+
+1. **Base Assets** (idle animation): Use numbered files (1.svg, 2.svg, etc.)
+2. **Emote Assets**: Use emote-prefixed files (emote_happy_1.svg, etc.)
+3. **Deterministic Indices**: Hash determines which variant within each category
+4. **Independent States**: Eyes and mouths selected independently based on frame requirements
+
+### **Usage Examples**
+
+```bash
+# Get specific animation frame
+curl http://localhost:8000/avatar/user@example.com.svg?frame=idle_2
+
+# Get emote expression
+curl http://localhost:8000/avatar/user@example.com.svg?frame=angry
+
+# Get all frames as bundle
+curl "http://localhost:8000/avatar/user@example.com/bundle?animations=idle,happy,sad,surprised,angry,bored"
+```
+
 ## 🎨 Avatar Variants
 
 ### **Asset Combinations**
-- **4 eye styles** (rest mode) + **2 eye styles** (excited mode)
-- **6 mouth styles** (rest mode) + **4 mouth styles** (excited mode)
+- **24 open eye variants** (4 base + 20 emote variants)
+- **12 closed eye variants** (2 base + 10 emote variants)
+- **18 open mouth variants** (3 base + 15 emote variants)
+- **42 closed mouth variants** (7 base + 35 emote variants)
 - **16 hair styles** with 99 total color combinations
 - **10 body shapes** (5×3 to 6×7 tile dimensions)
 - **20 body colors** × **19 node colors** (always different)
@@ -169,8 +346,8 @@ sprite-maker/
 
 ### **Current Assets**
 ```
-Eyes: 6 variants (various expressions)
-Mouths: 10 variants (6 rest + 4 excited states)  
+Eyes: 36 variants (24 open + 12 closed, including base and emote assets)
+Mouths: 60 variants (18 open + 42 closed, including base and emote assets)
 Hair: 16 variants with sophisticated color/positioning systems
 Body Shapes: 10 variants (width×height combinations)
 Colors: 20-color carefully curated palette
@@ -280,6 +457,67 @@ uv run generate.py
 ```
 
 ## 🛠️ Development
+
+### **Visual Testing**
+
+Use the included `test-grid.html` page to visually verify animations and emotes:
+
+```bash
+# Start the development server
+uv run python app.py
+
+# Open test-grid.html in your browser
+open test-grid.html
+# Or visit: file:///path/to/test-grid.html
+```
+
+**Features:**
+- View all 4 idle frames and 5 emotes for multiple avatars
+- Add custom test avatars with any input string
+- Toggle idle animation to see frame cycling
+- Visual feedback for current frame during animation
+- Server status checking
+
+**Test Coverage:**
+
+Run the comprehensive test suite:
+
+```bash
+# Run all tests
+uv run pytest tests/
+
+# Run with coverage
+uv run pytest tests/ --cov=. --cov-report=html
+
+# Run specific test modules
+uv run pytest tests/test_emote_system.py
+uv run pytest tests/test_animation_frames.py
+```
+
+### **Generating Emote Variants**
+
+The `generate_emote_variants.py` script creates emote-specific variants from base assets:
+
+```bash
+# Generate emote variants from base assets
+uv run python generate_emote_variants.py
+
+# This creates files like:
+# - assets/eyes/open/emote_happy_1.svg (from assets/eyes/open/1.svg)
+# - assets/mouths/closed/emote_sad_2.svg (from assets/mouths/closed/2.svg)
+# etc.
+```
+
+**When to run this script:**
+- After adding new base eye or mouth assets
+- After modifying base assets and wanting to propagate changes
+- When setting up the project initially
+
+**How it works:**
+1. Reads all base assets (numbered files) from eyes/open, eyes/closed, mouths/open, mouths/closed
+2. For each emote (happy, sad, surprised, angry, bored), creates a copy with emote prefix
+3. Preserves all SVG attributes and styling
+4. Creates deterministic variants based on base asset count
 
 ### **Adding New Assets**
 1. Add numbered SVG files to appropriate directories

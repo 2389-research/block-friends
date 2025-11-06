@@ -4,8 +4,12 @@ Generate a 20×20 sprite sheet of 'door agents'.
 
 Folder layout expected:
   assets/
-    eyes/1.svg ... eyes/6.svg
-    mouths/1.svg ... mouths/8.svg   (1-6 = rest, 7-8 = excited)
+    eyes/
+      open/1.svg ... 6.svg
+      closed/1.svg ... 6.svg
+    mouths/
+      open/1.svg ... 8.svg
+      closed/1.svg ... 8.svg
 
 Outputs to ./out/
   agents_sheet.svg   (vector, 1200×1200)
@@ -62,9 +66,9 @@ svg_path.write_text(sheet_svg)
 
 # Write agent configuration CSV
 with open(csv_path, 'w', newline='') as csvfile:
-    fieldnames = ['agent_id', 'row', 'col', 'x', 'y', 'body_shape', 'eye_index', 
-                  'mouth_index', 'hair_index', 'excited', 'body_color', 'node_color', 'feet_color', 
-                  'feet_match_body']
+    fieldnames = ['agent_id', 'row', 'col', 'x', 'y', 'body_shape', 'open_eye_index',
+                  'closed_eye_index', 'open_mouth_index', 'closed_mouth_index', 'hair_index',
+                  'excited', 'body_color', 'node_color', 'feet_color', 'feet_match_body', 'avatar_system_version']
     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
     writer.writeheader()
     writer.writerows(agent_configs)
