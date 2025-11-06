@@ -799,7 +799,7 @@ async def get_avatar_bundle(request: Request, input_param: str, animations: str 
 
 @app.post("/avatar/bundle")
 @limiter.limit("10/minute")
-async def create_avatar_bundle(request_obj: Request, request: BundleRequest):
+async def create_avatar_bundle(request: Request, bundle_request: BundleRequest):
     """
     Generate a ZIP bundle containing PDF animations for an avatar via POST request.
 
@@ -813,13 +813,13 @@ async def create_avatar_bundle(request_obj: Request, request: BundleRequest):
     - metadata.json (animation specifications)
     """
     try:
-        logger.info(f"Generating PDF bundle for {request.input} with animations: {request.animations}")
+        logger.info(f"Generating PDF bundle for {bundle_request.input} with animations: {bundle_request.animations}")
 
         # Generate the bundle
-        zip_bytes = await generate_pdf_bundle(request.input, request.animations)
+        zip_bytes = await generate_pdf_bundle(bundle_request.input, bundle_request.animations)
 
         # Calculate hash for filename
-        hash_hex = hashlib.sha256(request.input.encode('utf-8')).hexdigest()[:16]
+        hash_hex = hashlib.sha256(bundle_request.input.encode('utf-8')).hexdigest()[:16]
         filename = f"avatar_{hash_hex}_animations.zip"
 
         return StreamingResponse(
@@ -832,7 +832,7 @@ async def create_avatar_bundle(request_obj: Request, request: BundleRequest):
         )
 
     except Exception as e:
-        logger.exception(f"Error generating PDF bundle for {request.input}")
+        logger.exception(f"Error generating PDF bundle for {bundle_request.input}")
         raise HTTPException(status_code=500, detail=f"Error generating PDF bundle: {str(e)}")
 
 @app.get("/version")
