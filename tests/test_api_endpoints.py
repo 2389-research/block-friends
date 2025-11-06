@@ -62,8 +62,7 @@ class TestAvatarSVGEndpoint:
 
     def test_avatar_svg_idle_frames(self):
         """Avatar SVG accepts all idle frame parameters."""
-        # Note: Will be 10 frames after PR #2 is merged
-        for i in range(4):
+        for i in range(10):
             response = client.get(f"/avatar/test@example.com.svg?frame=idle_{i}")
             assert response.status_code == 200
 
@@ -178,10 +177,9 @@ class TestFramesEndpoint:
 
         idle = data["frames"]["idle"]
         assert "frame_count" in idle
-        # Note: Will be 10 frames after PR #2 is merged
-        assert idle["frame_count"] == 4
+        assert idle["frame_count"] == 10
         assert "frames" in idle
-        assert len(idle["frames"]) == 4
+        assert len(idle["frames"]) == 10
         assert "fps" in idle
 
     def test_frames_emotes_info(self):
@@ -266,36 +264,31 @@ class TestStaticPages:
 class TestSecurityHeaders:
     """Tests for security headers on all endpoints."""
 
-    # Note: Security headers will be added in PR #11
-    # Uncomment these tests after that PR is merged
+    def test_svg_endpoint_has_security_headers(self):
+        """SVG endpoint includes security headers."""
+        response = client.get("/avatar/test@example.com.svg")
 
-    # def test_svg_endpoint_has_security_headers(self):
-    #     """SVG endpoint includes security headers."""
-    #     response = client.get("/avatar/test@example.com.svg")
-    #
-    #     assert "x-content-type-options" in response.headers
-    #     assert response.headers["x-content-type-options"] == "nosniff"
-    #     assert "x-frame-options" in response.headers
-    #     assert "x-xss-protection" in response.headers
-    #
-    # def test_png_endpoint_has_security_headers(self):
-    #     """PNG endpoint includes security headers."""
-    #     response = client.get("/avatar/test@example.com.png")
-    #
-    #     assert "x-content-type-options" in response.headers
-    #     assert "x-frame-options" in response.headers
-    #
-    # def test_api_endpoint_has_security_headers(self):
-    #     """API endpoints include security headers."""
-    #     response = client.get("/avatar/test@example.com.svg/info")
-    #
-    #     assert "x-content-type-options" in response.headers
-    #     assert "x-xss-protection" in response.headers
+        assert "x-content-type-options" in response.headers
+        assert response.headers["x-content-type-options"] == "nosniff"
+        assert "x-frame-options" in response.headers
+        assert response.headers["x-frame-options"] == "SAMEORIGIN"
+        assert "referrer-policy" in response.headers
+        # Note: X-XSS-Protection removed as deprecated in PR #11
 
-    def test_placeholder(self):
-        """Placeholder test - security headers will be tested after PR #11 merges."""
-        # This ensures the test class runs
-        assert True
+    def test_png_endpoint_has_security_headers(self):
+        """PNG endpoint includes security headers."""
+        response = client.get("/avatar/test@example.com.png")
+
+        assert "x-content-type-options" in response.headers
+        assert "x-frame-options" in response.headers
+        assert "referrer-policy" in response.headers
+
+    def test_api_endpoint_has_security_headers(self):
+        """API endpoints include security headers."""
+        response = client.get("/avatar/test@example.com.svg/info")
+
+        assert "x-content-type-options" in response.headers
+        assert "referrer-policy" in response.headers
 
 
 class TestCacheHeaders:
