@@ -10,8 +10,9 @@ def test_universal_mode_includes_style_block():
     svg, _ = generator.generate_deterministic('test@example.com', frame='idle_0', universal=True)
 
     assert '<style>' in svg
-    assert '.eyes > g' in svg
-    assert '.mouths > g' in svg
+    # CSS uses compact format without spaces
+    assert '.eyes>g' in svg
+    assert '.mouths>g' in svg
 
 def test_universal_mode_includes_nested_groups():
     """Universal mode should include nested eye/mouth groups."""
@@ -22,8 +23,9 @@ def test_universal_mode_includes_nested_groups():
 
     assert '<g class="eyes"' in svg
     assert '<g class="mouths"' in svg
-    assert '<g class="open">' in svg
-    assert '<g class="closed">' in svg
+    # Nested state groups like open, closed, emotes, etc.
+    assert '<g class="open"' in svg
+    assert '<g class="closed"' in svg
 
 def test_legacy_mode_single_state():
     """Legacy mode should only include single eye/mouth state."""

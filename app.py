@@ -18,6 +18,10 @@ from typing import List
 import uvicorn
 import cairosvg
 from PyPDF2 import PdfWriter, PdfReader
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_ipaddr
+from slowapi.errors import RateLimitExceeded
+import os
 
 from door_agents import DoorAgentConfig, DoorAgentGenerator, AVATAR_SYSTEM_VERSION
 
@@ -30,6 +34,24 @@ app = FastAPI(
     description="Deterministic avatar generation service with 1.27 billion unique variants",
     version="1.0.0"
 )
+
+# Initialize rate limiter with Redis support for multi-instance deployments
+# get_ipaddr supports X-Forwarded-For headers for proper IP detection behind proxies (e.g., Fly.io)
+storage_uri = os.environ.get("REDIS_URL")
+if storage_uri:
+    logger.info(f"Initializing rate limiter with Redis storage: {storage_uri.split('@')[-1]}")  # Log without credentials
+    try:
+        limiter = Limiter(key_func=get_ipaddr, storage_uri=storage_uri)
+    except Exception:
+        logger.exception("Failed to connect to Redis for rate limiting")
+        logger.warning("Falling back to in-memory rate limiting (per-instance counters)")
+        limiter = Limiter(key_func=get_ipaddr)
+else:
+    logger.info("Using in-memory rate limiting (per-instance counters)")
+    limiter = Limiter(key_func=get_ipaddr)
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Add CORS middleware to allow cross-origin requests (public API)
 app.add_middleware(
@@ -442,7 +464,8 @@ async def sitemap():
     raise HTTPException(status_code=404, detail="Sitemap page not found")
 
 @app.get("/avatar/{input_param}.svg")
-async def get_avatar(input_param: str, frame: str = "neutral", legacy: bool = False, shadow: bool = True):
+@limiter.limit("100/minute")
+async def get_avatar(request: Request, input_param: str, frame: str = "neutral", legacy: bool = False, shadow: bool = True):
     """
     Generate and serve avatar SVG for given input.
 
@@ -483,7 +506,8 @@ async def get_avatar(input_param: str, frame: str = "neutral", legacy: bool = Fa
         raise HTTPException(status_code=500, detail=f"Error generating avatar: {str(e)}")
 
 @app.get("/avatar/{input_param}.png")
-async def get_avatar_png(input_param: str, frame: str = "neutral", legacy: bool = False):
+@limiter.limit("100/minute")
+async def get_avatar_png(request: Request, input_param: str, frame: str = "neutral", legacy: bool = False):
     """
     Generate and serve avatar PNG for given input.
 
@@ -748,7 +772,8 @@ async def get_avatar_frames(input_param: str):
         raise HTTPException(status_code=500, detail=f"Error getting avatar frames: {str(e)}")
 
 @app.get("/avatar/{input_param}/bundle")
-async def get_avatar_bundle(input_param: str, animations: str = "idle,emotes,vowels"):
+@limiter.limit("10/minute")
+async def get_avatar_bundle(request: Request, input_param: str, animations: str = "idle,emotes,vowels"):
     """
     Generate a ZIP bundle containing PDF animations for an avatar via GET request.
 
@@ -787,7 +812,8 @@ async def get_avatar_bundle(input_param: str, animations: str = "idle,emotes,vow
         raise HTTPException(status_code=500, detail=f"Error generating PDF bundle: {str(e)}")
 
 @app.post("/avatar/bundle")
-async def create_avatar_bundle(request: BundleRequest):
+@limiter.limit("10/minute")
+async def create_avatar_bundle(request: Request, bundle_request: BundleRequest):
     """
     Generate a ZIP bundle containing PDF animations for an avatar via POST request.
 
@@ -801,13 +827,13 @@ async def create_avatar_bundle(request: BundleRequest):
     - metadata.json (animation specifications)
     """
     try:
-        logger.info(f"Generating PDF bundle for {request.input} with animations: {request.animations}")
+        logger.info(f"Generating PDF bundle for {bundle_request.input} with animations: {bundle_request.animations}")
 
         # Generate the bundle
-        zip_bytes = await generate_pdf_bundle(request.input, request.animations)
+        zip_bytes = await generate_pdf_bundle(bundle_request.input, bundle_request.animations)
 
         # Calculate hash for filename
-        hash_hex = hashlib.sha256(request.input.encode('utf-8')).hexdigest()[:16]
+        hash_hex = hashlib.sha256(bundle_request.input.encode('utf-8')).hexdigest()[:16]
         filename = f"avatar_{hash_hex}_animations.zip"
 
         return StreamingResponse(
@@ -820,7 +846,7 @@ async def create_avatar_bundle(request: BundleRequest):
         )
 
     except Exception as e:
-        logger.exception(f"Error generating PDF bundle for {request.input}")
+        logger.exception(f"Error generating PDF bundle for {bundle_request.input}")
         raise HTTPException(status_code=500, detail=f"Error generating PDF bundle: {str(e)}")
 
 @app.get("/version")
