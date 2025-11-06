@@ -89,7 +89,7 @@ def test_emote_frames_control_eye_and_mouth_states():
     assert config_info["mouth_override"] == "closed"
 
     # Test bored emote (uses half-lidded/clipped open eyes)
-    svg_content, config_info = generator.generate_deterministic("test@example.com", frame="bored", universal=False)
+    _, config_info = generator.generate_deterministic("test@example.com", frame="bored", universal=False)
     assert config_info["eye_override"] == "open"
     assert config_info["mouth_override"] == "closed"
 
@@ -192,7 +192,7 @@ def test_all_emotes_generate_correct_state_overrides():
             f"Emote '{emote}' generated empty SVG"
 
 
-def test_idle_animation_produces_4_frames():
+def test_idle_animation_produces_10_frames():
     """Test that idle animation has exactly 10 frames with correct states."""
     config = DoorAgentConfig()
     generator = DoorAgentGenerator(config)
@@ -241,7 +241,7 @@ def test_idle_animation_body_sway_transforms():
     # Animation is done via eye/mouth state changes instead
     for frame_num in range(10):
         frame = f"idle_{frame_num}"
-        svg_content, config_info = generator.generate_deterministic(test_input, frame=frame, universal=False)
+        _, config_info = generator.generate_deterministic(test_input, frame=frame, universal=False)
 
         # Body transform should be empty for all idle frames in current system
         assert config_info['body_transform'] == '', \

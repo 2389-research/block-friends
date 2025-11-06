@@ -11,7 +11,7 @@ def test_universal_eyes_has_nested_groups():
     generator = DoorAgentGenerator(config)
 
     # _generate_universal_eyes returns (clipPaths, eyes_svg)
-    clipPaths, eyes_svg = generator._generate_universal_eyes(
+    _, eyes_svg = generator._generate_universal_eyes(
         open_eye_idx=0,
         closed_eye_idx=0,
         email='test@example.com',
@@ -33,7 +33,7 @@ def test_universal_eyes_includes_all_emotes():
     generator = DoorAgentGenerator(config)
 
     # _generate_universal_eyes returns (clipPaths, eyes_svg)
-    clipPaths, eyes_svg = generator._generate_universal_eyes(
+    _, eyes_svg = generator._generate_universal_eyes(
         open_eye_idx=0,
         closed_eye_idx=0,
         email='test@example.com',
@@ -54,7 +54,7 @@ def test_universal_eyes_has_transform():
     generator = DoorAgentGenerator(config)
 
     # _generate_universal_eyes returns (clipPaths, eyes_svg)
-    clipPaths, eyes_svg = generator._generate_universal_eyes(
+    _, eyes_svg = generator._generate_universal_eyes(
         open_eye_idx=0,
         closed_eye_idx=0,
         email='test@example.com',

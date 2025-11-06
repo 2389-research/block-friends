@@ -19,8 +19,9 @@ import uvicorn
 import cairosvg
 from PyPDF2 import PdfWriter, PdfReader
 from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi.util import get_ipaddr
 from slowapi.errors import RateLimitExceeded
+import os
 
 from door_agents import DoorAgentConfig, DoorAgentGenerator, AVATAR_SYSTEM_VERSION
 
@@ -34,8 +35,21 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
+# Initialize rate limiter with Redis support for multi-instance deployments
+# get_ipaddr supports X-Forwarded-For headers for proper IP detection behind proxies (e.g., Fly.io)
+storage_uri = os.environ.get("REDIS_URL")
+if storage_uri:
+    logger.info(f"Initializing rate limiter with Redis storage: {storage_uri.split('@')[-1]}")  # Log without credentials
+    try:
+        limiter = Limiter(key_func=get_ipaddr, storage_uri=storage_uri)
+    except Exception as e:
+        logger.error(f"Failed to connect to Redis for rate limiting: {e}")
+        logger.warning("Falling back to in-memory rate limiting (per-instance counters)")
+        limiter = Limiter(key_func=get_ipaddr)
+else:
+    logger.info("Using in-memory rate limiting (per-instance counters)")
+    limiter = Limiter(key_func=get_ipaddr)
+
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
