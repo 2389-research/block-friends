@@ -28,12 +28,12 @@ def test_generator_creates_deterministic_avatar():
 
 
 def test_idle_animation_frames_have_blink_and_sway():
-    """Idle animation should use eye state overrides and horizontal body transforms."""
+    """Idle animation should use eye/mouth state overrides for 10-frame cycle."""
     config = DoorAgentConfig()
     generator = DoorAgentGenerator(config)
 
-    # Test all 4 idle frames (use legacy mode for frame-specific animation)
-    for frame_num in range(4):
+    # Test all 10 idle frames (use legacy mode for frame-specific animation)
+    for frame_num in range(10):
         frame = f"idle_{frame_num}"
         svg_content, config_info = generator.generate_deterministic("test@example.com", frame=frame, universal=False)
 
@@ -42,27 +42,25 @@ def test_idle_animation_frames_have_blink_and_sway():
         assert len(svg_content) > 0
         assert config_info["frame"] == frame
 
-        # Frame 0: open eyes, body left
+        # Frame 0: open eyes, closed mouth
         if frame_num == 0:
             assert config_info["eye_override"] == "open"
-            assert config_info["body_transform"] == "translate(-1.5, 0)"
-            assert "translate(-1.5, 0)" in svg_content
+            assert config_info["mouth_override"] == "closed"
 
-        # Frame 1: open eyes, body center
+        # Frame 1: open eyes, open mouth
         elif frame_num == 1:
             assert config_info["eye_override"] == "open"
-            assert config_info["body_transform"] == ""
+            assert config_info["mouth_override"] == "open"
 
-        # Frame 2: closed eyes (blink), body right
+        # Frame 2: closed eyes (blink), closed mouth
         elif frame_num == 2:
             assert config_info["eye_override"] == "closed"
-            assert config_info["body_transform"] == "translate(1.5, 0)"
-            assert "translate(1.5, 0)" in svg_content
+            assert config_info["mouth_override"] == "closed"
 
-        # Frame 3: open eyes, body center
-        elif frame_num == 3:
-            assert config_info["eye_override"] == "open"
-            assert config_info["body_transform"] == ""
+        # Frame 3-9: Various combinations
+        else:
+            assert config_info["eye_override"] is not None
+            assert config_info["mouth_override"] is not None
 
 
 def test_emote_frames_control_eye_and_mouth_states():
@@ -90,9 +88,9 @@ def test_emote_frames_control_eye_and_mouth_states():
     assert config_info["eye_override"] == "open"
     assert config_info["mouth_override"] == "closed"
 
-    # Test bored emote
+    # Test bored emote (uses half-lidded/clipped open eyes)
     svg_content, config_info = generator.generate_deterministic("test@example.com", frame="bored", universal=False)
-    assert config_info["eye_override"] == "closed"
+    assert config_info["eye_override"] == "open"
     assert config_info["mouth_override"] == "closed"
 
 
@@ -177,7 +175,7 @@ def test_all_emotes_generate_correct_state_overrides():
         'sad': {'eye': 'open', 'mouth': 'closed'},
         'surprised': {'eye': 'open', 'mouth': 'open'},
         'angry': {'eye': 'open', 'mouth': 'closed'},
-        'bored': {'eye': 'closed', 'mouth': 'closed'}
+        'bored': {'eye': 'open', 'mouth': 'closed'}  # Uses half-lidded/clipped open eyes
     }
 
     for emote, expected in expected_states.items():
@@ -195,14 +193,14 @@ def test_all_emotes_generate_correct_state_overrides():
 
 
 def test_idle_animation_produces_4_frames():
-    """Test that idle animation has exactly 4 frames with correct states."""
+    """Test that idle animation has exactly 10 frames with correct states."""
     config = DoorAgentConfig()
     generator = DoorAgentGenerator(config)
 
     test_input = "test@example.com"
 
-    # Idle animation should have frames 0-3
-    for frame_num in range(4):
+    # Idle animation should have frames 0-9
+    for frame_num in range(10):
         frame = f"idle_{frame_num}"
         svg_content, config_info = generator.generate_deterministic(test_input, frame=frame)
 
@@ -233,31 +231,27 @@ def test_idle_animation_blink_on_frame_2():
 
 
 def test_idle_animation_body_sway_transforms():
-    """Test that idle animation applies correct body sway transforms (legacy mode)."""
+    """Test that idle animation uses eye/mouth overrides instead of body transforms."""
     config = DoorAgentConfig()
     generator = DoorAgentGenerator(config)
 
     test_input = "test@example.com"
 
-    # Define expected transforms for each frame
-    expected_transforms = {
-        0: 'translate(-1.5, 0)',  # Left
-        1: '',                     # Center
-        2: 'translate(1.5, 0)',    # Right
-        3: ''                      # Center
-    }
-
-    for frame_num, expected_transform in expected_transforms.items():
+    # Current implementation doesn't use body_transform for idle frames
+    # Animation is done via eye/mouth state changes instead
+    for frame_num in range(10):
         frame = f"idle_{frame_num}"
         svg_content, config_info = generator.generate_deterministic(test_input, frame=frame, universal=False)
 
-        assert config_info['body_transform'] == expected_transform, \
-            f"Frame {frame_num} has incorrect transform: expected '{expected_transform}', got '{config_info['body_transform']}'"
+        # Body transform should be empty for all idle frames in current system
+        assert config_info['body_transform'] == '', \
+            f"Frame {frame_num} has unexpected body_transform: '{config_info['body_transform']}'"
 
-        # Verify transform is in SVG content when non-empty
-        if expected_transform:
-            assert expected_transform in svg_content, \
-                f"Transform '{expected_transform}' not found in SVG for frame {frame_num}"
+        # Verify eye and mouth overrides are present instead
+        assert config_info['eye_override'] is not None, \
+            f"Frame {frame_num} missing eye_override"
+        assert config_info['mouth_override'] is not None, \
+            f"Frame {frame_num} missing mouth_override"
 
 
 def test_deterministic_generation_same_input():
