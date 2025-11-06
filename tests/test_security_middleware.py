@@ -39,15 +39,6 @@ def test_security_header_x_frame_options():
     assert response.headers["x-frame-options"] == "SAMEORIGIN"
 
 
-def test_security_header_x_xss_protection():
-    """Test that X-XSS-Protection header is present."""
-    response = client.get("/avatar/test@example.com.svg")
-
-    assert response.status_code == 200
-    assert "x-xss-protection" in response.headers
-    assert response.headers["x-xss-protection"] == "1; mode=block"
-
-
 def test_security_header_referrer_policy():
     """Test that Referrer-Policy header is present."""
     response = client.get("/avatar/test@example.com.svg")
@@ -71,7 +62,6 @@ def test_security_headers_on_all_endpoints():
         # All responses should have security headers
         assert "x-content-type-options" in response.headers, f"Missing header on {endpoint}"
         assert "x-frame-options" in response.headers, f"Missing header on {endpoint}"
-        assert "x-xss-protection" in response.headers, f"Missing header on {endpoint}"
         assert "referrer-policy" in response.headers, f"Missing header on {endpoint}"
 
 
@@ -111,10 +101,9 @@ def test_security_headers_on_error_responses():
     # Should be an error response
     assert response.status_code == 400
 
-    # But still should have security headers
+    # But still should have security headers (X-XSS-Protection removed as deprecated)
     assert "x-content-type-options" in response.headers
     assert "x-frame-options" in response.headers
-    assert "x-xss-protection" in response.headers
     assert "referrer-policy" in response.headers
 
 
@@ -125,3 +114,12 @@ def test_no_csp_header():
     assert response.status_code == 200
     # CSP should NOT be present since we serve embeddable SVGs
     assert "content-security-policy" not in response.headers
+
+
+def test_no_x_xss_protection_header():
+    """Test that X-XSS-Protection is NOT present (deprecated and can introduce vulnerabilities)."""
+    response = client.get("/avatar/test@example.com.svg")
+
+    assert response.status_code == 200
+    # X-XSS-Protection should NOT be present - it's deprecated and removed
+    assert "x-xss-protection" not in response.headers

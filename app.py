@@ -35,7 +35,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Public API - allow all origins for embedding
-    allow_credentials=True,
+    allow_credentials=False,  # Must be False when using wildcard origins per CORS spec
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -47,9 +47,9 @@ async def add_security_headers(request: Request, call_next):
     # Add security headers for all responses
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "SAMEORIGIN"  # Allow embedding in iframes from same origin
-    response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     # Note: Not adding CSP since we serve SVG images that may be embedded anywhere
+    # Note: X-XSS-Protection is deprecated and removed (can introduce vulnerabilities in older browsers)
     return response
 
 
