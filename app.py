@@ -42,8 +42,8 @@ if storage_uri:
     logger.info(f"Initializing rate limiter with Redis storage: {storage_uri.split('@')[-1]}")  # Log without credentials
     try:
         limiter = Limiter(key_func=get_ipaddr, storage_uri=storage_uri)
-    except Exception as e:
-        logger.error(f"Failed to connect to Redis for rate limiting: {e}")
+    except Exception:
+        logger.exception("Failed to connect to Redis for rate limiting")
         logger.warning("Falling back to in-memory rate limiting (per-instance counters)")
         limiter = Limiter(key_func=get_ipaddr)
 else:

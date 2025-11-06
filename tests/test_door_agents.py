@@ -429,14 +429,14 @@ def test_emote_animation_complete_workflow():
     svg_neutral, config_neutral = generator.generate_deterministic(test_input, frame="neutral")
     assert svg_neutral is not None
 
-    # Generate all idle frames
+    # Generate all 10 idle frames
     idle_svgs = []
-    for i in range(4):
+    for i in range(10):
         svg, conf = generator.generate_deterministic(test_input, frame=f"idle_{i}")
         assert svg is not None
         idle_svgs.append(svg)
 
-    # All idle frames should be different (due to transforms)
+    # All idle frames should be different (due to eye/mouth overrides)
     assert len(set(idle_svgs)) > 1, "Idle animation frames should differ"
 
     # Generate all emote frames
