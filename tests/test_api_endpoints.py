@@ -301,7 +301,7 @@ class TestCacheHeaders:
         assert "cache-control" in response.headers
         cache_control = response.headers["cache-control"]
         assert "public" in cache_control
-        assert "max-age=31536000" in cache_control or "immutable" in cache_control
+        assert "max-age=31536000" in cache_control and "immutable" in cache_control
 
     def test_png_endpoint_has_cache_headers(self):
         """PNG endpoint includes proper cache headers."""
