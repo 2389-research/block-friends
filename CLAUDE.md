@@ -187,3 +187,24 @@ fetch('/avatar/user@example.com.svg')
 - **Vowels (5):** `vowel_a`, `vowel_e`, `vowel_i`, `vowel_o`, `vowel_u` - open eyes with vowel mouths for lip-sync
 
 See `docs/universal-svg.md` for comprehensive documentation including API usage, structure details, client-side examples, performance analysis, and migration guide.
+
+## Avatar Shadow Feature
+
+Avatars now include a ground shadow for depth and visual grounding.
+
+**Implementation:**
+- Shadow is an ellipse positioned at the bottom of each avatar
+- Scales with actual content width (body + hair + nodes)
+- Width: `content_width * 1.2`, Height: `content_width * 0.15`
+- Positioned 3px overlapping feet for depth effect
+- Gaussian blur (stdDeviation=1.5) for soft edges
+- Light grey (#808080) with 0.45 opacity
+- Renders behind all elements (first after `<defs>`)
+
+**Technical Details:**
+- Bounding box tracked during generation: `min_x`, `max_x`
+- Shadow filter in `<defs>`: `<filter id="{avatar_id}-shadow-blur">`
+- Filter namespaced with avatar_id to prevent conflicts
+- Works in both universal and legacy modes
+
+See `docs/plans/2025-10-29-avatar-shadow-design.md` for full design rationale.

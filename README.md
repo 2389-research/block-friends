@@ -27,6 +27,7 @@ A comprehensive avatar generation system that creates procedurally generated "do
 - **Proper HTTP headers** with long-term caching and version tracking
 - **Multiple output formats**: SVG, PNG, CSS sprites, animation bundles
 - **Auto-generated API documentation**
+- **Ground Shadows**: Soft-edged shadows that scale with avatar content width for depth and visual grounding
 
 ## 🎯 Quick Start
 

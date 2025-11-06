@@ -799,14 +799,14 @@ class DoorAgentGenerator:
         # Idle frame rules (10 frames with independent eye/mouth combinations)
         idle_frames = [
             ('idle_0', 'open', 'closed'),      # Default resting state
-            ('idle_1', 'open', 'open'),        # Slight smile
-            ('idle_2', 'closed', 'closed'),    # Blink
-            ('idle_3', 'happy', 'closed'),     # Slight happiness
-            ('idle_4', 'open', 'closed'),      # Return to rest
-            ('idle_5', 'sad', 'closed'),       # Slight sadness
-            ('idle_6', 'open', 'bored'),       # Slight boredom
+            ('idle_1', 'open', 'bored'),       # Subtle bored expression
+            ('idle_2', 'closed', 'bored'),     # Blink with bored mouth
+            ('idle_3', 'open', 'bored'),       # Bored
+            ('idle_4', 'open', 'closed'),      # Resting
+            ('idle_5', 'open', 'closed'),      # Resting
+            ('idle_6', 'bored', 'closed'),     # Bored eyes, neutral mouth
             ('idle_7', 'bored', 'bored'),      # Full boredom
-            ('idle_8', 'open', 'open'),        # Slight smile again
+            ('idle_8', 'bored', 'closed'),     # Bored eyes, neutral mouth
             ('idle_9', 'open', 'closed'),      # Return to rest
         ]
 
@@ -831,14 +831,14 @@ class DoorAgentGenerator:
 
         idle_frame_classes = [
             ('open', 'closed'),   # idle_0 (0-10%)
-            ('open', 'open'),     # idle_1 (10-20%)
-            ('closed', 'closed'), # idle_2 (20-30%)
-            ('happy', 'closed'),  # idle_3 (30-40%)
+            ('open', 'bored'),    # idle_1 (10-20%)
+            ('closed', 'bored'),  # idle_2 (20-30%)
+            ('open', 'bored'),    # idle_3 (30-40%)
             ('open', 'closed'),   # idle_4 (40-50%)
-            ('sad', 'closed'),    # idle_5 (50-60%)
-            ('open', 'bored'),    # idle_6 (60-70%)
+            ('open', 'closed'),   # idle_5 (50-60%)
+            ('bored', 'closed'),  # idle_6 (60-70%)
             ('bored', 'bored'),   # idle_7 (70-80%)
-            ('open', 'open'),     # idle_8 (80-90%)
+            ('bored', 'closed'),  # idle_8 (80-90%)
             ('open', 'closed'),   # idle_9 (90-100%)
         ]
 
@@ -849,14 +849,17 @@ class DoorAgentGenerator:
             eye_frames.setdefault(eye_class, []).append(i)
             mouth_frames.setdefault(mouth_class, []).append(i)
 
-        # Generate compact keyframe animations
+        # Generate compact keyframe animations (6s duration for slower, less jumpy animation)
         for eye_class, frame_indices in eye_frames.items():
             kf = ''.join([f'{i*10}%,{(i+1)*10 if i<9 else 100}%{{opacity:{1 if i in frame_indices else 0}}}' for i in range(10)])
-            css_rules.append(f'@keyframes {a}-idle-eye-{eye_class}{{{kf}}}#{a}.idle .eyes>.{eye_class}{{animation:{a}-idle-eye-{eye_class} 3s steps(1) infinite}}')
+            css_rules.append(f'@keyframes {a}-idle-eye-{eye_class}{{{kf}}}#{a}.idle .eyes>.{eye_class}{{animation:{a}-idle-eye-{eye_class} 6s steps(1) infinite}}')
 
         for mouth_class, frame_indices in mouth_frames.items():
             kf = ''.join([f'{i*10}%,{(i+1)*10 if i<9 else 100}%{{opacity:{1 if i in frame_indices else 0}}}' for i in range(10)])
-            css_rules.append(f'@keyframes {a}-idle-mouth-{mouth_class}{{{kf}}}#{a}.idle .mouths>.{mouth_class}{{animation:{a}-idle-mouth-{mouth_class} 3s steps(1) infinite}}')
+            css_rules.append(f'@keyframes {a}-idle-mouth-{mouth_class}{{{kf}}}#{a}.idle .mouths>.{mouth_class}{{animation:{a}-idle-mouth-{mouth_class} 6s steps(1) infinite}}')
+
+        # Shadow visibility control
+        css_rules.append(f'#{a}.no-shadow .shadow{{opacity:0}}')
 
         return '<style>\n' + '\n'.join(css_rules) + '\n</style>'
 
@@ -1040,7 +1043,8 @@ class DoorAgentGenerator:
                           mouth_emote: Optional[str] = None,
                           email: Optional[str] = None,
                           frame: str = "neutral",
-                          universal: bool = True) -> str:
+                          universal: bool = True,
+                          shadow: bool = True) -> str:
         """Generate a single agent SVG with specified parameters.
 
         Animation parameters:
@@ -1051,6 +1055,7 @@ class DoorAgentGenerator:
             email: Email or input string for generating avatar ID (optional)
             frame: Animation frame identifier for CSS class (default: "neutral")
             universal: If True, generate universal SVG with all states; if False, use legacy single-frame (default: True)
+            shadow: If True, show shadow (default: True). If False, add 'no-shadow' class to hide shadow
         """
 
         w_tiles, h_tiles = shape
@@ -1064,6 +1069,12 @@ class DoorAgentGenerator:
         bx1 = bx0 + body_w
         by1 = by0 + body_h
         cx = (bx0 + bx1) / 2
+
+        # Initialize bounding box tracking for shadow calculation and viewBox
+        min_x = float('inf')
+        max_x = float('-inf')
+        min_y = float('inf')
+        max_y = float('-inf')
 
         feet_fill = body_color if feet_match_body else node_color
 
@@ -1117,13 +1128,34 @@ class DoorAgentGenerator:
         body_svg = self._generate_body(shape, body_color, self.config.CELL, self.config.PAD)
         g.append(body_svg)
 
+        # Update bounds with body position
+        min_x = min(min_x, bx0)
+        max_x = max(max_x, bx0 + body_w)
+        min_y = min(min_y, by0)
+        max_y = max(max_y, by1)
+
         # Nodes
         nodes_svg = self._generate_nodes(shape, node_color, self.config.CELL, self.config.PAD)
         g.append(nodes_svg)
 
+        # Update bounds with node positions (nodes are circles with radius node_r)
+        # Nodes are centered at (bx0 - node_r) and (bx1 + node_r)
+        # Bounding box extends ±node_r from center: center - r to center + r
+        node_r = int(body_w * self.config.NODE_R_FRAC)
+        node_left_x = bx0 - node_r - node_r  # left_node - node_r
+        node_right_x = bx1 + node_r + node_r  # right_node + node_r
+        node_y = by0 + body_h * self.config.NODE_Y_FRAC
+        min_x = min(min_x, node_left_x)
+        max_x = max(max_x, node_right_x)
+        min_y = min(min_y, node_y - node_r)
+        max_y = max(max_y, node_y + node_r)
+
         # Feet
         feet_svg = self._generate_feet(shape, body_color, node_color, feet_match_body, self.config.CELL, self.config.PAD)
         g.append(feet_svg)
+
+        # Update bounds with feet position
+        max_y = max(max_y, by1 + foot_h)
 
         # Eyes and mouths (already formatted with transforms)
         g.append(eyes_svg)
@@ -1141,18 +1173,116 @@ class DoorAgentGenerator:
         if hair_front:
             g.append(hair_front)
 
+        # Update bounds with hair position (if hair present)
+        if hair_index is not None:
+            # Get hair asset data
+            hx0, hy0, hw, hh, hair_svg, hair_z_order, hair_width_percent, hair_position_x, hair_position_y, hair_anchor, hair_color_spec = self.config.HAIRS[hair_index]
+
+            # Calculate hair dimensions (same logic as in _generate_hair)
+            hair_w = body_w * (hair_width_percent / 100)
+            sh = hair_w / hw
+            hair_h = hh * sh
+
+            # Calculate hair X position
+            if hair_position_x == "cell-center":
+                hair_x = self.config.PAD + (self.config.CELL - 2 * self.config.PAD) / 2 - hair_w / 2
+            elif hair_position_x.endswith("%"):
+                percent = float(hair_position_x[:-1]) / 100
+                hair_x = cx + (hair_w * percent) - hair_w / 2
+            else:  # "body-center" or default
+                hair_x = cx - hair_w / 2
+
+            # Calculate hair Y position (same logic as in _generate_hair)
+            eyes_y_approx = by0 + body_h * self.config.EYE_Y_FRAC
+            if hair_position_y == "between-body-eyes":
+                base_y = (by0 + eyes_y_approx) / 2
+            elif hair_position_y == "eyes":
+                base_y = eyes_y_approx
+            elif hair_position_y.endswith("%"):
+                percent = float(hair_position_y[:-1]) / 100
+                base_y = by0 + (hair_h * percent)
+            else:  # "above-body" or default
+                base_y = by0
+
+            # Apply anchor offset
+            if hair_anchor == "bottom":
+                hair_y = base_y - hair_h
+            elif hair_anchor == "center":
+                hair_y = base_y - hair_h / 2
+            else:  # "top" or default
+                hair_y = base_y
+
+            # Update bounds with hair position
+            hair_left = hair_x
+            hair_right = hair_x + hair_w
+            hair_top = hair_y
+            hair_bottom = hair_y + hair_h
+            min_x = min(min_x, hair_left)
+            max_x = max(max_x, hair_right)
+            min_y = min(min_y, hair_top)
+            max_y = max(max_y, hair_bottom)
+
+        # Calculate shadow dimensions from content bounds
+        content_width = max_x - min_x
+        content_center_x = (min_x + max_x) / 2
+
+        shadow_width = content_width * 1.2
+        shadow_height = content_width * 0.15
+        shadow_cx = content_center_x
+        # Position shadow below feet: body bottom (by1) + feet height + small offset
+        shadow_cy = by1 + foot_h + 1  # Just below feet for grounded appearance
+        shadow_rx = shadow_width / 2
+        shadow_ry = shadow_height / 2
+
+        # Create shadow blur filter (subtle blur)
+        shadow_filter = f'<filter id="{avatar_id}-shadow-blur"><feGaussianBlur in="SourceGraphic" stdDeviation="0.8"/></filter>'
+
+        # Create shadow ellipse (darker, less blurred)
+        shadow_ellipse = f'<ellipse class="shadow" cx="{shadow_cx}" cy="{shadow_cy}" rx="{shadow_rx}" ry="{shadow_ry}" fill="#808080" opacity="0.6" filter="url(#{avatar_id}-shadow-blur)"/>'
+
+        # Update bounds to include shadow (with blur expansion)
+        # Blur adds ~2*stdDeviation pixels around the ellipse
+        blur_expansion = 0.8 * 2
+        shadow_left = shadow_cx - shadow_rx - blur_expansion
+        shadow_right = shadow_cx + shadow_rx + blur_expansion
+        shadow_top = shadow_cy - shadow_ry - blur_expansion
+        shadow_bottom = shadow_cy + shadow_ry + blur_expansion
+        min_x = min(min_x, shadow_left)
+        max_x = max(max_x, shadow_right)
+        min_y = min(min_y, shadow_top)
+        max_y = max(max_y, shadow_bottom)
+
         # Assemble final SVG
         svg_content = "".join(g)
 
-        # Build SVG with CSS block and clipPath defs if universal mode
-        svg_tag = f'<svg id="{avatar_id}" class="agent {frame}" width="{self.config.CELL}" height="{self.config.CELL}" viewBox="0 0 {self.config.CELL} {self.config.CELL}" xmlns="http://www.w3.org/2000/svg">'
+        # Calculate viewBox from content bounds
+        content_bbox_width = max_x - min_x
+        content_bbox_height = max_y - min_y
 
-        if universal and (css_block or eye_clipPaths):
-            # Add defs section for clipPaths if present
-            defs_section = f'<defs>{eye_clipPaths}</defs>\n' if eye_clipPaths else ""
-            return f'{svg_tag}\n{defs_section}{css_block}\n{svg_content}</svg>'
+        # Add padding to viewBox (10% on each side)
+        viewbox_padding = max(content_bbox_width, content_bbox_height) * 0.1
+        viewbox_x = min_x - viewbox_padding
+        viewbox_y = min_y - viewbox_padding
+        viewbox_width = content_bbox_width + 2 * viewbox_padding
+        viewbox_height = content_bbox_height + 2 * viewbox_padding
+
+        # Build SVG with CSS block and clipPath defs if universal mode
+        # Keep width/height as CELL for consistent display size, but use calculated viewBox
+        # Add no-shadow class if shadow is disabled
+        shadow_class = "" if shadow else " no-shadow"
+        svg_tag = f'<svg id="{avatar_id}" class="agent {frame}{shadow_class}" width="{self.config.CELL}" height="{self.config.CELL}" viewBox="{viewbox_x} {viewbox_y} {viewbox_width} {viewbox_height}" xmlns="http://www.w3.org/2000/svg">'
+
+        if universal and (css_block or eye_clipPaths or shadow_filter):
+            # Add defs section for clipPaths and shadow filter
+            defs_content = eye_clipPaths + shadow_filter if eye_clipPaths else shadow_filter
+            defs_section = f'<defs>{defs_content}</defs>\n' if defs_content else ""
+            shadow_content = shadow_ellipse if shadow else ""
+            return f'{svg_tag}\n{defs_section}{css_block}\n{shadow_content}{svg_content}</svg>'
         else:
-            return f'{svg_tag}{svg_content}</svg>'
+            # Legacy mode - still needs defs for shadow filter
+            defs_section = f'<defs>{shadow_filter}</defs>' if shadow_filter else ""
+            shadow_content = shadow_ellipse if shadow else ""
+            return f'{svg_tag}{defs_section}{shadow_content}{svg_content}</svg>'
 
     def _get_frame_modifications(self, frame: str, hash_bytes: bytes) -> Dict:
         """Get frame-specific modifications for animation.
@@ -1342,7 +1472,7 @@ class DoorAgentGenerator:
 
         return svg_content, config_info
 
-    def generate_deterministic(self, input_string: str, frame: str = "neutral", universal: bool = True) -> Tuple[str, Dict]:
+    def generate_deterministic(self, input_string: str, frame: str = "neutral", universal: bool = True, shadow: bool = True) -> Tuple[str, Dict]:
         """Generate a deterministic agent from input string (e.g., email).
 
         Args:
@@ -1353,6 +1483,7 @@ class DoorAgentGenerator:
                            "vowel_a", "vowel_e", "vowel_i", "vowel_o", "vowel_u"
             universal: If True, generate universal SVG with all states (default: True)
                       If False, use legacy single-frame mode
+            shadow: If True, show shadow (default: True). If False, add 'no-shadow' class to hide shadow
         """
         # Generate SHA-256 hash
         hash_bytes = hashlib.sha256(input_string.encode('utf-8')).digest()
@@ -1405,7 +1536,8 @@ class DoorAgentGenerator:
             mouth_emote=frame_mods.get('mouth_emote'),
             email=input_string,
             frame=frame,
-            universal=universal
+            universal=universal,
+            shadow=shadow
         )
 
         # Determine if mouth represents excited state (based on open mouth)
@@ -1432,3 +1564,87 @@ class DoorAgentGenerator:
         }
 
         return svg_content, config_info
+
+    def generate_transition(self, input_string: str, emote: str, weight: int) -> str:
+        """Generate transition between neutral avatar and emote variant.
+
+        Creates an SVG with two layers:
+        - Base layer: neutral avatar at (1 - weight/100) opacity
+        - Emote layer: emote avatar at (weight/100) opacity
+
+        Args:
+            input_string: Seed string for deterministic generation
+            emote: Emote name ("happy", "sad", "surprised", "angry", "bored")
+                   or vowel ("vowel_a", "vowel_e", "vowel_i", "vowel_o", "vowel_u")
+            weight: Transition weight from 0 (all base) to 100 (all emote)
+
+        Returns:
+            SVG string with layered transition
+
+        Raises:
+            ValueError: If emote is unknown or weight is out of bounds
+        """
+        # Validate inputs
+        valid_emotes = ["happy", "sad", "surprised", "angry", "bored"]
+        valid_vowels = ["vowel_a", "vowel_e", "vowel_i", "vowel_o", "vowel_u"]
+        all_valid = valid_emotes + valid_vowels
+
+        if emote not in all_valid:
+            raise ValueError(f"Unknown emote: {emote}. Valid options: {all_valid}")
+
+        if not 0 <= weight <= 100:
+            raise ValueError(f"Weight must be between 0 and 100, got {weight}")
+
+        # Calculate opacities
+        # Base is always fully opaque, emote varies from 0 to 1
+        weight_frac = weight / 100.0
+        base_opacity = 1.0
+        emote_opacity = weight_frac
+
+        # Generate base avatar (neutral) with shadow
+        base_svg, _ = self.generate_deterministic(input_string, frame="neutral", universal=False, shadow=True)
+
+        # Generate emote avatar without shadow (it's an overlay)
+        emote_svg, _ = self.generate_deterministic(input_string, frame=emote, universal=False, shadow=False)
+
+        # Extract inner content from both SVGs (remove <svg> wrapper)
+        # We need to extract everything between <svg...> and </svg>
+        import re
+
+        def extract_svg_inner(svg_str):
+            """Extract content between <svg...> and </svg> tags."""
+            # Find opening tag end
+            match = re.search(r'<svg[^>]*>', svg_str)
+            if not match:
+                raise ValueError("Invalid SVG: no opening <svg> tag")
+            start = match.end()
+
+            # Find closing tag
+            end = svg_str.rfind('</svg>')
+            if end == -1:
+                raise ValueError("Invalid SVG: no closing </svg> tag")
+
+            return svg_str[start:end].strip()
+
+        def extract_svg_viewbox(svg_str):
+            """Extract viewBox attribute from SVG."""
+            match = re.search(r'viewBox="([^"]*)"', svg_str)
+            if match:
+                return match.group(1)
+            return "0 0 20 20"  # Default fallback
+
+        base_inner = extract_svg_inner(base_svg)
+        emote_inner = extract_svg_inner(emote_svg)
+        viewbox = extract_svg_viewbox(base_svg)
+
+        # Construct layered SVG
+        layered_svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="{viewbox}" width="1200" height="1200">
+  <g id="base-layer" opacity="{base_opacity}">
+{base_inner}
+  </g>
+  <g id="emote-layer" opacity="{emote_opacity}">
+{emote_inner}
+  </g>
+</svg>'''
+
+        return layered_svg

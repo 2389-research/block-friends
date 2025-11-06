@@ -313,19 +313,16 @@ setInterval(() => {
                 clearInterval(animationInterval);
             }
 
-            const img = document.getElementById('animatedAvatar');
-            img.classList.remove('breathing', 'bouncing');
+            if (!avatarSvg) return;
 
-            const frames = ['idle_0', 'idle_1', 'idle_2', 'idle_3'];
+            const frames = ['idle_0', 'idle_1', 'idle_2', 'idle_3', 'idle_4', 'idle_5', 'idle_6', 'idle_7', 'idle_8', 'idle_9'];
             let index = 0;
 
-            // Add CSS breathing effect for smooth animation
-            img.classList.add('breathing');
-
             animationInterval = setInterval(() => {
-                setFrame(frames[index], true);  // Pass true to skip interval clearing
+                avatarSvg.className.baseVal = `agent ${frames[index]}`;
+                document.getElementById('currentFrame').textContent = frames[index];
                 index = (index + 1) % frames.length;
-            }, 250); // 4 FPS
+            }, 600); // 6s / 10 frames = 0.6s per frame
         }
 
         function playCSSBreathing() {
@@ -334,14 +331,11 @@ setInterval(() => {
                 animationInterval = null;
             }
 
-            const img = document.getElementById('animatedAvatar');
-            const frameLabel = document.getElementById('currentFrame');
+            if (!avatarSvg) return;
 
-            // Reset to neutral and add CSS animation
-            img.src = `/avatar/${encodeURIComponent(baseInput)}.svg?frame=neutral`;
-            img.classList.remove('breathing', 'bouncing');
-            img.classList.add('breathing');
-            frameLabel.textContent = 'CSS breathing (smooth)';
+            // Use CSS idle animation class
+            avatarSvg.className.baseVal = 'agent idle';
+            document.getElementById('currentFrame').textContent = 'idle (CSS animation)';
         }
 
         function playVowels() {
@@ -349,14 +343,14 @@ setInterval(() => {
                 clearInterval(animationInterval);
             }
 
-            const img = document.getElementById('animatedAvatar');
-            img.classList.remove('breathing', 'bouncing');
+            if (!avatarSvg) return;
 
-            const frames = ['vowel_A', 'vowel_E', 'vowel_I', 'vowel_O', 'vowel_U'];
+            const frames = ['vowel_a', 'vowel_e', 'vowel_i', 'vowel_o', 'vowel_u'];
             let index = 0;
 
             animationInterval = setInterval(() => {
-                setFrame(frames[index], true);  // Pass true to skip interval clearing
+                avatarSvg.className.baseVal = `agent ${frames[index]}`;
+                document.getElementById('currentFrame').textContent = frames[index];
                 index = (index + 1) % frames.length;
             }, 400); // Slower for vowels
         }
