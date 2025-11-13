@@ -33,13 +33,8 @@ jobs:
       - name: Run vulture (dead code detection)
         run: uv run vulture src .vulture --min-confidence 80 --exclude tests/
 
-      - name: Install actionlint
-        run: |
-          bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
-          echo "${PWD}" >> $GITHUB_PATH
-
       - name: Run actionlint (workflow linting)
-        run: ./actionlint
+        uses: rhysd/actionlint@v1.6.26
 
       - name: Install shellcheck
         run: |
@@ -54,11 +49,13 @@ jobs:
             echo "No shell scripts found to lint"
           fi
 
-      - name: Install prettier
-        run: npm install -g prettier
+      - name: Run taplo (TOML formatting check)
+        uses: uncenter/setup-taplo@v1
+        with:
+          version: '0.9.3'
 
-      - name: Run prettier (TOML formatting check)
-        run: prettier --check "**/*.toml"
+      - name: Check TOML formatting
+        run: taplo format --check "**/*.toml"
 
       - name: Run pytest (tests)
         run: uv run pytest
