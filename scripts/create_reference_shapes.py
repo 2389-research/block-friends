@@ -4,17 +4,16 @@
 
 import re
 from pathlib import Path
-from typing import Tuple
 
 MOUTHS_OPEN_DIR = Path(__file__).parent.parent / "assets" / "mouths" / "open"
 
 
 def parse_path_tokens(path_data: str) -> list:
     """Parse path into tokens (commands and numbers)."""
-    return re.findall(r'[MLCVHZ]|[-+]?[0-9]*\.?[0-9]+', path_data)
+    return re.findall(r"[MLCVHZ]|[-+]?[0-9]*\.?[0-9]+", path_data)
 
 
-def create_u_smile_from_structure(base_path: str, bbox: Tuple[float, float, float, float]) -> str:
+def create_u_smile_from_structure(base_path: str, bbox: tuple[float, float, float, float]) -> str:
     """
     Create a U-shaped smile path that matches the structure of the base path.
 
@@ -44,7 +43,7 @@ def create_u_smile_from_structure(base_path: str, bbox: Tuple[float, float, floa
     while i < len(tokens):
         token = tokens[i]
 
-        if token in ['M', 'L', 'C', 'V', 'H', 'Z']:
+        if token in ["M", "L", "C", "V", "H", "Z"]:
             result.append(token)
             i += 1
         else:
@@ -58,10 +57,10 @@ def create_u_smile_from_structure(base_path: str, bbox: Tuple[float, float, floa
                 result.append(token)
                 i += 1
 
-    return ' '.join(result)
+    return " ".join(result)
 
 
-def create_o_shape_from_structure(base_path: str, bbox: Tuple[float, float, float, float]) -> str:
+def create_o_shape_from_structure(base_path: str, bbox: tuple[float, float, float, float]) -> str:
     """
     Create an O-shaped path that matches the structure of the base path.
     """
@@ -69,20 +68,20 @@ def create_o_shape_from_structure(base_path: str, bbox: Tuple[float, float, floa
     return base_path
 
 
-def get_path_bbox(path_data: str) -> Tuple[float, float, float, float]:
+def get_path_bbox(path_data: str) -> tuple[float, float, float, float]:
     """Get bounding box from path data."""
     tokens = parse_path_tokens(path_data)
 
-    min_x = float('inf')
-    max_x = float('-inf')
-    min_y = float('inf')
-    max_y = float('-inf')
+    min_x = float("inf")
+    max_x = float("-inf")
+    min_y = float("inf")
+    max_y = float("-inf")
 
     i = 0
     while i < len(tokens):
         token = tokens[i]
 
-        if token in ['M', 'L']:
+        if token in ["M", "L"]:
             if i + 2 < len(tokens):
                 x = float(tokens[i + 1])
                 y = float(tokens[i + 2])
@@ -93,7 +92,7 @@ def get_path_bbox(path_data: str) -> Tuple[float, float, float, float]:
                 i += 3
             else:
                 i += 1
-        elif token == 'C':
+        elif token == "C":
             if i + 6 < len(tokens):
                 for j in range(1, 7, 2):
                     x = float(tokens[i + j])
@@ -105,7 +104,7 @@ def get_path_bbox(path_data: str) -> Tuple[float, float, float, float]:
                 i += 7
             else:
                 i += 1
-        elif token == 'V':
+        elif token == "V":
             if i + 1 < len(tokens):
                 y = float(tokens[i + 1])
                 min_y = min(min_y, y)
@@ -113,7 +112,7 @@ def get_path_bbox(path_data: str) -> Tuple[float, float, float, float]:
                 i += 2
             else:
                 i += 1
-        elif token == 'H':
+        elif token == "H":
             if i + 1 < len(tokens):
                 x = float(tokens[i + 1])
                 min_x = min(min_x, x)
@@ -121,7 +120,7 @@ def get_path_bbox(path_data: str) -> Tuple[float, float, float, float]:
                 i += 2
             else:
                 i += 1
-        elif token == 'Z':
+        elif token == "Z":
             i += 1
         else:
             i += 1
@@ -144,5 +143,7 @@ if __name__ == "__main__":
 
             print(f"Tokens: {len(tokens)}")
             print(f"BBox: {bbox}")
-            print(f"Path structure: {' '.join(t for t in tokens if t in ['M', 'L', 'C', 'V', 'H', 'Z'])}")
+            print(
+                f"Path structure: {' '.join(t for t in tokens if t in ['M', 'L', 'C', 'V', 'H', 'Z'])}"
+            )
             print(f"Path: {path_data[:100]}...")

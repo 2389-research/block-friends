@@ -2,12 +2,13 @@
 # ABOUTME: Tests for PDF bundle with transition frames
 # ABOUTME: Validates multi-page PDF emote and vowel animations
 
-import pytest
-import zipfile
 import io
 import json
-from PyPDF2 import PdfReader
+import zipfile
+
 from fastapi.testclient import TestClient
+from PyPDF2 import PdfReader
+
 from app import app
 
 client = TestClient(app)
@@ -16,8 +17,7 @@ client = TestClient(app)
 def test_bundle_emotes_includes_transitions():
     """Test that emotes bundle includes multi-page PDFs (7 pages each)."""
     response = client.post(
-        "/avatar/bundle",
-        json={"input": "test@example.com", "animations": ["emotes"]}
+        "/avatar/bundle", json={"input": "test@example.com", "animations": ["emotes"]}
     )
 
     assert response.status_code == 200
@@ -43,8 +43,7 @@ def test_bundle_emotes_includes_transitions():
 def test_bundle_vowels_includes_transitions():
     """Test that vowels bundle includes multi-page PDFs (5 pages each)."""
     response = client.post(
-        "/avatar/bundle",
-        json={"input": "test@example.com", "animations": ["vowels"]}
+        "/avatar/bundle", json={"input": "test@example.com", "animations": ["vowels"]}
     )
 
     assert response.status_code == 200
@@ -69,8 +68,7 @@ def test_bundle_vowels_includes_transitions():
 def test_bundle_metadata_includes_transitions():
     """Test that metadata.json includes proper multi-page PDF structure."""
     response = client.post(
-        "/avatar/bundle",
-        json={"input": "test@example.com", "animations": ["emotes", "vowels"]}
+        "/avatar/bundle", json={"input": "test@example.com", "animations": ["emotes", "vowels"]}
     )
 
     assert response.status_code == 200
@@ -78,7 +76,7 @@ def test_bundle_metadata_includes_transitions():
     # Extract and parse metadata as JSON
     zip_buffer = io.BytesIO(response.content)
     with zipfile.ZipFile(zip_buffer) as zf:
-        metadata = json.loads(zf.read("metadata.json").decode('utf-8'))
+        metadata = json.loads(zf.read("metadata.json").decode("utf-8"))
 
         # Validate top-level structure
         assert "animations" in metadata
@@ -126,8 +124,7 @@ def test_bundle_generates_pdfs_not_individual_frames():
     """Test that bundles contain multi-page PDFs, not individual frame files."""
     # Test emotes: should generate 5 PDFs (one per emote), not individual frame files
     response = client.post(
-        "/avatar/bundle",
-        json={"input": "test@example.com", "animations": ["emotes"]}
+        "/avatar/bundle", json={"input": "test@example.com", "animations": ["emotes"]}
     )
 
     assert response.status_code == 200
@@ -152,8 +149,7 @@ def test_bundle_generates_pdfs_not_individual_frames():
 
     # Test vowels: should generate 5 PDFs (one per vowel)
     response = client.post(
-        "/avatar/bundle",
-        json={"input": "test@example.com", "animations": ["vowels"]}
+        "/avatar/bundle", json={"input": "test@example.com", "animations": ["vowels"]}
     )
 
     assert response.status_code == 200
@@ -181,7 +177,7 @@ def test_bundle_all_animations():
     """Test bundle with all animation types."""
     response = client.post(
         "/avatar/bundle",
-        json={"input": "test@example.com", "animations": ["idle", "emotes", "vowels"]}
+        json={"input": "test@example.com", "animations": ["idle", "emotes", "vowels"]},
     )
 
     assert response.status_code == 200
@@ -202,7 +198,7 @@ def test_bundle_all_animations():
         assert "vowel_e.pdf" in files
 
         # Verify metadata
-        metadata = json.loads(zf.read("metadata.json").decode('utf-8'))
+        metadata = json.loads(zf.read("metadata.json").decode("utf-8"))
         assert "idle" in metadata["animations"]
         assert "emotes" in metadata["animations"]
         assert "vowels" in metadata["animations"]

@@ -18,6 +18,7 @@ uv sync
 ```
 
 Dependencies are managed in `pyproject.toml` and include:
+
 - `pillow` - For image processing (currently unused but available)
 
 ## Running the Generator
@@ -29,11 +30,13 @@ uv run generate.py
 ```
 
 This creates output files in `./out/`:
+
 - `agents_sheet.svg` - Vector version (1200×1200)
 
 ## Expected Asset Structure
 
 The generator expects SVG assets in specific directories:
+
 ```
 assets/
   eyes/1.svg ... eyes/6.svg
@@ -46,17 +49,20 @@ assets/
 The single `generate.py` file contains several key functional areas:
 
 ### Configuration (lines 21-52)
+
 - `CELL`, `PAD`, `BOX` - Grid and spacing constants
 - `BODY_SHAPES` - Available width×height combinations for agent bodies
 - `PALETTE` - Color choices for body and node fills
 - Placement fractions for eyes, mouth, and nodes within body shapes
 
 ### SVG Asset Processing (lines 55-67)
+
 - `parse_defs()` - Extracts viewBox, content, and positioning data attributes from SVG files
 - Loads eyes, mouths, and hair assets, sorts numerically by filename
 - Parses hair positioning attributes: offset-y, z-order, width-percent, position-x, position-y
 
 ### Agent Generation (lines 70-138)
+
 - `agent_svg()` - Core function that generates individual agent SVG
 - Handles body scaling, eye/mouth/hair positioning, node placement, and feet
 - Randomizes colors while avoiding body/node color conflicts
@@ -64,6 +70,7 @@ The single `generate.py` file contains several key functional areas:
 - Supports hair z-order rendering (behind/front) and flexible positioning
 
 ### Sheet Assembly (lines 141-162)
+
 - Creates 400 agents (20×20 grid) with randomized properties
 - 20% chance for "excited" state (uses different mouth asset)
 - Outputs SVG format for scalable sprite sheets
@@ -92,9 +99,9 @@ The hair system uses SVG data attributes for flexible positioning:
 ### Example Hair Asset
 
 ```xml
-<svg data-z-order="front" 
-     data-width-percent="112" 
-     data-position-x="cell-center" 
+<svg data-z-order="front"
+     data-width-percent="112"
+     data-position-x="cell-center"
      data-position-y="between-body-eyes"
      data-anchor="center"
      data-color='["#F7C0A9", "#FFC2E2", "#F7CF47"]'>
@@ -140,11 +147,13 @@ To test a specific hair asset during development:
 The avatar system now generates universal SVGs by default - single SVG files containing all 20 states (eyes and mouths) controlled via CSS classes. This represents a major architectural improvement over the legacy single-frame approach.
 
 **Architecture:**
+
 - `generate_agent_svg()` is refactored into composable functions for better maintainability
 - `universal=True` (default) generates nested `<g>` groups for all eye/mouth states with CSS visibility control
 - `universal=False` (legacy mode) generates single-frame SVG using original approach
 
 **Key functions:**
+
 - `_generate_avatar_id()` - Deterministic unique ID from input string (e.g., `avatar-973dfe463ec8`)
 - `_generate_body()` - Body rectangle and vertical center line
 - `_generate_nodes()` - Side node circles
@@ -157,11 +166,13 @@ The avatar system now generates universal SVGs by default - single SVG files con
 - `_generate_legacy_mouths()` - Single mouth state for legacy mode
 
 **API:**
+
 - Default: `GET /avatar/{input}.svg` - Universal SVG with all 20 states (~19.7 KB, ~3.8 KB gzipped)
 - Legacy: `GET /avatar/{input}.svg?legacy=true` - Single-frame SVG (~4.6 KB average)
 - Frame: `?frame=happy` - Sets initial CSS class on universal SVG, or frame for legacy mode
 
 **Performance Benefits:**
+
 - 78.6% bandwidth reduction (uncompressed): 19.7 KB vs 92.3 KB for all 20 frames
 - 16.7% bandwidth reduction (gzipped): 3.8 KB vs 4.6 KB total
 - 95% fewer HTTP requests: 1 instead of 20
@@ -169,6 +180,7 @@ The avatar system now generates universal SVGs by default - single SVG files con
 - Better browser caching (single immutable resource)
 
 **Client-Side Usage:**
+
 ```javascript
 // Fetch once
 fetch('/avatar/user@example.com.svg')
@@ -182,6 +194,7 @@ fetch('/avatar/user@example.com.svg')
 ```
 
 **Available States:**
+
 - **Idle frames (10):** `idle_0` through `idle_9` - independent eye/mouth combinations for natural idle animation
 - **Emotes (5):** `happy`, `sad`, `surprised`, `angry`, `bored` - matching eye/mouth pairs for expressions
 - **Vowels (5):** `vowel_a`, `vowel_e`, `vowel_i`, `vowel_o`, `vowel_u` - open eyes with vowel mouths for lip-sync
@@ -193,6 +206,7 @@ See `docs/universal-svg.md` for comprehensive documentation including API usage,
 Avatars now include a ground shadow for depth and visual grounding.
 
 **Implementation:**
+
 - Shadow is an ellipse positioned at the bottom of each avatar
 - Scales with actual content width (body + hair + nodes)
 - Width: `content_width * 1.2`, Height: `content_width * 0.15`
@@ -202,6 +216,7 @@ Avatars now include a ground shadow for depth and visual grounding.
 - Renders behind all elements (first after `<defs>`)
 
 **Technical Details:**
+
 - Bounding box tracked during generation: `min_x`, `max_x`
 - Shadow filter in `<defs>`: `<filter id="{avatar_id}-shadow-blur">`
 - Filter namespaced with avatar_id to prevent conflicts

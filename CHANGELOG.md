@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Rate limiting on API endpoints (PR #10)
   - 100 requests/minute for SVG/PNG endpoints
   - 10 requests/minute for bundle endpoints
@@ -27,11 +28,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Audit report (docs/AUDIT-2025-10-28.md)
 
 ### Changed
+
 - Updated idle animation from 4 to 10 frames (PR #2)
   - More natural animation with varied expressions
   - Updated bundle generation and API metadata
 
 ### Security
+
 - Added rate limiting to prevent abuse and DoS attacks
 - Added security headers to all HTTP responses
 - Maintained permissive CORS for public API usage
@@ -39,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.0] - 2025-10-01
 
 ### Added
+
 - Universal SVG generation with 20 animation states
 - Multi-frame animation system
   - 10 idle animation frames
@@ -53,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 1.27 billion unique variants
 
 ### Changed
+
 - **BREAKING:** Hash byte allocation changed to support emote system
   - v1.x used 2 byte indices for eyes/mouths
   - v2.0 uses 4 byte indices (open_eye, closed_eye, open_mouth, closed_mouth)
@@ -65,12 +70,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced animation frame control
 
 ### Removed
+
 - Backward compatibility with v1.x avatars
 - No migration path from v1.x to v2.0
 
 ## [1.0.0] - 2024-09-15
 
 ### Added
+
 - Initial release of sprite maker
 - Sprite sheet generation (400 agents in 20×20 grid)
 - CLI avatar generator
@@ -82,6 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Color palette system
 
 ### Features
+
 - ~42 million unique variants
 - File-based output
 - CSV configuration export
@@ -100,6 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 **There is no migration path.** Version 2.0 introduces breaking changes to hash allocation that affect all avatars. If you need to preserve existing avatar appearances, continue using v1.x.
 
 If migrating:
+
 1. Accept that avatars will look different
 2. Clear all cached v1.x avatars
 3. Regenerate all avatars with v2.0

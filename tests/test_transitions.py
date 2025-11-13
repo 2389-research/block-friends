@@ -3,6 +3,7 @@
 # ABOUTME: Covers opacity-based blending between base and emote avatars
 
 import pytest
+
 from door_agents import DoorAgentConfig, DoorAgentGenerator
 
 
@@ -14,7 +15,7 @@ def test_generate_transition_basic():
     svg_content = generator.generate_transition("test@example.com", "happy", 50)
 
     # Verify SVG structure
-    assert svg_content.startswith('<svg')
+    assert svg_content.startswith("<svg")
     assert 'xmlns="http://www.w3.org/2000/svg"' in svg_content
 
     # Verify both base and emote layers are present with opacity
@@ -46,7 +47,7 @@ def test_generate_transition_all_emotes():
     emotes = ["happy", "sad", "surprised", "angry", "bored"]
     for emote in emotes:
         svg_content = generator.generate_transition("test@example.com", emote, 50)
-        assert svg_content.startswith('<svg')
+        assert svg_content.startswith("<svg")
         assert '<g id="base-layer"' in svg_content
         assert '<g id="emote-layer"' in svg_content
 
@@ -59,7 +60,7 @@ def test_generate_transition_vowels():
     vowels = ["vowel_a", "vowel_e", "vowel_i", "vowel_o", "vowel_u"]
     for vowel in vowels:
         svg_content = generator.generate_transition("test@example.com", vowel, 50)
-        assert svg_content.startswith('<svg')
+        assert svg_content.startswith("<svg")
         assert '<g id="base-layer"' in svg_content
         assert '<g id="emote-layer"' in svg_content
 

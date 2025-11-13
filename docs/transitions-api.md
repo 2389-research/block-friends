@@ -17,6 +17,7 @@ The transitions system provides smooth opacity-based animations between neutral 
 ### Supported Transitions
 
 **Emotes:**
+
 - `happy` - Happy expression
 - `sad` - Sad expression
 - `surprised` - Surprised expression
@@ -24,6 +25,7 @@ The transitions system provides smooth opacity-based animations between neutral 
 - `bored` - Bored expression
 
 **Vowels (for lip-sync):**
+
 - `vowel_a` - Mouth shaped for 'A' sound
 - `vowel_e` - Mouth shaped for 'E' sound
 - `vowel_i` - Mouth shaped for 'I' sound
@@ -39,16 +41,19 @@ The transitions system provides smooth opacity-based animations between neutral 
 Generate a single transition frame with specified blend weight.
 
 **Parameters:**
+
 - `input` (path, string): Email or string for deterministic generation
 - `emote` (path, string): Emote name (happy, sad, etc.) or vowel (vowel_a, vowel_e, etc.)
 - `weight` (path, integer): Blend weight from 0 (all base) to 100 (all emote)
 
 **Response:**
+
 - **200 OK**: SVG image with layered transition
 - **400 Bad Request**: Invalid emote or weight out of bounds
 - **500 Internal Server Error**: Generation failed
 
 **Example:**
+
 ```bash
 # Get 50% blend between neutral and happy
 curl http://localhost:8000/avatar/user@example.com/transition/happy/50 > transition.svg
@@ -67,6 +72,7 @@ curl http://localhost:8000/avatar/user@example.com/transition/vowel_a/75 > vowel
 Generate ZIP bundle with multi-frame animation sequences.
 
 **Request Body:**
+
 ```json
 {
   "input": "user@example.com",
@@ -75,11 +81,13 @@ Generate ZIP bundle with multi-frame animation sequences.
 ```
 
 **Animation Types:**
+
 - `idle`: 10-frame idle animation (horizontal sway + blink)
 - `emotes`: 7-frame sequences for each emote (0, 25, 50, 100, 50, 25, 0)
 - `vowels`: 5-frame sequences for each vowel (0, 50, 100, 50, 0)
 
 **Emote Frame Sequence (7 frames per emote):**
+
 ```
 Frame 1: weight 0   (neutral)
 Frame 2: weight 25  (slight emote)
@@ -91,6 +99,7 @@ Frame 7: weight 0   (back to neutral)
 ```
 
 **Vowel Frame Sequence (5 frames per vowel):**
+
 ```
 Frame 1: weight 0   (neutral/closed mouth)
 Frame 2: weight 50  (half open)
@@ -100,10 +109,12 @@ Frame 5: weight 0   (back to closed)
 ```
 
 **Response:**
+
 - **200 OK**: ZIP file containing SVG frames and metadata.json
 - **400 Bad Request**: Invalid request body
 
 **Example:**
+
 ```bash
 curl -X POST http://localhost:8000/avatar/bundle \
   -H "Content-Type: application/json" \
@@ -179,6 +190,7 @@ The `metadata.json` file included in bundles has a nested structure for transiti
 ```
 
 **Key Structure Points:**
+
 - `metadata["animations"]["emotes"]["frames"]` - Array of all unique emote frame objects
 - `metadata["animations"]["emotes"]["sequences"]` - Object mapping emote names to playback order arrays
 - `metadata["animations"]["vowels"]["frames"]` - Array of all unique vowel frame objects
@@ -191,6 +203,7 @@ All transitions are cached to the filesystem for performance:
 **Cache Location:** `out/avatar/`
 
 **Cache Key Format:**
+
 ```
 {hash16}_transition_{emote}_{weight}.svg
 ```
@@ -198,6 +211,7 @@ All transitions are cached to the filesystem for performance:
 Where `hash16` is the first 16 characters of SHA-256 hash of input string.
 
 **Example Cache Files:**
+
 ```
 a3f2c8b4d9e1f7c2_transition_happy_50.svg
 a3f2c8b4d9e1f7c2_transition_sad_100.svg
@@ -206,6 +220,7 @@ a3f2c8b4d9e1f7c2_transition_vowel_a_75.svg
 
 **Cache Invalidation:**
 To regenerate transitions (e.g., after asset updates), delete cache files:
+
 ```bash
 rm -rf out/avatar/*_transition_*
 ```
@@ -215,6 +230,7 @@ rm -rf out/avatar/*_transition_*
 ### Animation Timing
 
 **Emote Animation (7 frames @ 300ms = 2.1 seconds):**
+
 ```javascript
 const emoteFrames = [0, 25, 50, 100, 50, 25, 0];
 const FRAME_DURATION = 300; // milliseconds
@@ -229,6 +245,7 @@ setInterval(() => {
 ```
 
 **Vowel Animation (5 frames @ 300ms = 1.5 seconds):**
+
 ```javascript
 const vowelFrames = [0, 50, 100, 50, 0];
 const FRAME_DURATION = 300;
@@ -349,6 +366,7 @@ function AvatarTransition({ input, emote, autoPlay = false }) {
 ## Error Handling
 
 **Invalid Emote (400):**
+
 ```json
 {
   "detail": "Unknown emote: invalid_emote. Valid options: ['happy', 'sad', 'surprised', 'angry', 'bored', 'vowel_a', 'vowel_e', 'vowel_i', 'vowel_o', 'vowel_u']"
@@ -356,6 +374,7 @@ function AvatarTransition({ input, emote, autoPlay = false }) {
 ```
 
 **Invalid Weight (400):**
+
 ```json
 {
   "detail": "Weight must be between 0 and 100, got 150"
@@ -363,6 +382,7 @@ function AvatarTransition({ input, emote, autoPlay = false }) {
 ```
 
 **Internal Error (500):**
+
 ```json
 {
   "detail": "Internal server error"
@@ -372,21 +392,25 @@ function AvatarTransition({ input, emote, autoPlay = false }) {
 ## Performance
 
 **Generation Time:**
+
 - First request (cold): ~50-200ms (generates and caches)
 - Cached requests: ~5-20ms (serves from cache)
 
 **Bundle Generation:**
+
 - Emotes only (5 emotes × 4 unique weights): ~20 unique SVG files
 - Vowels only (5 vowels × 3 unique weights): ~15 unique SVG files
 - All animations: ~35 unique SVG files + 10 idle frames
 
 **Bundle Optimization:**
 The bundle system is optimized to only generate unique weight values:
+
 - Emote sequence `[0, 25, 50, 100, 50, 25, 0]` only generates 4 files (0, 25, 50, 100)
 - Vowel sequence `[0, 50, 100, 50, 0]` only generates 3 files (0, 50, 100)
 - The `sequences` object maps which files to play in what order
 
 **Cache Size:**
+
 - Per transition frame: ~5-15 KB (SVG)
 - Full bundle (all animations): ~400-600 KB
 
@@ -395,6 +419,7 @@ The bundle system is optimized to only generate unique weight values:
 Interactive demo available at: `http://localhost:8000/static/transitions-demo.html`
 
 Features:
+
 - Manual weight control with live preview
 - Emote animation playback
 - Vowel lip-sync playback

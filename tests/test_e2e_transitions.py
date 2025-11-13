@@ -2,15 +2,14 @@
 # ABOUTME: End-to-end tests for transition system
 # ABOUTME: Tests full workflow from generation to API to caching
 
-import pytest
 import hashlib
 import io
 import zipfile
-from pathlib import Path
-from PyPDF2 import PdfReader
+
 from fastapi.testclient import TestClient
-from app import app, CACHE_DIR
-from door_agents import DoorAgentConfig, DoorAgentGenerator
+from PyPDF2 import PdfReader
+
+from app import CACHE_DIR, app
 
 client = TestClient(app)
 
@@ -25,7 +24,7 @@ class TestTransitionWorkflow:
         weight = 75
 
         # Clear cache
-        hash_hex = hashlib.sha256(input_str.encode('utf-8')).hexdigest()[:16]
+        hash_hex = hashlib.sha256(input_str.encode("utf-8")).hexdigest()[:16]
         cache_path = CACHE_DIR / f"{hash_hex}_transition_{emote}_{weight}.svg"
         if cache_path.exists():
             cache_path.unlink()
@@ -46,8 +45,7 @@ class TestTransitionWorkflow:
     def test_bundle_contains_valid_transitions(self):
         """Test that bundle contains valid multi-page PDFs."""
         response = client.post(
-            "/avatar/bundle",
-            json={"input": "bundle@example.com", "animations": ["emotes"]}
+            "/avatar/bundle", json={"input": "bundle@example.com", "animations": ["emotes"]}
         )
 
         assert response.status_code == 200
@@ -91,10 +89,10 @@ class TestTransitionWorkflow:
             assert response.status_code == 200
 
             # Verify SVG structure
-            content = response.content.decode('utf-8')
-            assert '<svg' in content
-            assert 'base-layer' in content
-            assert 'emote-layer' in content
+            content = response.content.decode("utf-8")
+            assert "<svg" in content
+            assert "base-layer" in content
+            assert "emote-layer" in content
 
     def test_all_vowels_work_end_to_end(self):
         """Test that all vowels work through complete pipeline."""
@@ -107,10 +105,10 @@ class TestTransitionWorkflow:
             assert response.status_code == 200
 
             # Verify SVG structure
-            content = response.content.decode('utf-8')
-            assert '<svg' in content
-            assert 'base-layer' in content
-            assert 'emote-layer' in content
+            content = response.content.decode("utf-8")
+            assert "<svg" in content
+            assert "base-layer" in content
+            assert "emote-layer" in content
 
     def test_weight_progression_visual_correctness(self):
         """Test that weight progression makes visual sense."""
@@ -124,10 +122,11 @@ class TestTransitionWorkflow:
         for weight in weights:
             response = client.get(f"/avatar/{input_str}/transition/{emote}/{weight}")
             assert response.status_code == 200
-            transitions[weight] = response.content.decode('utf-8')
+            transitions[weight] = response.content.decode("utf-8")
 
         # Verify opacity values are correct
         import re
+
         for weight in weights:
             content = transitions[weight]
 
@@ -177,8 +176,8 @@ class TestTransitionWorkflow:
         assert response1.content != response2.content
 
         # Both should have separate cache entries
-        hash1 = hashlib.sha256(input1.encode('utf-8')).hexdigest()[:16]
-        hash2 = hashlib.sha256(input2.encode('utf-8')).hexdigest()[:16]
+        hash1 = hashlib.sha256(input1.encode("utf-8")).hexdigest()[:16]
+        hash2 = hashlib.sha256(input2.encode("utf-8")).hexdigest()[:16]
 
         cache1 = CACHE_DIR / f"{hash1}_transition_{emote}_{weight}.svg"
         cache2 = CACHE_DIR / f"{hash2}_transition_{emote}_{weight}.svg"

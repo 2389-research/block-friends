@@ -1,0 +1,41 @@
+---
+# yamllint configuration for YAML file linting
+extends: default
+
+rules:
+  # Line length - set to 120 for readability
+  line-length:
+    max: 120
+    level: warning
+
+  # Allow inline mappings for simple cases
+  braces:
+    max-spaces-inside: 1
+    level: error
+
+  # Allow inline sequences for simple cases
+  brackets:
+    max-spaces-inside: 1
+    level: error
+
+  # Indentation - 2 spaces
+  indentation:
+    spaces: 2
+    indent-sequences: true
+
+  # Allow document start marker to be optional
+  document-start: disable
+
+  # Allow truthy values like yes/no, on/off
+  truthy:
+    allowed-values: ['true', 'false', 'yes', 'no', 'on', 'off']
+    check-keys: false
+
+  # Comments should have a space after #
+  comments:
+    min-spaces-from-content: 2
+
+  # Allow empty values
+  empty-values:
+    forbid-in-block-mappings: false
+    forbid-in-flow-mappings: false

@@ -2,44 +2,46 @@
 # ABOUTME: FastAPI web app serving deterministic door agent avatars at /avatar/[hash].svg
 # ABOUTME: Supports both hash and raw string inputs with file-based caching for performance
 
-import hashlib
-import logging
 import asyncio
-import json
-import zipfile
+import hashlib
 import io
-from pathlib import Path
-from fastapi import FastAPI, Response, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List
-import uvicorn
-import cairosvg
-from PyPDF2 import PdfWriter, PdfReader
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_ipaddr
-from slowapi.errors import RateLimitExceeded
+import json
+import logging
 import os
+import zipfile
+from pathlib import Path
 
-from door_agents import DoorAgentConfig, DoorAgentGenerator, AVATAR_SYSTEM_VERSION
+import cairosvg
+import uvicorn
+from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+from PyPDF2 import PdfReader, PdfWriter
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_ipaddr
+
+from door_agents import AVATAR_SYSTEM_VERSION, DoorAgentConfig, DoorAgentGenerator
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="2389 Agent Avatar Service",
     description="Deterministic avatar generation service with 1.27 billion unique variants",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 # Initialize rate limiter with Redis support for multi-instance deployments
 # get_ipaddr supports X-Forwarded-For headers for proper IP detection behind proxies (e.g., Fly.io)
 storage_uri = os.environ.get("REDIS_URL")
 if storage_uri:
-    logger.info(f"Initializing rate limiter with Redis storage: {storage_uri.split('@')[-1]}")  # Log without credentials
+    logger.info(
+        f"Initializing rate limiter with Redis storage: {storage_uri.split('@')[-1]}"
+    )  # Log without credentials
     try:
         limiter = Limiter(key_func=get_ipaddr, storage_uri=storage_uri)
     except Exception:
@@ -62,13 +64,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Security headers middleware
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
     # Add security headers for all responses
     response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "SAMEORIGIN"  # Allow embedding in iframes from same origin
+    response.headers["X-Frame-Options"] = (
+        "SAMEORIGIN"  # Allow embedding in iframes from same origin
+    )
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     # Note: Not adding CSP since we serve SVG images that may be embedded anywhere
     # Note: X-XSS-Protection is deprecated and removed (can introduce vulnerabilities in older browsers)
@@ -99,13 +104,18 @@ file_write_lock = asyncio.Lock()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/assets", StaticFiles(directory="assets"), name="assets")
 
+
 # Pydantic models for request bodies
 class BundleRequest(BaseModel):
     """Request model for PDF bundle generation."""
-    input: str
-    animations: List[str] = ["idle", "emotes", "vowels"]
 
-async def get_or_generate_avatar_content(input_string: str, frame: str = "neutral", universal: bool = True, shadow: bool = True) -> tuple[str, str]:
+    input: str
+    animations: list[str] = ["idle", "emotes", "vowels"]
+
+
+async def get_or_generate_avatar_content(
+    input_string: str, frame: str = "neutral", universal: bool = True, shadow: bool = True
+) -> tuple[str, str]:
     """
     Gets avatar SVG content from file cache or generates it, ensuring thread-safety.
     Returns (svg_content, hash_hex) tuple.
@@ -116,7 +126,7 @@ async def get_or_generate_avatar_content(input_string: str, frame: str = "neutra
         universal: If True, generate universal SVG with all states (default: True)
         shadow: If True, show shadow (default: True). If False, hide shadow via CSS
     """
-    hash_hex = hashlib.sha256(input_string.encode('utf-8')).hexdigest()[:16]
+    hash_hex = hashlib.sha256(input_string.encode("utf-8")).hexdigest()[:16]
     # Include frame, universal mode, and shadow in cache key for variant caching
     cache_suffix = f"_{frame}" if frame != "neutral" else ""
     cache_suffix += "_legacy" if not universal else ""
@@ -130,7 +140,7 @@ async def get_or_generate_avatar_content(input_string: str, frame: str = "neutra
             svg_content = await asyncio.to_thread(cache_path.read_text)
             logger.info(f"Cache hit for {hash_hex}")
             return svg_content, hash_hex
-        except IOError as e:
+        except OSError as e:
             logger.error(f"Error reading cached avatar {cache_path}: {e}")
             # Proceed to generate if read fails
 
@@ -144,11 +154,13 @@ async def get_or_generate_avatar_content(input_string: str, frame: str = "neutra
                 svg_content = await asyncio.to_thread(cache_path.read_text)
                 logger.info(f"Cache hit after lock for {hash_hex}")
                 return svg_content, hash_hex
-            except IOError as e:
+            except OSError as e:
                 logger.error(f"Error reading cached avatar after lock {cache_path}: {e}")
 
         # Generate new avatar with frame, universal, and shadow parameters
-        svg_content_raw, _ = generator.generate_deterministic(input_string, frame=frame, universal=universal, shadow=shadow)
+        svg_content_raw, _ = generator.generate_deterministic(
+            input_string, frame=frame, universal=universal, shadow=shadow
+        )
 
         # Only wrap in container for legacy mode
         # Universal mode has ID and CSS rules that need to be on the root <svg>
@@ -157,22 +169,27 @@ async def get_or_generate_avatar_content(input_string: str, frame: str = "neutra
         else:
             # Legacy mode: wrap in properly sized container
             cell_size = config.CELL
-            full_svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="{cell_size}" height="{cell_size}" '
-                        f'viewBox="0 0 {cell_size} {cell_size}">'
-                        f'<rect width="100%" height="100%" fill="none"/>'
-                        f'{svg_content_raw}</svg>')
+            full_svg = (
+                f'<svg xmlns="http://www.w3.org/2000/svg" width="{cell_size}" height="{cell_size}" '
+                f'viewBox="0 0 {cell_size} {cell_size}">'
+                f'<rect width="100%" height="100%" fill="none"/>'
+                f"{svg_content_raw}</svg>"
+            )
 
         # Cache to file with error handling
         try:
             await asyncio.to_thread(cache_path.write_text, full_svg)
             logger.info(f"Avatar cached to {cache_path}")
-        except IOError as e:
+        except OSError as e:
             logger.error(f"Failed to write avatar to cache {cache_path}: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to write avatar to cache: {e}")
 
         return full_svg, hash_hex
 
-async def get_or_generate_avatar_png(input_string: str, frame: str = "neutral", universal: bool = True) -> tuple[bytes, str]:
+
+async def get_or_generate_avatar_png(
+    input_string: str, frame: str = "neutral", universal: bool = True
+) -> tuple[bytes, str]:
     """
     Gets avatar PNG content from file cache or generates it from SVG, ensuring thread-safety.
     Returns (png_bytes, hash_hex) tuple.
@@ -182,7 +199,7 @@ async def get_or_generate_avatar_png(input_string: str, frame: str = "neutral", 
         frame: Animation frame (default: "neutral")
         universal: If True, generate universal SVG with all states (default: True)
     """
-    hash_hex = hashlib.sha256(input_string.encode('utf-8')).hexdigest()[:16]
+    hash_hex = hashlib.sha256(input_string.encode("utf-8")).hexdigest()[:16]
     # Include frame and universal mode in cache key for frame-specific caching
     cache_suffix = f"_{frame}" if frame != "neutral" else ""
     cache_suffix += "_legacy" if not universal else ""
@@ -195,14 +212,16 @@ async def get_or_generate_avatar_png(input_string: str, frame: str = "neutral", 
             png_content = await asyncio.to_thread(cache_path.read_bytes)
             logger.info(f"PNG cache hit for {hash_hex}")
             return png_content, hash_hex
-        except IOError as e:
+        except OSError as e:
             logger.error(f"Error reading cached PNG {cache_path}: {e}")
             # Proceed to generate if read fails
 
     logger.info(f"PNG cache miss for {hash_hex}, converting from SVG")
 
     # Get SVG content (which may be cached), passing through the frame and universal parameters
-    svg_content, hash_hex = await get_or_generate_avatar_content(input_string, frame=frame, universal=universal)
+    svg_content, hash_hex = await get_or_generate_avatar_content(
+        input_string, frame=frame, universal=universal
+    )
 
     # Generate and cache PNG with lock to prevent race conditions
     async with file_write_lock:
@@ -212,16 +231,16 @@ async def get_or_generate_avatar_png(input_string: str, frame: str = "neutral", 
                 png_content = await asyncio.to_thread(cache_path.read_bytes)
                 logger.info(f"PNG cache hit after lock for {hash_hex}")
                 return png_content, hash_hex
-            except IOError as e:
+            except OSError as e:
                 logger.error(f"Error reading cached PNG after lock {cache_path}: {e}")
 
         # Convert SVG to PNG
         try:
             png_bytes = await asyncio.to_thread(
                 cairosvg.svg2png,
-                bytestring=svg_content.encode('utf-8'),
+                bytestring=svg_content.encode("utf-8"),
                 output_width=config.CELL,
-                output_height=config.CELL
+                output_height=config.CELL,
             )
         except Exception as e:
             logger.error(f"Error converting SVG to PNG for {hash_hex}: {e}")
@@ -231,25 +250,26 @@ async def get_or_generate_avatar_png(input_string: str, frame: str = "neutral", 
         try:
             await asyncio.to_thread(cache_path.write_bytes, png_bytes)
             logger.info(f"PNG avatar cached to {cache_path}")
-        except IOError as e:
+        except OSError as e:
             logger.error(f"Failed to write PNG to cache {cache_path}: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to write PNG to cache: {e}")
 
         return png_bytes, hash_hex
 
+
 async def svg_to_pdf(svg_content: str) -> bytes:
     """Convert SVG content to PDF bytes using CairoSVG."""
     try:
         pdf_bytes = await asyncio.to_thread(
-            cairosvg.svg2pdf,
-            bytestring=svg_content.encode('utf-8')
+            cairosvg.svg2pdf, bytestring=svg_content.encode("utf-8")
         )
         return pdf_bytes
     except Exception as e:
         logger.error(f"Error converting SVG to PDF: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to convert SVG to PDF: {e}")
 
-async def generate_pdf_bundle(input_string: str, animations: List[str]) -> bytes:
+
+async def generate_pdf_bundle(input_string: str, animations: list[str]) -> bytes:
     """
     Generate a ZIP bundle containing PDF animations and metadata.
 
@@ -260,41 +280,48 @@ async def generate_pdf_bundle(input_string: str, animations: List[str]) -> bytes
     Returns:
         ZIP file bytes containing PDFs and metadata.json
     """
-    hash_hex = hashlib.sha256(input_string.encode('utf-8')).hexdigest()[:16]
+    hash_hex = hashlib.sha256(input_string.encode("utf-8")).hexdigest()[:16]
 
     # Define frame sequences for each animation type
     frame_sequences = {
         "idle": {
-            "frames": ["idle_0", "idle_1", "idle_2", "idle_3", "idle_4", "idle_5", "idle_6", "idle_7", "idle_8", "idle_9"],
+            "frames": [
+                "idle_0",
+                "idle_1",
+                "idle_2",
+                "idle_3",
+                "idle_4",
+                "idle_5",
+                "idle_6",
+                "idle_7",
+                "idle_8",
+                "idle_9",
+            ],
             "fps": 4,
-            "loop": True
+            "loop": True,
         },
         "emotes": {
             "happy": ["happy"],
             "sad": ["sad"],
             "surprised": ["surprised"],
             "angry": ["angry"],
-            "bored": ["bored"]
+            "bored": ["bored"],
         },
         "vowels": {
             "A": ["vowel_A"],
             "E": ["vowel_E"],
             "I": ["vowel_I"],
             "O": ["vowel_O"],
-            "U": ["vowel_U"]
-        }
+            "U": ["vowel_U"],
+        },
     }
 
     # Create ZIP in memory
     zip_buffer = io.BytesIO()
 
-    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
         # Metadata for the bundle
-        metadata = {
-            "input": input_string,
-            "hash": hash_hex,
-            "animations": {}
-        }
+        metadata = {"input": input_string, "hash": hash_hex, "animations": {}}
 
         # Generate idle animation if requested
         if "idle" in animations:
@@ -321,7 +348,7 @@ async def generate_pdf_bundle(input_string: str, animations: List[str]) -> bytes
                 "file": "idle.pdf",
                 "frame_count": len(frame_sequences["idle"]["frames"]),
                 "fps": frame_sequences["idle"]["fps"],
-                "loop": frame_sequences["idle"]["loop"]
+                "loop": frame_sequences["idle"]["loop"],
             }
 
         # Generate emote animations (7 frames: 0, 25, 50, 100, 50, 25, 0)
@@ -361,7 +388,7 @@ async def generate_pdf_bundle(input_string: str, animations: List[str]) -> bytes
                     "file": filename,
                     "frame_count": len(weight_sequence),
                     "weights": weight_sequence,
-                    "fps": 6.67  # ~150ms per frame
+                    "fps": 6.67,  # ~150ms per frame
                 }
 
         # Generate vowel animations (5 frames: 0, 50, 100, 50, 0)
@@ -401,7 +428,7 @@ async def generate_pdf_bundle(input_string: str, animations: List[str]) -> bytes
                     "file": filename,
                     "frame_count": len(weight_sequence),
                     "weights": weight_sequence,
-                    "fps": 6.67  # ~150ms per frame
+                    "fps": 6.67,  # ~150ms per frame
                 }
 
         # Write metadata JSON
@@ -409,6 +436,7 @@ async def generate_pdf_bundle(input_string: str, animations: List[str]) -> bytes
 
     zip_buffer.seek(0)
     return zip_buffer.read()
+
 
 @app.get("/")
 async def root():
@@ -427,14 +455,14 @@ async def root():
             "version": "/version",
             "avatar_svg": "/avatar/{input}.svg",
             "avatar_png": "/avatar/{input}.png",
-            "bundle": "/avatar/{input}/bundle"
+            "bundle": "/avatar/{input}/bundle",
         },
         "usage": {
             "examples": [
                 "/avatar/test@example.com.svg",
                 "/avatar/test@example.com.png",
                 "/avatar/973dfe463ec85785.svg",
-                "/avatar/973dfe463ec85785.png"
+                "/avatar/973dfe463ec85785.png",
             ]
         },
         "features": [
@@ -443,9 +471,10 @@ async def root():
             "File-based caching for performance",
             "1.27 billion unique variants",
             "Collision-resistant for ~1M users",
-            "Version tracking via /version endpoint and X-Avatar-System-Version header"
-        ]
+            "Version tracking via /version endpoint and X-Avatar-System-Version header",
+        ],
     }
+
 
 @app.get("/animations.html")
 async def animations():
@@ -455,6 +484,7 @@ async def animations():
         return HTMLResponse(content=animations_path.read_text())
     raise HTTPException(status_code=404, detail="Animations page not found")
 
+
 @app.get("/sitemap.html")
 async def sitemap():
     """Serve the sitemap page."""
@@ -463,9 +493,16 @@ async def sitemap():
         return HTMLResponse(content=sitemap_path.read_text())
     raise HTTPException(status_code=404, detail="Sitemap page not found")
 
+
 @app.get("/avatar/{input_param}.svg")
 @limiter.limit("100/minute")
-async def get_avatar(request: Request, input_param: str, frame: str = "neutral", legacy: bool = False, shadow: bool = True):
+async def get_avatar(
+    request: Request,
+    input_param: str,
+    frame: str = "neutral",
+    legacy: bool = False,
+    shadow: bool = True,
+):
     """
     Generate and serve avatar SVG for given input.
 
@@ -484,7 +521,9 @@ async def get_avatar(request: Request, input_param: str, frame: str = "neutral",
         universal = not legacy
 
         # Get or generate avatar content with consistent hash, frame, universal mode, and shadow
-        svg_content, hash_hex = await get_or_generate_avatar_content(input_param, frame=frame, universal=universal, shadow=shadow)
+        svg_content, hash_hex = await get_or_generate_avatar_content(
+            input_param, frame=frame, universal=universal, shadow=shadow
+        )
 
         # Consistent ETag generation from canonical hash
         etag = f'"{hash_hex}"'
@@ -495,19 +534,22 @@ async def get_avatar(request: Request, input_param: str, frame: str = "neutral",
             headers={
                 "Cache-Control": "public, max-age=31536000, immutable",
                 "ETag": etag,
-                "X-Avatar-System-Version": AVATAR_SYSTEM_VERSION
-            }
+                "X-Avatar-System-Version": AVATAR_SYSTEM_VERSION,
+            },
         )
 
     except HTTPException:
         raise
     except Exception as e:
         logger.exception(f"Unhandled error in get_avatar for {input_param}")
-        raise HTTPException(status_code=500, detail=f"Error generating avatar: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error generating avatar: {e!s}")
+
 
 @app.get("/avatar/{input_param}.png")
 @limiter.limit("100/minute")
-async def get_avatar_png(request: Request, input_param: str, frame: str = "neutral", legacy: bool = False):
+async def get_avatar_png(
+    request: Request, input_param: str, frame: str = "neutral", legacy: bool = False
+):
     """
     Generate and serve avatar PNG for given input.
 
@@ -525,7 +567,9 @@ async def get_avatar_png(request: Request, input_param: str, frame: str = "neutr
         universal = not legacy
 
         # Get or generate PNG content with consistent hash, frame, and universal mode
-        png_content, hash_hex = await get_or_generate_avatar_png(input_param, frame=frame, universal=universal)
+        png_content, hash_hex = await get_or_generate_avatar_png(
+            input_param, frame=frame, universal=universal
+        )
 
         # Consistent ETag generation from canonical hash
         etag = f'"{hash_hex}"'
@@ -536,20 +580,23 @@ async def get_avatar_png(request: Request, input_param: str, frame: str = "neutr
             headers={
                 "Cache-Control": "public, max-age=31536000, immutable",
                 "ETag": etag,
-                "X-Avatar-System-Version": AVATAR_SYSTEM_VERSION
-            }
+                "X-Avatar-System-Version": AVATAR_SYSTEM_VERSION,
+            },
         )
 
     except HTTPException:
         raise
     except Exception as e:
         logger.exception(f"Unhandled error in get_avatar_png for {input_param}")
-        raise HTTPException(status_code=500, detail=f"Error generating PNG avatar: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error generating PNG avatar: {e!s}")
 
-@app.get("/avatar/{input}/transition/{emote}/{weight}",
-         response_class=Response,
-         summary="Get transition between neutral and emote",
-         description="Generate avatar transition with opacity blending")
+
+@app.get(
+    "/avatar/{input}/transition/{emote}/{weight}",
+    response_class=Response,
+    summary="Get transition between neutral and emote",
+    description="Generate avatar transition with opacity blending",
+)
 async def get_avatar_transition(input: str, emote: str, weight: int):
     """
     Generate avatar transition between neutral and emote states.
@@ -564,7 +611,7 @@ async def get_avatar_transition(input: str, emote: str, weight: int):
     """
     try:
         # Generate cache key
-        hash_hex = hashlib.sha256(input.encode('utf-8')).hexdigest()[:16]
+        hash_hex = hashlib.sha256(input.encode("utf-8")).hexdigest()[:16]
         cache_key = f"{hash_hex}_transition_{emote}_{weight}"
         cache_path = CACHE_DIR / f"{cache_key}.svg"
 
@@ -574,7 +621,7 @@ async def get_avatar_transition(input: str, emote: str, weight: int):
                 svg_content = await asyncio.to_thread(cache_path.read_text)
                 logger.info(f"Transition cache hit: {cache_key}")
                 return Response(content=svg_content, media_type="image/svg+xml")
-            except IOError as e:
+            except OSError as e:
                 logger.error(f"Error reading cached transition {cache_path}: {e}")
 
         # Generate transition
@@ -594,7 +641,7 @@ async def get_avatar_transition(input: str, emote: str, weight: int):
             try:
                 await asyncio.to_thread(cache_path.write_text, svg_content)
                 logger.info(f"Generated and cached transition: {cache_key}")
-            except IOError as e:
+            except OSError as e:
                 logger.error(f"Error writing transition cache {cache_path}: {e}")
 
             return Response(content=svg_content, media_type="image/svg+xml")
@@ -606,9 +653,12 @@ async def get_avatar_transition(input: str, emote: str, weight: int):
         logger.error(f"Error generating transition: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@app.get("/avatar/{input}/animation/{animation_name}",
-         summary="Get single animation PDF",
-         description="Generate a multi-page PDF for a single emote or vowel animation")
+
+@app.get(
+    "/avatar/{input}/animation/{animation_name}",
+    summary="Get single animation PDF",
+    description="Generate a multi-page PDF for a single emote or vowel animation",
+)
 async def get_single_animation_pdf(input: str, animation_name: str):
     """
     Generate a multi-page PDF for a single animation.
@@ -633,7 +683,7 @@ async def get_single_animation_pdf(input: str, animation_name: str):
         else:
             raise HTTPException(
                 status_code=400,
-                detail=f"Unknown animation: {animation_name}. Must be an emote (happy, sad, surprised, angry, bored) or vowel (a, e, i, o, u)"
+                detail=f"Unknown animation: {animation_name}. Must be an emote (happy, sad, surprised, angry, bored) or vowel (a, e, i, o, u)",
             )
 
         # Create PDF writer
@@ -663,7 +713,7 @@ async def get_single_animation_pdf(input: str, animation_name: str):
         return Response(
             content=pdf_buffer.read(),
             media_type="application/pdf",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
 
     except ValueError as e:
@@ -672,6 +722,7 @@ async def get_single_animation_pdf(input: str, animation_name: str):
     except Exception as e:
         logger.error(f"Error generating animation PDF: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @app.get("/avatar/{input_param}.svg/info")
 async def get_avatar_info(input_param: str, frame: str = "neutral"):
@@ -684,7 +735,7 @@ async def get_avatar_info(input_param: str, frame: str = "neutral"):
     """
     try:
         # Calculate hash once
-        hash_hex = hashlib.sha256(input_param.encode('utf-8')).hexdigest()[:16]
+        hash_hex = hashlib.sha256(input_param.encode("utf-8")).hexdigest()[:16]
 
         # Generate avatar config with frame parameter (but don't cache the SVG)
         _, agent_config = generator.generate_deterministic(input_param, frame=frame)
@@ -696,14 +747,15 @@ async def get_avatar_info(input_param: str, frame: str = "neutral"):
             "cache_path": str(cache_path),
             "cached": cache_path.exists(),
             "hash": hash_hex,
-            "cache_key": cache_key
+            "cache_key": cache_key,
         }
 
         return agent_config
 
     except Exception as e:
         logger.exception(f"Unhandled error in get_avatar_info for {input_param}")
-        raise HTTPException(status_code=500, detail=f"Error getting avatar info: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error getting avatar info: {e!s}")
+
 
 @app.get("/avatar/{input_param}.svg/frames")
 async def get_avatar_frames(input_param: str):
@@ -714,7 +766,7 @@ async def get_avatar_frames(input_param: str):
     - Returns JSON with frame definitions and URLs for all available animations
     """
     try:
-        hash_hex = hashlib.sha256(input_param.encode('utf-8')).hexdigest()[:16]
+        hash_hex = hashlib.sha256(input_param.encode("utf-8")).hexdigest()[:16]
 
         frames_info = {
             "input": input_param,
@@ -726,54 +778,76 @@ async def get_avatar_frames(input_param: str):
                     "frames": ["neutral"],
                     "urls": {
                         "svg": f"/avatar/{input_param}.svg",
-                        "png": f"/avatar/{input_param}.png"
-                    }
+                        "png": f"/avatar/{input_param}.png",
+                    },
                 },
                 "idle": {
                     "description": "Idle animation with varied expressions",
                     "frame_count": 10,
-                    "frames": ["idle_0", "idle_1", "idle_2", "idle_3", "idle_4", "idle_5", "idle_6", "idle_7", "idle_8", "idle_9"],
+                    "frames": [
+                        "idle_0",
+                        "idle_1",
+                        "idle_2",
+                        "idle_3",
+                        "idle_4",
+                        "idle_5",
+                        "idle_6",
+                        "idle_7",
+                        "idle_8",
+                        "idle_9",
+                    ],
                     "fps": 4,
                     "urls": {
                         "svg": [f"/avatar/{input_param}.svg?frame=idle_{i}" for i in range(10)],
-                        "png": [f"/avatar/{input_param}.png?frame=idle_{i}" for i in range(10)]
-                    }
+                        "png": [f"/avatar/{input_param}.png?frame=idle_{i}" for i in range(10)],
+                    },
                 },
                 "emotes": {
                     "description": "Emotional expressions",
                     "frame_count": 5,
                     "frames": ["happy", "sad", "surprised", "angry", "bored"],
                     "urls": {
-                        "svg": {emote: f"/avatar/{input_param}.svg?frame={emote}"
-                               for emote in ["happy", "sad", "surprised", "angry", "bored"]},
-                        "png": {emote: f"/avatar/{input_param}.png?frame={emote}"
-                               for emote in ["happy", "sad", "surprised", "angry", "bored"]}
-                    }
+                        "svg": {
+                            emote: f"/avatar/{input_param}.svg?frame={emote}"
+                            for emote in ["happy", "sad", "surprised", "angry", "bored"]
+                        },
+                        "png": {
+                            emote: f"/avatar/{input_param}.png?frame={emote}"
+                            for emote in ["happy", "sad", "surprised", "angry", "bored"]
+                        },
+                    },
                 },
                 "vowels": {
                     "description": "Mouth shapes for lip-sync (A, E, I, O, U)",
                     "frame_count": 5,
                     "frames": ["vowel_A", "vowel_E", "vowel_I", "vowel_O", "vowel_U"],
                     "urls": {
-                        "svg": {vowel: f"/avatar/{input_param}.svg?frame=vowel_{vowel}"
-                               for vowel in ["A", "E", "I", "O", "U"]},
-                        "png": {vowel: f"/avatar/{input_param}.png?frame=vowel_{vowel}"
-                               for vowel in ["A", "E", "I", "O", "U"]}
-                    }
-                }
+                        "svg": {
+                            vowel: f"/avatar/{input_param}.svg?frame=vowel_{vowel}"
+                            for vowel in ["A", "E", "I", "O", "U"]
+                        },
+                        "png": {
+                            vowel: f"/avatar/{input_param}.png?frame=vowel_{vowel}"
+                            for vowel in ["A", "E", "I", "O", "U"]
+                        },
+                    },
+                },
             },
-            "total_frames": 21
+            "total_frames": 21,
         }
 
         return frames_info
 
     except Exception as e:
         logger.exception(f"Unhandled error in get_avatar_frames for {input_param}")
-        raise HTTPException(status_code=500, detail=f"Error getting avatar frames: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error getting avatar frames: {e!s}")
+
 
 @app.get("/avatar/{input_param}/bundle")
 @limiter.limit("10/minute")
-async def get_avatar_bundle(request: Request, input_param: str, animations: str = "idle,emotes,vowels"):
+async def get_avatar_bundle(
+    request: Request, input_param: str, animations: str = "idle,emotes,vowels"
+):
     """
     Generate a ZIP bundle containing PDF animations for an avatar via GET request.
 
@@ -795,7 +869,7 @@ async def get_avatar_bundle(request: Request, input_param: str, animations: str 
         zip_bytes = await generate_pdf_bundle(input_param, animation_list)
 
         # Calculate hash for filename
-        hash_hex = hashlib.sha256(input_param.encode('utf-8')).hexdigest()[:16]
+        hash_hex = hashlib.sha256(input_param.encode("utf-8")).hexdigest()[:16]
         filename = f"avatar_{hash_hex}_animations.zip"
 
         return StreamingResponse(
@@ -803,13 +877,14 @@ async def get_avatar_bundle(request: Request, input_param: str, animations: str 
             media_type="application/zip",
             headers={
                 "Content-Disposition": f'attachment; filename="{filename}"',
-                "X-Avatar-System-Version": AVATAR_SYSTEM_VERSION
-            }
+                "X-Avatar-System-Version": AVATAR_SYSTEM_VERSION,
+            },
         )
 
     except Exception as e:
         logger.exception(f"Error generating PDF bundle for {input_param}")
-        raise HTTPException(status_code=500, detail=f"Error generating PDF bundle: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error generating PDF bundle: {e!s}")
+
 
 @app.post("/avatar/bundle")
 @limiter.limit("10/minute")
@@ -827,13 +902,15 @@ async def create_avatar_bundle(request: Request, bundle_request: BundleRequest):
     - metadata.json (animation specifications)
     """
     try:
-        logger.info(f"Generating PDF bundle for {bundle_request.input} with animations: {bundle_request.animations}")
+        logger.info(
+            f"Generating PDF bundle for {bundle_request.input} with animations: {bundle_request.animations}"
+        )
 
         # Generate the bundle
         zip_bytes = await generate_pdf_bundle(bundle_request.input, bundle_request.animations)
 
         # Calculate hash for filename
-        hash_hex = hashlib.sha256(bundle_request.input.encode('utf-8')).hexdigest()[:16]
+        hash_hex = hashlib.sha256(bundle_request.input.encode("utf-8")).hexdigest()[:16]
         filename = f"avatar_{hash_hex}_animations.zip"
 
         return StreamingResponse(
@@ -841,28 +918,31 @@ async def create_avatar_bundle(request: Request, bundle_request: BundleRequest):
             media_type="application/zip",
             headers={
                 "Content-Disposition": f'attachment; filename="{filename}"',
-                "X-Avatar-System-Version": AVATAR_SYSTEM_VERSION
-            }
+                "X-Avatar-System-Version": AVATAR_SYSTEM_VERSION,
+            },
         )
 
     except Exception as e:
         logger.exception(f"Error generating PDF bundle for {bundle_request.input}")
-        raise HTTPException(status_code=500, detail=f"Error generating PDF bundle: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error generating PDF bundle: {e!s}")
+
 
 @app.get("/version")
 async def get_version():
     """Return the avatar system version."""
     return {"avatar_system_version": AVATAR_SYSTEM_VERSION}
 
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "service": "door-agent-avatars"}
 
+
 @app.get("/debug/avatar/{input_param}")
 async def debug_avatar(input_param: str):
     """Debug endpoint showing which assets are assigned to an avatar."""
-    svg, info = generator.generate_deterministic(input_param, frame='neutral')
+    svg, info = generator.generate_deterministic(input_param, frame="neutral")
 
     return {
         "input": input_param,
@@ -871,16 +951,11 @@ async def debug_avatar(input_param: str):
             "closed_eye": f"assets/eyes/closed/{info['closed_eye_index']}.svg",
             "open_mouth": f"assets/mouths/open/{info['open_mouth_index']}.svg",
             "closed_mouth": f"assets/mouths/closed/{info['closed_mouth_index']}.svg",
-            "hair": f"assets/hair/{info['hair_index']}.svg" if info['hair_index'] else None
+            "hair": f"assets/hair/{info['hair_index']}.svg" if info["hair_index"] else None,
         },
-        "full_config": info
+        "full_config": info,
     }
 
+
 if __name__ == "__main__":
-    uvicorn.run(
-        "app:app",
-        host="0.0.0.0", 
-        port=8000,
-        reload=True,
-        log_level="info"
-    )
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True, log_level="info")

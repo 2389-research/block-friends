@@ -1,0 +1,50 @@
+# markdownlint configuration
+# See https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+
+# Default state for all rules
+default: true
+
+# MD013 - Line length (disabled - too strict for documentation)
+MD013: false
+
+# MD033 - Inline HTML
+MD033:
+  # Allow specific HTML elements that are commonly used
+  allowed_elements:
+    - br
+    - details
+    - summary
+    - img
+    - a
+    - kbd
+    - sub
+    - sup
+
+# MD040 - Code block language
+MD040: false
+
+# MD041 - First line in file should be a top level heading
+MD041: false
+
+# MD051 - Link fragments
+MD051: false
+
+# MD024 - Multiple headings with the same content
+MD024:
+  # Allow duplicate headings in different sections
+  siblings_only: true
+
+# MD046 - Code block style
+MD046:
+  # Prefer fenced code blocks
+  style: fenced
+
+# MD049 - Emphasis style
+MD049:
+  # Prefer asterisks for emphasis
+  style: asterisk
+
+# MD050 - Strong style
+MD050:
+  # Prefer asterisks for strong
+  style: asterisk

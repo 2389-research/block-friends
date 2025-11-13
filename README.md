@@ -7,22 +7,26 @@ A comprehensive avatar generation system that creates procedurally generated "do
 ## 🚀 Features
 
 ### **Dual Generation Modes**
+
 - **🎨 Sprite Sheets**: Generate 400 randomized agents in 20×20 grids for game development
 - **🔗 Deterministic Avatars**: Generate consistent avatars from any input (emails, usernames, etc.)
 - **🌐 Web API**: FastAPI service for HTTP avatar generation (`/avatar/{input}.svg`)
 
 ### **Animation System (v2.0)**
+
 - **🎭 5 Emotes**: happy, sad, surprised, angry, bored with unique expressions
 - **👁️ Open/Closed States**: Independent control of eye and mouth states
 - **💫 Idle Animation**: 10-frame idle animation with varied expressions
 - **📦 Animation Bundles**: GET bundled frame data for all animations
 
 ### **Massive Variety**
+
 - **1.27 billion unique variants** from current asset collection
 - **100x more variety than traditional Gravatar systems**
 - **Collision-resistant** for platforms up to ~1 million users
 
 ### **Production Ready**
+
 - **File-based caching** for instant repeat requests
 - **Proper HTTP headers** with long-term caching and version tracking
 - **Multiple output formats**: SVG, PNG, CSS sprites, animation bundles
@@ -41,12 +45,14 @@ uv sync
 ```
 
 ### **Generate Sprite Sheet**
+
 ```bash
 # Create 400-agent sprite sheet
 uv run generate.py
 ```
 
 ### **Generate Individual Avatars**
+
 ```bash
 # Deterministic avatar from email
 uv run avatar.py "user@example.com"
@@ -59,6 +65,7 @@ uv run avatar.py "test@test.com" --info --json
 ```
 
 ### **Run Web API Service**
+
 ```bash
 # Start FastAPI server
 uv run python app.py
@@ -113,33 +120,39 @@ curl -I http://localhost:8000/avatar/test@example.com.svg
 ## 🌐 Web API
 
 ### **Avatar Generation Endpoint**
+
 ```http
 GET /avatar/{input}.svg?frame={frame}
 ```
 
 **Examples:**
+
 - `GET /avatar/user@example.com.svg` - Generate default avatar
 - `GET /avatar/user@example.com.svg?frame=idle_0` - Idle animation frame 0
 - `GET /avatar/user@example.com.svg?frame=happy` - Happy emote
 - `GET /avatar/973dfe463ec85785.svg` - Serve cached avatar by hash
 
 **Frame Options:**
+
 - `idle_0` through `idle_9` - 10-frame idle animation with varied expressions
 - `happy`, `sad`, `surprised`, `angry`, `bored` - 5 emote expressions
 - No frame parameter = default state (open eyes, closed mouth)
 
 **Response:**
+
 - **Content-Type**: `image/svg+xml`
 - **Cache-Control**: `public, max-age=31536000` (1 year)
 - **X-Avatar-System-Version**: `2.0`
 - **Body**: SVG image (60×60px)
 
 ### **Avatar Configuration Endpoint**
+
 ```http
 GET /avatar/{input}.svg/info
 ```
 
 **Response Example:**
+
 ```json
 {
   "input_string": "user@example.com",
@@ -158,15 +171,18 @@ GET /avatar/{input}.svg/info
 ```
 
 ### **Animation Bundle Endpoint**
+
 ```http
 GET /avatar/{input}/bundle?animations=idle,happy,sad
 ```
 
 **Examples:**
+
 - `GET /avatar/user@example.com/bundle?animations=idle` - Get all 4 idle frames
 - `GET /avatar/user@example.com/bundle?animations=idle,happy,sad,surprised,angry,bored` - Get all frames
 
 **Response:** JSON with frame data
+
 ```json
 {
   "input_string": "user@example.com",
@@ -180,6 +196,7 @@ GET /avatar/{input}/bundle?animations=idle,happy,sad
 ```
 
 ### **Service Information**
+
 ```http
 GET /           # Service overview and usage
 GET /version    # Get avatar system version (returns {"avatar_system_version": "2.0"})
@@ -190,6 +207,7 @@ GET /docs       # Auto-generated API documentation
 ## 🏗️ Architecture
 
 ### **Project Structure**
+
 ```
 sprite-maker/
 ├── generate.py                    # Bulk sprite sheet generator
@@ -228,21 +246,25 @@ sprite-maker/
 ### **Core Components**
 
 **`door_agents.py`** - Shared Library
+
 - `DoorAgentConfig`: Loads JSON configuration and SVG assets
 - `DoorAgentGenerator`: Handles both random and deterministic generation
 - Unified asset parsing and rendering logic
 
 **`generate.py`** - Sprite Sheet Generator
+
 - Creates 400-agent grids using random generation
 - Outputs SVG sheet, CSV data, and CSS sprite classes
 - Uses shared library for consistency
 
 **`avatar.py`** - CLI Avatar Generator
+
 - Deterministic generation from any input string
 - Hash-based filename output (`out/avatar/[hash].svg`)
 - Support for custom output paths and dry-run mode
 
 **`app.py`** - Web API Service
+
 - FastAPI service with `/avatar/{input}.svg` endpoints  
 - File-based caching for performance
 - Proper HTTP headers and error handling
@@ -325,6 +347,7 @@ curl "http://localhost:8000/avatar/user@example.com/bundle?animations=idle,happy
 ## 🎨 Avatar Variants
 
 ### **Asset Combinations**
+
 - **24 open eye variants** (4 base + 20 emote variants)
 - **12 closed eye variants** (2 base + 10 emote variants)
 - **18 open mouth variants** (3 base + 15 emote variants)
@@ -335,9 +358,11 @@ curl "http://localhost:8000/avatar/user@example.com/bundle?animations=idle,happy
 - **2 feet color strategies** (match body vs match nodes)
 
 ### **Total Variants**
+
 **1,267,200,000 unique combinations** possible with current assets
 
 ### **Collision Analysis**
+
 - **50% collision probability** at ~34,600 users (birthday paradox)
 - **Suitable for platforms** up to ~1 million users
 - **100x more variety** than traditional Gravatar systems
@@ -345,6 +370,7 @@ curl "http://localhost:8000/avatar/user@example.com/bundle?animations=idle,happy
 ## 🔧 Asset System
 
 ### **Current Assets**
+
 ```
 Eyes: 36 variants (24 open + 12 closed, including base and emote assets)
 Mouths: 60 variants (18 open + 42 closed, including base and emote assets)
@@ -358,9 +384,9 @@ Colors: 20-color carefully curated palette
 Hair assets use SVG data attributes for flexible positioning and coloring:
 
 ```xml
-<svg data-z-order="front" 
-     data-width-percent="112" 
-     data-position-x="cell-center" 
+<svg data-z-order="front"
+     data-width-percent="112"
+     data-position-x="cell-center"
      data-position-y="between-body-eyes"
      data-anchor="center"
      data-color='["#F34B65", "#FA709A", "#F7AB39"]'>
@@ -369,6 +395,7 @@ Hair assets use SVG data attributes for flexible positioning and coloring:
 ```
 
 **Available Data Attributes:**
+
 - `data-z-order`: "behind" or "front" rendering
 - `data-width-percent`: Width as % of body width  
 - `data-position-x`: "body-center", "cell-center", or percentages
@@ -379,12 +406,14 @@ Hair assets use SVG data attributes for flexible positioning and coloring:
 ## 🚀 Deployment
 
 ### **Development Server**
+
 ```bash
 # Start with auto-reload
 uv run python app.py
 ```
 
 ### **Production Deployment**
+
 ```bash
 # Install production ASGI server
 uv add gunicorn
@@ -394,6 +423,7 @@ uv run gunicorn app:app -w 4 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000
 ```
 
 ### **Docker Deployment**
+
 ```dockerfile
 FROM python:3.13-slim
 WORKDIR /app
@@ -404,6 +434,7 @@ CMD ["uv", "run", "python", "app.py"]
 ```
 
 ### **Environment Variables**
+
 ```bash
 # Optional configuration
 HOST=0.0.0.0
@@ -414,12 +445,14 @@ CACHE_DIR=out/avatar
 ## 📊 Performance
 
 ### **Caching Strategy**
+
 - **File-based cache** in `out/avatar/` directory
 - **Hash-based filenames** for collision resistance
 - **Immediate serving** of cached avatars
 - **1-year HTTP cache headers** for client-side caching
 
 ### **Generation Performance**
+
 - **Cold generation**: ~50-100ms per avatar
 - **Cached serving**: ~1-5ms per avatar  
 - **Concurrent requests**: Supported via FastAPI async
@@ -428,16 +461,19 @@ CACHE_DIR=out/avatar
 ## 🎮 Use Cases
 
 ### **Gravatar Replacement**
+
 Replace Gravatar URLs with your service:
+
 ```html
 <!-- Before -->
 <img src="https://www.gravatar.com/avatar/hash?s=60">
 
-<!-- After --> 
+<!-- After -->
 <img src="https://your-service.com/avatar/user@example.com.svg">
 ```
 
 ### **Gaming & Applications**
+
 ```javascript
 // Generate consistent user avatars
 const avatarUrl = `https://your-service.com/avatar/${userId}.svg`;
@@ -447,6 +483,7 @@ const avatarUrl = `https://your-service.com/avatar/${userId}.svg`;
 ```
 
 ### **Bulk Asset Generation**
+
 ```bash
 # Generate sprite sheets for games
 uv run generate.py
@@ -472,6 +509,7 @@ open test-grid.html
 ```
 
 **Features:**
+
 - View all 4 idle frames and 5 emotes for multiple avatars
 - Add custom test avatars with any input string
 - Toggle idle animation to see frame cycling
@@ -509,30 +547,36 @@ uv run python generate_emote_variants.py
 ```
 
 **When to run this script:**
+
 - After adding new base eye or mouth assets
 - After modifying base assets and wanting to propagate changes
 - When setting up the project initially
 
 **How it works:**
+
 1. Reads all base assets (numbered files) from eyes/open, eyes/closed, mouths/open, mouths/closed
 2. For each emote (happy, sad, surprised, angry, bored), creates a copy with emote prefix
 3. Preserves all SVG attributes and styling
 4. Creates deterministic variants based on base asset count
 
 ### **Adding New Assets**
+
 1. Add numbered SVG files to appropriate directories
 2. Use data attributes for hair positioning/coloring
 3. Generator automatically detects new assets
 4. Test with `uv run avatar.py "test" --info`
 
 ### **Modifying Configuration**
+
 Edit JSON files in `assets/`:
+
 - `config.json` - Grid size, positioning, styling
 - `colors.json` - Color palette and schemes
 - `body_shapes.json` - Available body dimensions
 - `probabilities.json` - Generation probabilities
 
 ### **API Development**
+
 ```bash
 # Run with auto-reload
 uv run python app.py
@@ -548,12 +592,14 @@ curl http://localhost:8000/avatar/test.svg/info
 ## 📈 Scaling Considerations
 
 ### **For High Traffic**
+
 - Use **CDN** for cached avatar serving
 - **Horizontal scaling** with load balancer
 - **Pre-generation** for known users
 - **Database integration** for user-avatar mapping
 
 ### **For Large User Bases**
+
 - **Monitor collision rates** using hash analytics
 - **Add more assets** to increase variant count
 - **Implement user preferences** for customization
@@ -562,11 +608,13 @@ curl http://localhost:8000/avatar/test.svg/info
 ## 📋 Dependencies
 
 **Core:**
+
 - Python 3.13+
 - FastAPI 0.115+ (web service)
 - uvicorn 0.32+ (ASGI server)
 
 **Optional:**
+
 - Pillow 11.3+ (future raster rendering)
 - Gunicorn (production deployment)
 
@@ -582,6 +630,7 @@ MIT License - Feel free to use in your projects!
 4. Submit a pull request
 
 **Areas for Contribution:**
+
 - New hair/eye/mouth assets
 - Performance optimizations  
 - Additional output formats

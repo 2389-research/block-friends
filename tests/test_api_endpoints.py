@@ -4,8 +4,8 @@ API integration tests for avatar service endpoints.
 Tests all HTTP endpoints to ensure correct responses, headers, and error handling.
 """
 
-import pytest
 from fastapi.testclient import TestClient
+
 from app import app
 
 client = TestClient(app)
@@ -99,7 +99,7 @@ class TestAvatarPNGEndpoint:
 
         assert response.status_code == 200
         # PNG magic number
-        assert response.content[:8] == b'\x89PNG\r\n\x1a\n'
+        assert response.content[:8] == b"\x89PNG\r\n\x1a\n"
 
     def test_avatar_png_deterministic(self):
         """Same input returns same PNG (deterministic)."""
@@ -211,7 +211,7 @@ class TestBundleEndpoint:
 
         assert response.status_code == 200
         # ZIP magic number
-        assert response.content[:4] == b'PK\x03\x04'
+        assert response.content[:4] == b"PK\x03\x04"
 
     def test_bundle_with_animation_parameter(self):
         """Bundle endpoint accepts animations parameter."""
@@ -223,8 +223,7 @@ class TestBundleEndpoint:
     def test_bundle_post_endpoint(self):
         """POST bundle endpoint works."""
         response = client.post(
-            "/avatar/bundle",
-            json={"input": "test@example.com", "animations": ["idle"]}
+            "/avatar/bundle", json={"input": "test@example.com", "animations": ["idle"]}
         )
 
         assert response.status_code == 200

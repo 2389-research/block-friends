@@ -287,6 +287,7 @@ assets/eyes/closed/emote_sad_3.svg
 ```
 
 Requirements:
+
 - Use 0.75px stroke width
 - Use `#231F20` for outlines
 - Include pupils with `#2B2727` fill
@@ -307,6 +308,7 @@ assets/mouths/closed/emote_bored_8.svg
 ```
 
 Requirements:
+
 - Use 0.75px stroke width
 - Use `#231F20` for outlines
 - Keep viewBox consistent
@@ -320,6 +322,7 @@ assets/hair/17.svg
 ```
 
 Requirements:
+
 - Include positioning data attributes
 - Use `fill="currentColor"` for paths
 - Use 0.75px stroke width

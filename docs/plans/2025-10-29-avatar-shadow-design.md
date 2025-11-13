@@ -23,12 +23,14 @@ Add a ground shadow to each avatar for depth and visual grounding. The shadow is
 **Shape:** Ellipse (short, wide oval)
 
 **Dimensions:**
+
 - Width: `content_width * 1.2` (20% wider than actual content)
 - Height: `content_width * 0.15` (short, flat ground shadow)
 - Center X: `content_center_x` (horizontally centered on content)
 - Center Y: `CELL - 3` (3px overlap with feet)
 
 **Visual Properties:**
+
 - Fill: Light grey (`#808080`)
 - Opacity: `0.45`
 - Gaussian blur: `stdDeviation="1.5"`
@@ -56,6 +58,7 @@ content_center_x = (min_x + max_x) / 2
 ### SVG Filter Implementation
 
 **Filter Definition:**
+
 ```xml
 <defs>
   <filter id="{avatar_id}-shadow-blur">
@@ -65,6 +68,7 @@ content_center_x = (min_x + max_x) / 2
 ```
 
 **Filter Application:**
+
 ```xml
 <ellipse
   cx="{shadow_cx}"

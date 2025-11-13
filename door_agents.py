@@ -48,11 +48,15 @@ existing avatar appearances, continue using v1.x. For new deployments, v2.0
 provides significantly better animation capabilities.
 """
 
-import os, random, re, xml.etree.ElementTree as ET, json, hashlib
+import hashlib
+import json
+import random
+import re
+import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Optional, Dict, List, Tuple, Union
 
 AVATAR_SYSTEM_VERSION = "2.0"
+
 
 class DoorAgentConfig:
     """Handles loading and managing all door agent configuration and assets.
@@ -60,12 +64,12 @@ class DoorAgentConfig:
     Part of Avatar System v2.0 - uses separate open/closed eye and mouth assets
     for flexible animation control.
     """
-    
+
     def __init__(self, assets_path: Path = Path("assets")):
         self.assets_path = assets_path
         self._load_configs()
         self._load_assets()
-    
+
     def _load_configs(self):
         """Load all JSON configuration files."""
         with open(self.assets_path / "config.json") as f:
@@ -112,7 +116,7 @@ class DoorAgentConfig:
         self.EYE_MAX_HEIGHT_FRAC = config["positioning"]["eye_max_height_fraction"]
         self.MOUTH_MAX_HEIGHT_FRAC = config["positioning"]["mouth_max_height_fraction"]
 
-    def _parse_defs(self, folder: Path) -> List[Tuple]:
+    def _parse_defs(self, folder: Path) -> list[tuple]:
         """Parse SVG definitions from a folder, returning sorted list of asset data.
         Only processes files with numeric names (e.g., 1.svg, 2.svg)."""
         defs = []
@@ -128,10 +132,24 @@ class DoorAgentConfig:
             position_y = root.get("data-position-y", "above-body")
             anchor = root.get("data-anchor", "top")
             color_spec = root.get("data-color", "currentColor")
-            defs.append((x0, y0, w, h, content, z_order, width_percent, position_x, position_y, anchor, color_spec))
+            defs.append(
+                (
+                    x0,
+                    y0,
+                    w,
+                    h,
+                    content,
+                    z_order,
+                    width_percent,
+                    position_x,
+                    position_y,
+                    anchor,
+                    color_spec,
+                )
+            )
         return defs
 
-    def _parse_named_defs(self, folder: Path, pattern: str = "*.svg") -> Dict[str, Tuple]:
+    def _parse_named_defs(self, folder: Path, pattern: str = "*.svg") -> dict[str, tuple]:
         """Parse SVG definitions from a folder, returning dict keyed by filename stem."""
         defs = {}
         for f in folder.glob(pattern):
@@ -142,18 +160,29 @@ class DoorAgentConfig:
             defs[f.stem] = (x0, y0, w, h, content)
         return defs
 
-    def _load_emote_variants(self, folder: Path) -> Dict[str, List[Tuple]]:
+    def _load_emote_variants(self, folder: Path) -> dict[str, list[tuple]]:
         """Load emote variant SVGs organized by emote name.
 
         Returns dict: {"happy": [variant1, variant2, ...], "sad": [...], ...}
         Each variant corresponds to a base asset index.
         """
         variants = {}
-        for emote in ["happy", "sad", "surprised", "angry", "bored", "vowel_a", "vowel_e", "vowel_i", "vowel_o", "vowel_u"]:
+        for emote in [
+            "happy",
+            "sad",
+            "surprised",
+            "angry",
+            "bored",
+            "vowel_a",
+            "vowel_e",
+            "vowel_i",
+            "vowel_o",
+            "vowel_u",
+        ]:
             variants[emote] = []
             # Find all files matching emote_{emote}_*.svg pattern
             pattern = f"emote_{emote}_*.svg"
-            files = sorted(folder.glob(pattern), key=lambda p: int(p.stem.split('_')[-1]))
+            files = sorted(folder.glob(pattern), key=lambda p: int(p.stem.split("_")[-1]))
             for f in files:
                 root = ET.parse(f).getroot()
                 x0, y0, w, h = map(float, root.get("viewBox").split())
@@ -213,10 +242,12 @@ class DoorAgentGenerator:
         Returns:
             Avatar ID like 'avatar-973dfe463ec8' (12-char hash)
         """
-        hash_hex = hashlib.sha256(input_string.encode('utf-8')).hexdigest()
+        hash_hex = hashlib.sha256(input_string.encode("utf-8")).hexdigest()
         return f"avatar-{hash_hex[:12]}"
 
-    def _generate_body(self, shape: Tuple[int, int], body_color: str, cell_size: float, pad: float) -> str:
+    def _generate_body(
+        self, shape: tuple[int, int], body_color: str, cell_size: float, pad: float
+    ) -> str:
         """Generate body rectangle and vertical line.
 
         Args:
@@ -253,7 +284,9 @@ class DoorAgentGenerator:
 
         return body_rect + vert_line
 
-    def _generate_nodes(self, shape: Tuple[int, int], node_color: str, cell_size: float, pad: float) -> str:
+    def _generate_nodes(
+        self, shape: tuple[int, int], node_color: str, cell_size: float, pad: float
+    ) -> str:
         """Generate side node circles.
 
         Args:
@@ -292,8 +325,15 @@ class DoorAgentGenerator:
 
         return left_circle + right_circle
 
-    def _generate_feet(self, shape: Tuple[int, int], body_color: str, node_color: str,
-                      feet_match_body: bool, cell_size: float, pad: float) -> str:
+    def _generate_feet(
+        self,
+        shape: tuple[int, int],
+        body_color: str,
+        node_color: str,
+        feet_match_body: bool,
+        cell_size: float,
+        pad: float,
+    ) -> str:
         """Generate foot rectangles.
 
         Args:
@@ -338,9 +378,16 @@ class DoorAgentGenerator:
 
         return left_foot + right_foot
 
-    def _generate_hair(self, hair_index: Optional[int], hair_color_hash_byte: int,
-                      body_color: str, shape: Tuple[int, int], cell_size: float,
-                      pad: float, z_order: str) -> str:
+    def _generate_hair(
+        self,
+        hair_index: int | None,
+        hair_color_hash_byte: int,
+        body_color: str,
+        shape: tuple[int, int],
+        cell_size: float,
+        pad: float,
+        z_order: str,
+    ) -> str:
         """Generate hair SVG if hair_index provided.
 
         Args:
@@ -359,7 +406,19 @@ class DoorAgentGenerator:
             return ""
 
         # Get hair asset data
-        hx0, hy0, hw, hh, hair_svg, hair_z_order, hair_width_percent, hair_position_x, hair_position_y, hair_anchor, hair_color_spec = self.config.HAIRS[hair_index]
+        (
+            hx0,
+            hy0,
+            hw,
+            hh,
+            hair_svg,
+            hair_z_order,
+            hair_width_percent,
+            hair_position_x,
+            hair_position_y,
+            hair_anchor,
+            hair_color_spec,
+        ) = self.config.HAIRS[hair_index]
 
         # Only render if z-order matches the requested layer
         if hair_z_order != z_order:
@@ -424,7 +483,9 @@ class DoorAgentGenerator:
 
         # Resolve hair color (deterministic or random based on context)
         if hair_color_hash_byte > 0:
-            hair_color = self._resolve_hair_color_deterministic(hair_color_spec, body_color, hair_color_hash_byte)
+            hair_color = self._resolve_hair_color_deterministic(
+                hair_color_spec, body_color, hair_color_hash_byte
+            )
         else:
             hair_color = self._resolve_hair_color(hair_color_spec, body_color)
 
@@ -434,9 +495,9 @@ class DoorAgentGenerator:
         """Resolve hair color based on data-color specification."""
         if hair_color_spec == "currentColor":
             return body_fill
-        elif hair_color_spec == "contrast":
+        if hair_color_spec == "contrast":
             return random.choice([c for c in self.config.PALETTE if c != body_fill])
-        elif hair_color_spec.startswith('[') and hair_color_spec.endswith(']'):
+        if hair_color_spec.startswith("[") and hair_color_spec.endswith("]"):
             try:
                 color_array = json.loads(hair_color_spec)
                 return random.choice(color_array)
@@ -444,15 +505,17 @@ class DoorAgentGenerator:
                 return body_fill
         else:
             return hair_color_spec
-    
-    def _resolve_hair_color_deterministic(self, hair_color_spec: str, body_fill: str, hash_byte: int) -> str:
+
+    def _resolve_hair_color_deterministic(
+        self, hair_color_spec: str, body_fill: str, hash_byte: int
+    ) -> str:
         """Resolve hair color deterministically based on data-color specification."""
         if hair_color_spec == "currentColor":
             return body_fill
-        elif hair_color_spec == "contrast":
+        if hair_color_spec == "contrast":
             contrast_colors = [c for c in self.config.PALETTE if c != body_fill]
             return contrast_colors[hash_byte % len(contrast_colors)]
-        elif hair_color_spec.startswith('[') and hair_color_spec.endswith(']'):
+        if hair_color_spec.startswith("[") and hair_color_spec.endswith("]"):
             try:
                 color_array = json.loads(hair_color_spec)
                 return color_array[hash_byte % len(color_array)]
@@ -461,10 +524,16 @@ class DoorAgentGenerator:
         else:
             return hair_color_spec
 
-    def _generate_universal_eyes(self, open_eye_idx: int, closed_eye_idx: int,
-                                 email: str, shape: Tuple[int, int],
-                                 cell_size: float, pad: float,
-                                 avatar_id: str) -> tuple:
+    def _generate_universal_eyes(
+        self,
+        open_eye_idx: int,
+        closed_eye_idx: int,
+        email: str,
+        shape: tuple[int, int],
+        cell_size: float,
+        pad: float,
+        avatar_id: str,
+    ) -> tuple:
         """Generate universal eyes with all states as nested groups.
 
         Args:
@@ -480,7 +549,6 @@ class DoorAgentGenerator:
             Tuple of (clipPath defs SVG string, eye groups SVG string) for 7 states (open, closed, happy, sad, surprised, angry, bored)
         """
         import xml.etree.ElementTree as ET
-        import re
 
         w_tiles, h_tiles = shape
         box = cell_size - 2 * pad
@@ -512,13 +580,13 @@ class DoorAgentGenerator:
 
             for child in root:
                 tag = child.tag
-                if tag.endswith('clipPath'):
+                if tag.endswith("clipPath"):
                     # Extract clipPath and namespace its ID
-                    clip_id = child.get('id')
+                    clip_id = child.get("id")
                     if clip_id:
                         # Namespace the ID with avatar ID
                         new_clip_id = f"{avatar_id}-{clip_id}"
-                        child.set('id', new_clip_id)
+                        child.set("id", new_clip_id)
                         clipPaths.append(ET.tostring(child, encoding="unicode"))
                 else:
                     content_elements.append(child)
@@ -528,9 +596,7 @@ class DoorAgentGenerator:
 
             # Replace url(#id) with url(#avatar-id-id)
             content_str = re.sub(
-                r'url\(#([^)]+)\)',
-                lambda m: f'url(#{avatar_id}-{m.group(1)})',
-                content_str
+                r"url\(#([^)]+)\)", lambda m: f"url(#{avatar_id}-{m.group(1)})", content_str
             )
 
             return clipPaths, content_str
@@ -544,7 +610,7 @@ class DoorAgentGenerator:
             ex0, ey0, ew, eh, *_ = self.config.open_eyes[open_eye_idx]
             clipPaths, content = read_asset_content(open_eye_file)
             all_clipPaths.extend(clipPaths)
-            eye_data['open'] = (ex0, ey0, ew, eh, content)
+            eye_data["open"] = (ex0, ey0, ew, eh, content)
 
         # Closed eyes
         closed_eye_file = assets_path / "eyes" / "closed" / f"{closed_eye_idx + 1}.svg"
@@ -552,15 +618,17 @@ class DoorAgentGenerator:
             ex0, ey0, ew, eh, *_ = self.config.closed_eyes[closed_eye_idx]
             clipPaths, content = read_asset_content(closed_eye_file)
             all_clipPaths.extend(clipPaths)
-            eye_data['closed'] = (ex0, ey0, ew, eh, content)
+            eye_data["closed"] = (ex0, ey0, ew, eh, content)
 
         # Emote variants
-        for emote in ['happy', 'sad', 'surprised', 'angry', 'bored']:
+        for emote in ["happy", "sad", "surprised", "angry", "bored"]:
             if emote in self.config.open_eye_emotes:
                 variants = self.config.open_eye_emotes[emote]
                 if open_eye_idx < len(variants):
                     ex0, ey0, ew, eh, content_svg = variants[open_eye_idx]
-                    emote_file = assets_path / "eyes" / "open" / f"emote_{emote}_{open_eye_idx + 1}.svg"
+                    emote_file = (
+                        assets_path / "eyes" / "open" / f"emote_{emote}_{open_eye_idx + 1}.svg"
+                    )
                     if emote_file.exists():
                         clipPaths, content = read_asset_content(emote_file)
                         all_clipPaths.extend(clipPaths)
@@ -581,7 +649,10 @@ class DoorAgentGenerator:
         # Position eyes group - center horizontally and at eye_y vertically based on max height
         cx = (bx0 + bx0 + body_w) / 2
         eyes_x = cx - eyes_w / 2
-        eyes_y = max(by0 + scaled_max_height / 2, min(by0 + body_h - scaled_max_height / 2, eye_y)) - scaled_max_height / 2
+        eyes_y = (
+            max(by0 + scaled_max_height / 2, min(by0 + body_h - scaled_max_height / 2, eye_y))
+            - scaled_max_height / 2
+        )
 
         # Calculate reference center point (for vertical alignment)
         ref_center_y = ref_y0 + ref_h / 2
@@ -595,20 +666,29 @@ class DoorAgentGenerator:
             # Calculate horizontal offset to align this eye's center with reference center
             eye_center_x = ex0 + ew / 2
             x_offset = ref_center_x - eye_center_x
-            eye_groups[state] = f'<g class="{state}" transform="translate({x_offset}, {y_offset})">{content}</g>'
+            eye_groups[state] = (
+                f'<g class="{state}" transform="translate({x_offset}, {y_offset})">{content}</g>'
+            )
 
         # Build nested structure with transform
-        nested_groups = '\n  '.join(eye_groups.values())
+        nested_groups = "\n  ".join(eye_groups.values())
         eyes_svg = f'<g class="eyes" transform="translate({eyes_x},{eyes_y}) scale({scale}) translate({-ref_x0},{-ref_y0})">\n  {nested_groups}\n</g>'
 
         # Return clipPaths and eyes SVG
         clipPath_defs = "".join(all_clipPaths)
         return clipPath_defs, eyes_svg
 
-    def _generate_universal_mouths(self, open_mouth_idx: int, closed_mouth_idx: int,
-                                   email: str, shape: Tuple[int, int],
-                                   cell_size: float, pad: float,
-                                   open_eye_idx: int = None, closed_eye_idx: int = None) -> str:
+    def _generate_universal_mouths(
+        self,
+        open_mouth_idx: int,
+        closed_mouth_idx: int,
+        email: str,
+        shape: tuple[int, int],
+        cell_size: float,
+        pad: float,
+        open_eye_idx: int = None,
+        closed_eye_idx: int = None,
+    ) -> str:
         """Generate universal mouths with all states as nested groups.
 
         Args:
@@ -658,13 +738,23 @@ class DoorAgentGenerator:
                 max_eye_height = max(eye_dimensions)
                 eyes_w = body_w * self.config.EYES_W_FRAC
                 # Use first open eye for width reference
-                ref_ew = self.config.open_eyes[open_eye_idx][2] if open_eye_idx < len(self.config.open_eyes) else eyes_w
+                ref_ew = (
+                    self.config.open_eyes[open_eye_idx][2]
+                    if open_eye_idx < len(self.config.open_eyes)
+                    else eyes_w
+                )
                 eye_scale = eyes_w / ref_ew
                 scaled_eye_height = max_eye_height * eye_scale
 
                 # Calculate where eyes are positioned (centered at eye_y)
                 eye_y = by0 + body_h * self.config.EYE_Y_FRAC
-                eye_top = max(by0 + scaled_eye_height / 2, min(by0 + body_h - scaled_eye_height / 2, eye_y)) - scaled_eye_height / 2
+                eye_top = (
+                    max(
+                        by0 + scaled_eye_height / 2,
+                        min(by0 + body_h - scaled_eye_height / 2, eye_y),
+                    )
+                    - scaled_eye_height / 2
+                )
                 eye_bottom = eye_top + scaled_eye_height
 
                 # Position mouth centered between eye bottom and body bottom
@@ -693,46 +783,58 @@ class DoorAgentGenerator:
         if open_mouth_file.exists():
             mx0, my0, mw, mh, *_ = self.config.open_mouths[open_mouth_idx]
             content = read_asset_content(open_mouth_file)
-            mouth_data['open'] = (mx0, my0, mw, mh, content)
+            mouth_data["open"] = (mx0, my0, mw, mh, content)
 
         # Closed mouth
         closed_mouth_file = assets_path / "mouths" / "closed" / f"{closed_mouth_idx + 1}.svg"
         if closed_mouth_file.exists():
             mx0, my0, mw, mh, *_ = self.config.closed_mouths[closed_mouth_idx]
             content = read_asset_content(closed_mouth_file)
-            mouth_data['closed'] = (mx0, my0, mw, mh, content)
+            mouth_data["closed"] = (mx0, my0, mw, mh, content)
 
         # Emote variants - open mouth emotes (happy, surprised)
-        for emote in ['happy', 'surprised']:
+        for emote in ["happy", "surprised"]:
             if emote in self.config.open_mouth_emotes:
                 variants = self.config.open_mouth_emotes[emote]
                 if open_mouth_idx < len(variants):
                     mx0, my0, mw, mh, content_svg = variants[open_mouth_idx]
                     # Need to read from file for universal mode
-                    emote_file = assets_path / "mouths" / "open" / f"emote_{emote}_{open_mouth_idx + 1}.svg"
+                    emote_file = (
+                        assets_path / "mouths" / "open" / f"emote_{emote}_{open_mouth_idx + 1}.svg"
+                    )
                     if emote_file.exists():
                         content = read_asset_content(emote_file)
                         mouth_data[emote] = (mx0, my0, mw, mh, content)
 
         # Emote variants - closed mouth emotes (sad, angry, bored)
-        for emote in ['sad', 'angry', 'bored']:
+        for emote in ["sad", "angry", "bored"]:
             if emote in self.config.closed_mouth_emotes:
                 variants = self.config.closed_mouth_emotes[emote]
                 if closed_mouth_idx < len(variants):
                     mx0, my0, mw, mh, content_svg = variants[closed_mouth_idx]
-                    emote_file = assets_path / "mouths" / "closed" / f"emote_{emote}_{closed_mouth_idx + 1}.svg"
+                    emote_file = (
+                        assets_path
+                        / "mouths"
+                        / "closed"
+                        / f"emote_{emote}_{closed_mouth_idx + 1}.svg"
+                    )
                     if emote_file.exists():
                         content = read_asset_content(emote_file)
                         mouth_data[emote] = (mx0, my0, mw, mh, content)
 
         # Vowel variants (all based on open mouth)
-        for vowel in ['a', 'e', 'i', 'o', 'u']:
-            vowel_key = f'vowel_{vowel}'
+        for vowel in ["a", "e", "i", "o", "u"]:
+            vowel_key = f"vowel_{vowel}"
             if vowel_key in self.config.open_mouth_emotes:
                 variants = self.config.open_mouth_emotes[vowel_key]
                 if open_mouth_idx < len(variants):
                     mx0, my0, mw, mh, content_svg = variants[open_mouth_idx]
-                    vowel_file = assets_path / "mouths" / "open" / f"emote_vowel_{vowel}_{open_mouth_idx + 1}.svg"
+                    vowel_file = (
+                        assets_path
+                        / "mouths"
+                        / "open"
+                        / f"emote_vowel_{vowel}_{open_mouth_idx + 1}.svg"
+                    )
                     if vowel_file.exists():
                         content = read_asset_content(vowel_file)
                         mouth_data[vowel_key] = (mx0, my0, mw, mh, content)
@@ -753,7 +855,10 @@ class DoorAgentGenerator:
         # Position mouths group - center horizontally and at mouth_y vertically based on max height
         cx = (bx0 + bx0 + body_w) / 2
         mouth_x = cx - mouth_w / 2
-        mouths_y = max(by0 + scaled_max_height / 2, min(by0 + body_h - scaled_max_height / 2, mouth_y)) - scaled_max_height / 2
+        mouths_y = (
+            max(by0 + scaled_max_height / 2, min(by0 + body_h - scaled_max_height / 2, mouth_y))
+            - scaled_max_height / 2
+        )
 
         # Build nested groups with individual centering offsets
         mouth_groups = {}
@@ -764,10 +869,12 @@ class DoorAgentGenerator:
             # Calculate horizontal offset to align this mouth's center with reference center
             mouth_center_x = mx0 + mw / 2
             x_offset = ref_center_x - mouth_center_x
-            mouth_groups[state] = f'<g class="{state}" transform="translate({x_offset}, {y_offset})">{content}</g>'
+            mouth_groups[state] = (
+                f'<g class="{state}" transform="translate({x_offset}, {y_offset})">{content}</g>'
+            )
 
         # Build nested structure with transform
-        nested_groups = '\n  '.join(mouth_groups.values())
+        nested_groups = "\n  ".join(mouth_groups.values())
         return f'<g class="mouths" transform="translate({mouth_x},{mouths_y}) scale({scale}) translate({-ref_x0},{-ref_y0})">\n  {nested_groups}\n</g>'
 
     def _generate_css_rules(self, avatar_id: str) -> str:
@@ -794,52 +901,64 @@ class DoorAgentGenerator:
         a = avatar_id  # Short alias for compactness
 
         # Default: open eyes, closed mouth
-        css_rules.append(f'#{a} .eyes>g,#{a} .mouths>g{{opacity:0}}#{a} .eyes>.open,#{a} .mouths>.closed{{opacity:1}}')
+        css_rules.append(
+            f"#{a} .eyes>g,#{a} .mouths>g{{opacity:0}}#{a} .eyes>.open,#{a} .mouths>.closed{{opacity:1}}"
+        )
 
         # Idle frame rules (10 frames with independent eye/mouth combinations)
         idle_frames = [
-            ('idle_0', 'open', 'closed'),      # Default resting state
-            ('idle_1', 'open', 'bored'),       # Subtle bored expression
-            ('idle_2', 'closed', 'bored'),     # Blink with bored mouth
-            ('idle_3', 'open', 'bored'),       # Bored
-            ('idle_4', 'open', 'closed'),      # Resting
-            ('idle_5', 'open', 'closed'),      # Resting
-            ('idle_6', 'bored', 'closed'),     # Bored eyes, neutral mouth
-            ('idle_7', 'bored', 'bored'),      # Full boredom
-            ('idle_8', 'bored', 'closed'),     # Bored eyes, neutral mouth
-            ('idle_9', 'open', 'closed'),      # Return to rest
+            ("idle_0", "open", "closed"),  # Default resting state
+            ("idle_1", "open", "bored"),  # Subtle bored expression
+            ("idle_2", "closed", "bored"),  # Blink with bored mouth
+            ("idle_3", "open", "bored"),  # Bored
+            ("idle_4", "open", "closed"),  # Resting
+            ("idle_5", "open", "closed"),  # Resting
+            ("idle_6", "bored", "closed"),  # Bored eyes, neutral mouth
+            ("idle_7", "bored", "bored"),  # Full boredom
+            ("idle_8", "bored", "closed"),  # Bored eyes, neutral mouth
+            ("idle_9", "open", "closed"),  # Return to rest
         ]
 
         # Combine all state rules into single line per state
         for frame, eye_class, mouth_class in idle_frames:
-            css_rules.append(f'#{a}.{frame} .eyes>g,#{a}.{frame} .mouths>g{{opacity:0}}#{a}.{frame} .eyes>.{eye_class},#{a}.{frame} .mouths>.{mouth_class}{{opacity:1}}')
+            css_rules.append(
+                f"#{a}.{frame} .eyes>g,#{a}.{frame} .mouths>g{{opacity:0}}#{a}.{frame} .eyes>.{eye_class},#{a}.{frame} .mouths>.{mouth_class}{{opacity:1}}"
+            )
 
         # Emote rules (matching eye/mouth pairs)
-        for emote in ['happy', 'sad', 'surprised', 'angry', 'bored']:
-            css_rules.append(f'#{a}.{emote} .eyes>g,#{a}.{emote} .mouths>g{{opacity:0}}#{a}.{emote} .eyes>.{emote},#{a}.{emote} .mouths>.{emote}{{opacity:1}}')
+        for emote in ["happy", "sad", "surprised", "angry", "bored"]:
+            css_rules.append(
+                f"#{a}.{emote} .eyes>g,#{a}.{emote} .mouths>g{{opacity:0}}#{a}.{emote} .eyes>.{emote},#{a}.{emote} .mouths>.{emote}{{opacity:1}}"
+            )
 
         # Vowel rules (open eyes + vowel mouths)
-        for vowel in ['a', 'e', 'i', 'o', 'u']:
-            css_rules.append(f'#{a}.vowel_{vowel} .eyes>g,#{a}.vowel_{vowel} .mouths>g{{opacity:0}}#{a}.vowel_{vowel} .eyes>.open,#{a}.vowel_{vowel} .mouths>.vowel_{vowel}{{opacity:1}}')
+        for vowel in ["a", "e", "i", "o", "u"]:
+            css_rules.append(
+                f"#{a}.vowel_{vowel} .eyes>g,#{a}.vowel_{vowel} .mouths>g{{opacity:0}}#{a}.vowel_{vowel} .eyes>.open,#{a}.vowel_{vowel} .mouths>.vowel_{vowel}{{opacity:1}}"
+            )
 
         # Interactive pseudo-class rules (hover/active) - use !important for specificity
-        css_rules.append(f'#{a}:hover .eyes>g{{opacity:0!important}}#{a}:hover .eyes>.closed{{opacity:1!important}}')
-        css_rules.append(f'#{a}:active .mouths>g{{opacity:0!important}}#{a}:active .mouths>.open{{opacity:1!important}}')
+        css_rules.append(
+            f"#{a}:hover .eyes>g{{opacity:0!important}}#{a}:hover .eyes>.closed{{opacity:1!important}}"
+        )
+        css_rules.append(
+            f"#{a}:active .mouths>g{{opacity:0!important}}#{a}:active .mouths>.open{{opacity:1!important}}"
+        )
 
         # Idle animation keyframes
-        css_rules.append(f'#{a}.idle .eyes>g,#{a}.idle .mouths>g{{opacity:0}}')
+        css_rules.append(f"#{a}.idle .eyes>g,#{a}.idle .mouths>g{{opacity:0}}")
 
         idle_frame_classes = [
-            ('open', 'closed'),   # idle_0 (0-10%)
-            ('open', 'bored'),    # idle_1 (10-20%)
-            ('closed', 'bored'),  # idle_2 (20-30%)
-            ('open', 'bored'),    # idle_3 (30-40%)
-            ('open', 'closed'),   # idle_4 (40-50%)
-            ('open', 'closed'),   # idle_5 (50-60%)
-            ('bored', 'closed'),  # idle_6 (60-70%)
-            ('bored', 'bored'),   # idle_7 (70-80%)
-            ('bored', 'closed'),  # idle_8 (80-90%)
-            ('open', 'closed'),   # idle_9 (90-100%)
+            ("open", "closed"),  # idle_0 (0-10%)
+            ("open", "bored"),  # idle_1 (10-20%)
+            ("closed", "bored"),  # idle_2 (20-30%)
+            ("open", "bored"),  # idle_3 (30-40%)
+            ("open", "closed"),  # idle_4 (40-50%)
+            ("open", "closed"),  # idle_5 (50-60%)
+            ("bored", "closed"),  # idle_6 (60-70%)
+            ("bored", "bored"),  # idle_7 (70-80%)
+            ("bored", "closed"),  # idle_8 (80-90%)
+            ("open", "closed"),  # idle_9 (90-100%)
         ]
 
         # Track which frames each class appears in
@@ -851,22 +970,43 @@ class DoorAgentGenerator:
 
         # Generate compact keyframe animations (6s duration for slower, less jumpy animation)
         for eye_class, frame_indices in eye_frames.items():
-            kf = ''.join([f'{i*10}%,{(i+1)*10 if i<9 else 100}%{{opacity:{1 if i in frame_indices else 0}}}' for i in range(10)])
-            css_rules.append(f'@keyframes {a}-idle-eye-{eye_class}{{{kf}}}#{a}.idle .eyes>.{eye_class}{{animation:{a}-idle-eye-{eye_class} 6s steps(1) infinite}}')
+            kf = "".join(
+                [
+                    f"{i*10}%,{(i+1)*10 if i<9 else 100}%{{opacity:{1 if i in frame_indices else 0}}}"
+                    for i in range(10)
+                ]
+            )
+            css_rules.append(
+                f"@keyframes {a}-idle-eye-{eye_class}{{{kf}}}#{a}.idle .eyes>.{eye_class}{{animation:{a}-idle-eye-{eye_class} 6s steps(1) infinite}}"
+            )
 
         for mouth_class, frame_indices in mouth_frames.items():
-            kf = ''.join([f'{i*10}%,{(i+1)*10 if i<9 else 100}%{{opacity:{1 if i in frame_indices else 0}}}' for i in range(10)])
-            css_rules.append(f'@keyframes {a}-idle-mouth-{mouth_class}{{{kf}}}#{a}.idle .mouths>.{mouth_class}{{animation:{a}-idle-mouth-{mouth_class} 6s steps(1) infinite}}')
+            kf = "".join(
+                [
+                    f"{i*10}%,{(i+1)*10 if i<9 else 100}%{{opacity:{1 if i in frame_indices else 0}}}"
+                    for i in range(10)
+                ]
+            )
+            css_rules.append(
+                f"@keyframes {a}-idle-mouth-{mouth_class}{{{kf}}}#{a}.idle .mouths>.{mouth_class}{{animation:{a}-idle-mouth-{mouth_class} 6s steps(1) infinite}}"
+            )
 
         # Shadow visibility control
-        css_rules.append(f'#{a}.no-shadow .shadow{{opacity:0}}')
+        css_rules.append(f"#{a}.no-shadow .shadow{{opacity:0}}")
 
-        return '<style>\n' + '\n'.join(css_rules) + '\n</style>'
+        return "<style>\n" + "\n".join(css_rules) + "\n</style>"
 
-    def _generate_legacy_eyes(self, open_eye_index: int, closed_eye_index: int,
-                              shape: Tuple[int, int], cell_size: float, pad: float,
-                              eye_override: Optional[str], emote_name: Optional[str],
-                              eye_emote: Optional[str]) -> Tuple[str, float, float, float, float]:
+    def _generate_legacy_eyes(
+        self,
+        open_eye_index: int,
+        closed_eye_index: int,
+        shape: tuple[int, int],
+        cell_size: float,
+        pad: float,
+        eye_override: str | None,
+        emote_name: str | None,
+        eye_emote: str | None,
+    ) -> tuple[str, float, float, float, float]:
         """Generate single eye state for legacy mode.
 
         Args:
@@ -898,7 +1038,11 @@ class DoorAgentGenerator:
         effective_eye_emote = eye_emote if eye_emote is not None else emote_name
 
         # Eyes - check for emote variant first, then state override
-        if effective_eye_emote and eye_override == "open" and effective_eye_emote in self.config.open_eye_emotes:
+        if (
+            effective_eye_emote
+            and eye_override == "open"
+            and effective_eye_emote in self.config.open_eye_emotes
+        ):
             # Use emote variant if available
             emote_variants = self.config.open_eye_emotes[effective_eye_emote]
             if open_eye_index < len(emote_variants):
@@ -906,12 +1050,18 @@ class DoorAgentGenerator:
             else:
                 # Fallback to base if variant doesn't exist
                 ex0, ey0, ew, eh, eyes_svg, _, _, _, _, _, _ = self.config.open_eyes[open_eye_index]
-        elif effective_eye_emote and eye_override == "closed" and effective_eye_emote in self.config.closed_eye_emotes:
+        elif (
+            effective_eye_emote
+            and eye_override == "closed"
+            and effective_eye_emote in self.config.closed_eye_emotes
+        ):
             emote_variants = self.config.closed_eye_emotes[effective_eye_emote]
             if closed_eye_index < len(emote_variants):
                 ex0, ey0, ew, eh, eyes_svg = emote_variants[closed_eye_index]
             else:
-                ex0, ey0, ew, eh, eyes_svg, _, _, _, _, _, _ = self.config.closed_eyes[closed_eye_index]
+                ex0, ey0, ew, eh, eyes_svg, _, _, _, _, _, _ = self.config.closed_eyes[
+                    closed_eye_index
+                ]
         elif eye_override == "closed":
             ex0, ey0, ew, eh, eyes_svg, _, _, _, _, _, _ = self.config.closed_eyes[closed_eye_index]
         elif eye_override == "open":
@@ -939,15 +1089,24 @@ class DoorAgentGenerator:
         eyes_y = clamped_eye_center_y - eyes_h / 2
 
         # Return transformed eye SVG
-        eye_svg_with_transform = (f'<g transform="translate({eyes_x},{eyes_y}) scale({se}) '
-                                  f'translate({-ex0}, {-ey0})">{eyes_svg}</g>')
+        eye_svg_with_transform = (
+            f'<g transform="translate({eyes_x},{eyes_y}) scale({se}) '
+            f'translate({-ex0}, {-ey0})">{eyes_svg}</g>'
+        )
 
         return eye_svg_with_transform
 
-    def _generate_legacy_mouths(self, open_mouth_index: int, closed_mouth_index: int,
-                                shape: Tuple[int, int], cell_size: float, pad: float,
-                                mouth_override: Optional[str], emote_name: Optional[str],
-                                mouth_emote: Optional[str]) -> str:
+    def _generate_legacy_mouths(
+        self,
+        open_mouth_index: int,
+        closed_mouth_index: int,
+        shape: tuple[int, int],
+        cell_size: float,
+        pad: float,
+        mouth_override: str | None,
+        emote_name: str | None,
+        mouth_emote: str | None,
+    ) -> str:
         """Generate single mouth state for legacy mode.
 
         Args:
@@ -979,27 +1138,45 @@ class DoorAgentGenerator:
         effective_mouth_emote = mouth_emote if mouth_emote is not None else emote_name
 
         # Mouth - check for emote variant first, then state override
-        if effective_mouth_emote and mouth_override == "open" and effective_mouth_emote in self.config.open_mouth_emotes:
+        if (
+            effective_mouth_emote
+            and mouth_override == "open"
+            and effective_mouth_emote in self.config.open_mouth_emotes
+        ):
             # Use emote variant if available
             emote_variants = self.config.open_mouth_emotes[effective_mouth_emote]
             if open_mouth_index < len(emote_variants):
                 mx0, my0, mw, mh, mouth_svg = emote_variants[open_mouth_index]
             else:
                 # Fallback to base if variant doesn't exist
-                mx0, my0, mw, mh, mouth_svg, _, _, _, _, _, _ = self.config.open_mouths[open_mouth_index]
-        elif effective_mouth_emote and mouth_override == "closed" and effective_mouth_emote in self.config.closed_mouth_emotes:
+                mx0, my0, mw, mh, mouth_svg, _, _, _, _, _, _ = self.config.open_mouths[
+                    open_mouth_index
+                ]
+        elif (
+            effective_mouth_emote
+            and mouth_override == "closed"
+            and effective_mouth_emote in self.config.closed_mouth_emotes
+        ):
             emote_variants = self.config.closed_mouth_emotes[effective_mouth_emote]
             if closed_mouth_index < len(emote_variants):
                 mx0, my0, mw, mh, mouth_svg = emote_variants[closed_mouth_index]
             else:
-                mx0, my0, mw, mh, mouth_svg, _, _, _, _, _, _ = self.config.closed_mouths[closed_mouth_index]
+                mx0, my0, mw, mh, mouth_svg, _, _, _, _, _, _ = self.config.closed_mouths[
+                    closed_mouth_index
+                ]
         elif mouth_override == "closed":
-            mx0, my0, mw, mh, mouth_svg, _, _, _, _, _, _ = self.config.closed_mouths[closed_mouth_index]
+            mx0, my0, mw, mh, mouth_svg, _, _, _, _, _, _ = self.config.closed_mouths[
+                closed_mouth_index
+            ]
         elif mouth_override == "open":
-            mx0, my0, mw, mh, mouth_svg, _, _, _, _, _, _ = self.config.open_mouths[open_mouth_index]
+            mx0, my0, mw, mh, mouth_svg, _, _, _, _, _, _ = self.config.open_mouths[
+                open_mouth_index
+            ]
         else:
             # Default to open mouths for neutral/base render
-            mx0, my0, mw, mh, mouth_svg, _, _, _, _, _, _ = self.config.open_mouths[open_mouth_index]
+            mx0, my0, mw, mh, mouth_svg, _, _, _, _, _, _ = self.config.open_mouths[
+                open_mouth_index
+            ]
 
         # Determine if this is an excited mouth (index in upper half)
         excited = open_mouth_index >= len(self.config.open_mouths) // 2
@@ -1015,36 +1192,42 @@ class DoorAgentGenerator:
         mouth_x = cx - mouth_w / 2
         # Position mouth at fixed fraction below eye center (not dependent on eye height)
         target_mouth_center_y = by0 + body_h * self.config.MOUTH_Y_FRAC
-        clamped_mouth_center_y = max(by0 + mouth_h / 2, min(by1 - mouth_h / 2, target_mouth_center_y))
+        clamped_mouth_center_y = max(
+            by0 + mouth_h / 2, min(by1 - mouth_h / 2, target_mouth_center_y)
+        )
         mouth_y = clamped_mouth_center_y - mouth_h / 2
 
         # Return transformed mouth SVG
-        mouth_svg_with_transform = (f'<g transform="translate({mouth_x},{mouth_y}) scale({sm}) '
-                                    f'translate({-mx0}, {-my0})">{mouth_svg}</g>')
+        mouth_svg_with_transform = (
+            f'<g transform="translate({mouth_x},{mouth_y}) scale({sm}) '
+            f'translate({-mx0}, {-my0})">{mouth_svg}</g>'
+        )
 
         return mouth_svg_with_transform
 
-    def generate_agent_svg(self,
-                          shape: Tuple[int, int],
-                          open_eye_index: int,
-                          closed_eye_index: int,
-                          open_mouth_index: int,
-                          closed_mouth_index: int,
-                          hair_index: Optional[int],
-                          body_color: str,
-                          node_color: str,
-                          feet_match_body: bool,
-                          hair_color_hash_byte: int = 0,
-                          eye_override: Optional[str] = None,
-                          mouth_override: Optional[str] = None,
-                          body_transform: str = '',
-                          emote_name: Optional[str] = None,
-                          eye_emote: Optional[str] = None,
-                          mouth_emote: Optional[str] = None,
-                          email: Optional[str] = None,
-                          frame: str = "neutral",
-                          universal: bool = True,
-                          shadow: bool = True) -> str:
+    def generate_agent_svg(
+        self,
+        shape: tuple[int, int],
+        open_eye_index: int,
+        closed_eye_index: int,
+        open_mouth_index: int,
+        closed_mouth_index: int,
+        hair_index: int | None,
+        body_color: str,
+        node_color: str,
+        feet_match_body: bool,
+        hair_color_hash_byte: int = 0,
+        eye_override: str | None = None,
+        mouth_override: str | None = None,
+        body_transform: str = "",
+        emote_name: str | None = None,
+        eye_emote: str | None = None,
+        mouth_emote: str | None = None,
+        email: str | None = None,
+        frame: str = "neutral",
+        universal: bool = True,
+        shadow: bool = True,
+    ) -> str:
         """Generate a single agent SVG with specified parameters.
 
         Animation parameters:
@@ -1071,10 +1254,10 @@ class DoorAgentGenerator:
         cx = (bx0 + bx1) / 2
 
         # Initialize bounding box tracking for shadow calculation and viewBox
-        min_x = float('inf')
-        max_x = float('-inf')
-        min_y = float('inf')
-        max_y = float('-inf')
+        min_x = float("inf")
+        max_x = float("-inf")
+        min_y = float("inf")
+        max_y = float("-inf")
 
         feet_fill = body_color if feet_match_body else node_color
 
@@ -1085,13 +1268,23 @@ class DoorAgentGenerator:
         if universal:
             # Universal mode: generate all eye/mouth states with nested groups
             eye_clipPaths, eyes_svg = self._generate_universal_eyes(
-                open_eye_index, closed_eye_index, email,
-                shape, self.config.CELL, self.config.PAD, avatar_id
+                open_eye_index,
+                closed_eye_index,
+                email,
+                shape,
+                self.config.CELL,
+                self.config.PAD,
+                avatar_id,
             )
             mouths_svg = self._generate_universal_mouths(
-                open_mouth_index, closed_mouth_index, email,
-                shape, self.config.CELL, self.config.PAD,
-                open_eye_index, closed_eye_index
+                open_mouth_index,
+                closed_mouth_index,
+                email,
+                shape,
+                self.config.CELL,
+                self.config.PAD,
+                open_eye_index,
+                closed_eye_index,
             )
             # Generate CSS rules for state control
             css_block = self._generate_css_rules(avatar_id)
@@ -1099,14 +1292,24 @@ class DoorAgentGenerator:
             # Legacy mode: generate single eye/mouth state
             eye_clipPaths = ""
             eyes_svg = self._generate_legacy_eyes(
-                open_eye_index, closed_eye_index,
-                shape, self.config.CELL, self.config.PAD,
-                eye_override, emote_name, eye_emote
+                open_eye_index,
+                closed_eye_index,
+                shape,
+                self.config.CELL,
+                self.config.PAD,
+                eye_override,
+                emote_name,
+                eye_emote,
             )
             mouths_svg = self._generate_legacy_mouths(
-                open_mouth_index, closed_mouth_index,
-                shape, self.config.CELL, self.config.PAD,
-                mouth_override, emote_name, mouth_emote
+                open_mouth_index,
+                closed_mouth_index,
+                shape,
+                self.config.CELL,
+                self.config.PAD,
+                mouth_override,
+                emote_name,
+                mouth_emote,
             )
             css_block = ""
 
@@ -1114,8 +1317,13 @@ class DoorAgentGenerator:
 
         # Render hair behind body (if any)
         hair_behind = self._generate_hair(
-            hair_index, hair_color_hash_byte, body_color,
-            shape, self.config.CELL, self.config.PAD, z_order='behind'
+            hair_index,
+            hair_color_hash_byte,
+            body_color,
+            shape,
+            self.config.CELL,
+            self.config.PAD,
+            z_order="behind",
         )
         if hair_behind:
             g.append(hair_behind)
@@ -1151,7 +1359,9 @@ class DoorAgentGenerator:
         max_y = max(max_y, node_y + node_r)
 
         # Feet
-        feet_svg = self._generate_feet(shape, body_color, node_color, feet_match_body, self.config.CELL, self.config.PAD)
+        feet_svg = self._generate_feet(
+            shape, body_color, node_color, feet_match_body, self.config.CELL, self.config.PAD
+        )
         g.append(feet_svg)
 
         # Update bounds with feet position
@@ -1163,12 +1373,17 @@ class DoorAgentGenerator:
 
         # Close body transform group if needed
         if body_transform:
-            g.append('</g>')
+            g.append("</g>")
 
         # Render hair in front of body (if any)
         hair_front = self._generate_hair(
-            hair_index, hair_color_hash_byte, body_color,
-            shape, self.config.CELL, self.config.PAD, z_order='front'
+            hair_index,
+            hair_color_hash_byte,
+            body_color,
+            shape,
+            self.config.CELL,
+            self.config.PAD,
+            z_order="front",
         )
         if hair_front:
             g.append(hair_front)
@@ -1176,7 +1391,19 @@ class DoorAgentGenerator:
         # Update bounds with hair position (if hair present)
         if hair_index is not None:
             # Get hair asset data
-            hx0, hy0, hw, hh, hair_svg, hair_z_order, hair_width_percent, hair_position_x, hair_position_y, hair_anchor, hair_color_spec = self.config.HAIRS[hair_index]
+            (
+                hx0,
+                hy0,
+                hw,
+                hh,
+                hair_svg,
+                hair_z_order,
+                hair_width_percent,
+                hair_position_x,
+                hair_position_y,
+                hair_anchor,
+                hair_color_spec,
+            ) = self.config.HAIRS[hair_index]
 
             # Calculate hair dimensions (same logic as in _generate_hair)
             hair_w = body_w * (hair_width_percent / 100)
@@ -1275,16 +1502,15 @@ class DoorAgentGenerator:
         if universal and (css_block or eye_clipPaths or shadow_filter):
             # Add defs section for clipPaths and shadow filter
             defs_content = eye_clipPaths + shadow_filter if eye_clipPaths else shadow_filter
-            defs_section = f'<defs>{defs_content}</defs>\n' if defs_content else ""
+            defs_section = f"<defs>{defs_content}</defs>\n" if defs_content else ""
             shadow_content = shadow_ellipse if shadow else ""
-            return f'{svg_tag}\n{defs_section}{css_block}\n{shadow_content}{svg_content}</svg>'
-        else:
-            # Legacy mode - still needs defs for shadow filter
-            defs_section = f'<defs>{shadow_filter}</defs>' if shadow_filter else ""
-            shadow_content = shadow_ellipse if shadow else ""
-            return f'{svg_tag}{defs_section}{shadow_content}{svg_content}</svg>'
+            return f"{svg_tag}\n{defs_section}{css_block}\n{shadow_content}{svg_content}</svg>"
+        # Legacy mode - still needs defs for shadow filter
+        defs_section = f"<defs>{shadow_filter}</defs>" if shadow_filter else ""
+        shadow_content = shadow_ellipse if shadow else ""
+        return f"{svg_tag}{defs_section}{shadow_content}{svg_content}</svg>"
 
-    def _get_frame_modifications(self, frame: str, hash_bytes: bytes) -> Dict:
+    def _get_frame_modifications(self, frame: str, hash_bytes: bytes) -> dict:
         """Get frame-specific modifications for animation.
 
         New system uses open/closed eye and mouth states with horizontal body sway.
@@ -1297,12 +1523,12 @@ class DoorAgentGenerator:
             Dict with keys: eye_override, mouth_override, body_transform, emote_name
         """
         modifications = {
-            'eye_override': None,      # "open", "closed", or None (use agent default)
-            'mouth_override': None,    # "open", "closed", or None (use agent default)
-            'body_transform': '',      # SVG transform string for body positioning
-            'emote_name': None,        # Emote name for variant selection (e.g., "happy", "sad")
-            'eye_emote': None,         # Separate emote for eyes only
-            'mouth_emote': None        # Separate emote for mouth only
+            "eye_override": None,  # "open", "closed", or None (use agent default)
+            "mouth_override": None,  # "open", "closed", or None (use agent default)
+            "body_transform": "",  # SVG transform string for body positioning
+            "emote_name": None,  # Emote name for variant selection (e.g., "happy", "sad")
+            "eye_emote": None,  # Separate emote for eyes only
+            "mouth_emote": None,  # Separate emote for mouth only
         }
 
         # Neutral frame - no modifications
@@ -1315,117 +1541,117 @@ class DoorAgentGenerator:
 
             # Frame 0: open eyes, closed mouth
             if frame_num == 0:
-                modifications['eye_override'] = 'open'
-                modifications['mouth_override'] = 'closed'
+                modifications["eye_override"] = "open"
+                modifications["mouth_override"] = "closed"
 
             # Frame 1: open eyes, open mouth (breathing/talking)
             elif frame_num == 1:
-                modifications['eye_override'] = 'open'
-                modifications['mouth_override'] = 'open'
+                modifications["eye_override"] = "open"
+                modifications["mouth_override"] = "open"
 
             # Frame 2: closed eyes (blink), closed mouth
             elif frame_num == 2:
-                modifications['eye_override'] = 'closed'
-                modifications['mouth_override'] = 'closed'
+                modifications["eye_override"] = "closed"
+                modifications["mouth_override"] = "closed"
 
             # Frame 3: happy eyes, base closed mouth
             elif frame_num == 3:
-                modifications['eye_override'] = 'open'
-                modifications['mouth_override'] = 'closed'
-                modifications['eye_emote'] = 'happy'
+                modifications["eye_override"] = "open"
+                modifications["mouth_override"] = "closed"
+                modifications["eye_emote"] = "happy"
 
             # Frame 4: base eyes, closed mouth
             elif frame_num == 4:
-                modifications['eye_override'] = 'open'
-                modifications['mouth_override'] = 'closed'
+                modifications["eye_override"] = "open"
+                modifications["mouth_override"] = "closed"
 
             # Frame 5: sad eyes, base closed mouth
             elif frame_num == 5:
-                modifications['eye_override'] = 'open'
-                modifications['mouth_override'] = 'closed'
-                modifications['eye_emote'] = 'sad'
+                modifications["eye_override"] = "open"
+                modifications["mouth_override"] = "closed"
+                modifications["eye_emote"] = "sad"
 
             # Frame 6: base eyes, bored mouth
             elif frame_num == 6:
-                modifications['eye_override'] = 'open'
-                modifications['mouth_override'] = 'closed'
-                modifications['mouth_emote'] = 'bored'
+                modifications["eye_override"] = "open"
+                modifications["mouth_override"] = "closed"
+                modifications["mouth_emote"] = "bored"
 
             # Frame 7: bored eyes, bored mouth
             elif frame_num == 7:
-                modifications['eye_override'] = 'open'
-                modifications['mouth_override'] = 'closed'
-                modifications['eye_emote'] = 'bored'
-                modifications['mouth_emote'] = 'bored'
+                modifications["eye_override"] = "open"
+                modifications["mouth_override"] = "closed"
+                modifications["eye_emote"] = "bored"
+                modifications["mouth_emote"] = "bored"
 
             # Frame 8: base eyes, base mouth (open)
             elif frame_num == 8:
-                modifications['eye_override'] = 'open'
-                modifications['mouth_override'] = 'open'
+                modifications["eye_override"] = "open"
+                modifications["mouth_override"] = "open"
 
             # Frame 9: open eyes, closed mouth
             elif frame_num == 9:
-                modifications['eye_override'] = 'open'
-                modifications['mouth_override'] = 'closed'
+                modifications["eye_override"] = "open"
+                modifications["mouth_override"] = "closed"
 
             return modifications
 
         # Emote frames (control eye/mouth open/closed states)
-        if frame == 'happy':
-            modifications['eye_override'] = 'open'
-            modifications['mouth_override'] = 'open'  # smile
-            modifications['emote_name'] = 'happy'
+        if frame == "happy":
+            modifications["eye_override"] = "open"
+            modifications["mouth_override"] = "open"  # smile
+            modifications["emote_name"] = "happy"
 
-        elif frame == 'sad':
-            modifications['eye_override'] = 'open'
-            modifications['mouth_override'] = 'closed'  # frown
-            modifications['emote_name'] = 'sad'
+        elif frame == "sad":
+            modifications["eye_override"] = "open"
+            modifications["mouth_override"] = "closed"  # frown
+            modifications["emote_name"] = "sad"
 
-        elif frame == 'surprised':
-            modifications['eye_override'] = 'open'
-            modifications['mouth_override'] = 'open'  # O shape
-            modifications['emote_name'] = 'surprised'
+        elif frame == "surprised":
+            modifications["eye_override"] = "open"
+            modifications["mouth_override"] = "open"  # O shape
+            modifications["emote_name"] = "surprised"
 
-        elif frame == 'angry':
-            modifications['eye_override'] = 'open'
-            modifications['mouth_override'] = 'closed'  # small/tight
-            modifications['emote_name'] = 'angry'
+        elif frame == "angry":
+            modifications["eye_override"] = "open"
+            modifications["mouth_override"] = "closed"  # small/tight
+            modifications["emote_name"] = "angry"
 
-        elif frame == 'bored':
-            modifications['eye_override'] = 'open'  # half-lidded (clipped open eyes)
-            modifications['mouth_override'] = 'closed'  # normal
-            modifications['emote_name'] = 'bored'
+        elif frame == "bored":
+            modifications["eye_override"] = "open"  # half-lidded (clipped open eyes)
+            modifications["mouth_override"] = "closed"  # normal
+            modifications["emote_name"] = "bored"
 
         # Vowel frames for lip-sync animation
-        elif frame == 'vowel_a':
-            modifications['eye_override'] = 'open'
-            modifications['mouth_override'] = 'open'
-            modifications['emote_name'] = 'vowel_a'
+        elif frame == "vowel_a":
+            modifications["eye_override"] = "open"
+            modifications["mouth_override"] = "open"
+            modifications["emote_name"] = "vowel_a"
 
-        elif frame == 'vowel_e':
-            modifications['eye_override'] = 'open'
-            modifications['mouth_override'] = 'open'
-            modifications['emote_name'] = 'vowel_e'
+        elif frame == "vowel_e":
+            modifications["eye_override"] = "open"
+            modifications["mouth_override"] = "open"
+            modifications["emote_name"] = "vowel_e"
 
-        elif frame == 'vowel_i':
-            modifications['eye_override'] = 'open'
-            modifications['mouth_override'] = 'open'
-            modifications['emote_name'] = 'vowel_i'
+        elif frame == "vowel_i":
+            modifications["eye_override"] = "open"
+            modifications["mouth_override"] = "open"
+            modifications["emote_name"] = "vowel_i"
 
-        elif frame == 'vowel_o':
-            modifications['eye_override'] = 'open'
-            modifications['mouth_override'] = 'open'
-            modifications['emote_name'] = 'vowel_o'
+        elif frame == "vowel_o":
+            modifications["eye_override"] = "open"
+            modifications["mouth_override"] = "open"
+            modifications["emote_name"] = "vowel_o"
 
-        elif frame == 'vowel_u':
-            modifications['eye_override'] = 'open'
-            modifications['mouth_override'] = 'open'
-            modifications['emote_name'] = 'vowel_u'
+        elif frame == "vowel_u":
+            modifications["eye_override"] = "open"
+            modifications["mouth_override"] = "open"
+            modifications["emote_name"] = "vowel_u"
 
         # Unknown frame - return neutral
         return modifications
 
-    def generate_random(self) -> Tuple[str, Dict]:
+    def generate_random(self) -> tuple[str, dict]:
         """Generate a random agent with configuration info."""
         shape = random.choice(self.config.BODY_SHAPES)
 
@@ -1439,8 +1665,12 @@ class DoorAgentGenerator:
         # Select mouth indices from open/closed mouths
         if excited:
             # For excited, choose from upper half of open mouths
-            open_mouth_idx = random.randint(len(self.config.open_mouths) // 2, len(self.config.open_mouths) - 1)
-            closed_mouth_idx = random.randint(len(self.config.closed_mouths) // 2, len(self.config.closed_mouths) - 1)
+            open_mouth_idx = random.randint(
+                len(self.config.open_mouths) // 2, len(self.config.open_mouths) - 1
+            )
+            closed_mouth_idx = random.randint(
+                len(self.config.closed_mouths) // 2, len(self.config.closed_mouths) - 1
+            )
         else:
             # For rest, choose from lower half of open mouths
             open_mouth_idx = random.randint(0, len(self.config.open_mouths) // 2 - 1)
@@ -1451,28 +1681,37 @@ class DoorAgentGenerator:
         feet_match_body = random.random() < self.config.FEET_MATCH_BODY_CHANCE
 
         svg_content = self.generate_agent_svg(
-            shape, open_eye_idx, closed_eye_idx, open_mouth_idx, closed_mouth_idx,
-            hi, body_fill, node_fill, feet_match_body
+            shape,
+            open_eye_idx,
+            closed_eye_idx,
+            open_mouth_idx,
+            closed_mouth_idx,
+            hi,
+            body_fill,
+            node_fill,
+            feet_match_body,
         )
 
         config_info = {
-            'avatar_system_version': AVATAR_SYSTEM_VERSION,
-            'body_shape': f"{shape[0]}x{shape[1]}",
-            'open_eye_index': open_eye_idx + 1,
-            'closed_eye_index': closed_eye_idx + 1,
-            'open_mouth_index': open_mouth_idx + 1,
-            'closed_mouth_index': closed_mouth_idx + 1,
-            'hair_index': hi + 1 if hi is not None else None,
-            'excited': excited,
-            'body_color': body_fill,
-            'node_color': node_fill,
-            'feet_color': body_fill if feet_match_body else node_fill,
-            'feet_match_body': feet_match_body
+            "avatar_system_version": AVATAR_SYSTEM_VERSION,
+            "body_shape": f"{shape[0]}x{shape[1]}",
+            "open_eye_index": open_eye_idx + 1,
+            "closed_eye_index": closed_eye_idx + 1,
+            "open_mouth_index": open_mouth_idx + 1,
+            "closed_mouth_index": closed_mouth_idx + 1,
+            "hair_index": hi + 1 if hi is not None else None,
+            "excited": excited,
+            "body_color": body_fill,
+            "node_color": node_fill,
+            "feet_color": body_fill if feet_match_body else node_fill,
+            "feet_match_body": feet_match_body,
         }
 
         return svg_content, config_info
 
-    def generate_deterministic(self, input_string: str, frame: str = "neutral", universal: bool = True, shadow: bool = True) -> Tuple[str, Dict]:
+    def generate_deterministic(
+        self, input_string: str, frame: str = "neutral", universal: bool = True, shadow: bool = True
+    ) -> tuple[str, dict]:
         """Generate a deterministic agent from input string (e.g., email).
 
         Args:
@@ -1486,7 +1725,7 @@ class DoorAgentGenerator:
             shadow: If True, show shadow (default: True). If False, add 'no-shadow' class to hide shadow
         """
         # Generate SHA-256 hash
-        hash_bytes = hashlib.sha256(input_string.encode('utf-8')).digest()
+        hash_bytes = hashlib.sha256(input_string.encode("utf-8")).digest()
 
         # Map hash bytes to asset selections (using different bytes for each choice)
         # Allocate 4 indices for open/closed eye and mouth states
@@ -1494,7 +1733,7 @@ class DoorAgentGenerator:
         closed_eye_idx = hash_bytes[1] % len(self.config.closed_eyes)
         open_mouth_idx = hash_bytes[2] % len(self.config.open_mouths)
         closed_mouth_idx = hash_bytes[3] % len(self.config.closed_mouths)
-        
+
         # Hair selection (use None if hash indicates no hair)
         hair_selection = hash_bytes[4]
         if hair_selection < 128:  # ~50% chance of having hair
@@ -1526,41 +1765,49 @@ class DoorAgentGenerator:
 
         # Generate agent SVG with all 4 indices
         svg_content = self.generate_agent_svg(
-            shape, open_eye_idx, closed_eye_idx, open_mouth_idx, closed_mouth_idx,
-            hair_index, body_color, node_color, feet_match_body, hair_color_hash_byte,
-            eye_override=frame_mods['eye_override'],
-            mouth_override=frame_mods['mouth_override'],
-            body_transform=frame_mods['body_transform'],
-            emote_name=frame_mods.get('emote_name'),
-            eye_emote=frame_mods.get('eye_emote'),
-            mouth_emote=frame_mods.get('mouth_emote'),
+            shape,
+            open_eye_idx,
+            closed_eye_idx,
+            open_mouth_idx,
+            closed_mouth_idx,
+            hair_index,
+            body_color,
+            node_color,
+            feet_match_body,
+            hair_color_hash_byte,
+            eye_override=frame_mods["eye_override"],
+            mouth_override=frame_mods["mouth_override"],
+            body_transform=frame_mods["body_transform"],
+            emote_name=frame_mods.get("emote_name"),
+            eye_emote=frame_mods.get("eye_emote"),
+            mouth_emote=frame_mods.get("mouth_emote"),
             email=input_string,
             frame=frame,
             universal=universal,
-            shadow=shadow
+            shadow=shadow,
         )
 
         # Determine if mouth represents excited state (based on open mouth)
         excited = open_mouth_idx >= len(self.config.open_mouths) // 2
 
         config_info = {
-            'avatar_system_version': AVATAR_SYSTEM_VERSION,
-            'input_string': input_string,
-            'frame': frame,
-            'body_shape': f"{shape[0]}x{shape[1]}",
-            'open_eye_index': open_eye_idx + 1,
-            'closed_eye_index': closed_eye_idx + 1,
-            'open_mouth_index': open_mouth_idx + 1,
-            'closed_mouth_index': closed_mouth_idx + 1,
-            'hair_index': hair_index + 1 if hair_index is not None else None,
-            'excited': excited,
-            'body_color': body_color,
-            'node_color': node_color,
-            'feet_color': body_color if feet_match_body else node_color,
-            'feet_match_body': feet_match_body,
-            'eye_override': frame_mods['eye_override'],
-            'mouth_override': frame_mods['mouth_override'],
-            'body_transform': frame_mods['body_transform']
+            "avatar_system_version": AVATAR_SYSTEM_VERSION,
+            "input_string": input_string,
+            "frame": frame,
+            "body_shape": f"{shape[0]}x{shape[1]}",
+            "open_eye_index": open_eye_idx + 1,
+            "closed_eye_index": closed_eye_idx + 1,
+            "open_mouth_index": open_mouth_idx + 1,
+            "closed_mouth_index": closed_mouth_idx + 1,
+            "hair_index": hair_index + 1 if hair_index is not None else None,
+            "excited": excited,
+            "body_color": body_color,
+            "node_color": node_color,
+            "feet_color": body_color if feet_match_body else node_color,
+            "feet_match_body": feet_match_body,
+            "eye_override": frame_mods["eye_override"],
+            "mouth_override": frame_mods["mouth_override"],
+            "body_transform": frame_mods["body_transform"],
         }
 
         return svg_content, config_info
@@ -1602,25 +1849,28 @@ class DoorAgentGenerator:
         emote_opacity = weight_frac
 
         # Generate base avatar (neutral) with shadow
-        base_svg, _ = self.generate_deterministic(input_string, frame="neutral", universal=False, shadow=True)
+        base_svg, _ = self.generate_deterministic(
+            input_string, frame="neutral", universal=False, shadow=True
+        )
 
         # Generate emote avatar without shadow (it's an overlay)
-        emote_svg, _ = self.generate_deterministic(input_string, frame=emote, universal=False, shadow=False)
+        emote_svg, _ = self.generate_deterministic(
+            input_string, frame=emote, universal=False, shadow=False
+        )
 
         # Extract inner content from both SVGs (remove <svg> wrapper)
         # We need to extract everything between <svg...> and </svg>
-        import re
 
         def extract_svg_inner(svg_str):
             """Extract content between <svg...> and </svg> tags."""
             # Find opening tag end
-            match = re.search(r'<svg[^>]*>', svg_str)
+            match = re.search(r"<svg[^>]*>", svg_str)
             if not match:
                 raise ValueError("Invalid SVG: no opening <svg> tag")
             start = match.end()
 
             # Find closing tag
-            end = svg_str.rfind('</svg>')
+            end = svg_str.rfind("</svg>")
             if end == -1:
                 raise ValueError("Invalid SVG: no closing </svg> tag")
 
@@ -1638,13 +1888,13 @@ class DoorAgentGenerator:
         viewbox = extract_svg_viewbox(base_svg)
 
         # Construct layered SVG
-        layered_svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="{viewbox}" width="1200" height="1200">
+        layered_svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="{viewbox}" width="1200" height="1200">
   <g id="base-layer" opacity="{base_opacity}">
 {base_inner}
   </g>
   <g id="emote-layer" opacity="{emote_opacity}">
 {emote_inner}
   </g>
-</svg>'''
+</svg>"""
 
         return layered_svg

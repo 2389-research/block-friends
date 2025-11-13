@@ -1,8 +1,7 @@
 # ABOUTME: Tests for hair generation extraction
 # ABOUTME: Verifies _generate_hair method produces correct SVG with positioning and z-order
 
-import pytest
-from door_agents import DoorAgentGenerator, DoorAgentConfig
+from door_agents import DoorAgentConfig, DoorAgentGenerator
 
 
 def test_hair_generation_with_front_hair():
@@ -18,12 +17,12 @@ def test_hair_generation_with_front_hair():
         shape=(6, 7),
         cell_size=60,
         pad=1.5,
-        z_order='front'
+        z_order="front",
     )
 
-    assert '<g' in hair_svg
-    assert 'transform=' in hair_svg
-    assert 'color=' in hair_svg
+    assert "<g" in hair_svg
+    assert "transform=" in hair_svg
+    assert "color=" in hair_svg
 
 
 def test_hair_generation_with_behind_hair():
@@ -39,12 +38,12 @@ def test_hair_generation_with_behind_hair():
         shape=(6, 7),
         cell_size=60,
         pad=1.5,
-        z_order='behind'
+        z_order="behind",
     )
 
-    assert '<g' in hair_svg
-    assert 'transform=' in hair_svg
-    assert 'color=' in hair_svg
+    assert "<g" in hair_svg
+    assert "transform=" in hair_svg
+    assert "color=" in hair_svg
 
 
 def test_hair_generation_wrong_z_order():
@@ -60,7 +59,7 @@ def test_hair_generation_wrong_z_order():
         shape=(6, 7),
         cell_size=60,
         pad=1.5,
-        z_order='front'
+        z_order="front",
     )
 
     assert hair_svg == ""
@@ -78,7 +77,7 @@ def test_hair_generation_without_hair():
         shape=(6, 7),
         cell_size=60,
         pad=1.5,
-        z_order='front'
+        z_order="front",
     )
 
     assert hair_svg == ""

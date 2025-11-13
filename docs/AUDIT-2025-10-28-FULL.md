@@ -13,6 +13,7 @@ The Block Friends avatar system is in **good overall health** with strong founda
 **Overall Grade:** B+ (85/100)
 
 ### Strengths ✅
+
 - Well-documented codebase with comprehensive README
 - Modern tech stack (FastAPI, uv, universal SVG)
 - Automated deployment pipeline (Fly.io)
@@ -20,6 +21,7 @@ The Block Friends avatar system is in **good overall health** with strong founda
 - Clean architecture with separation of concerns
 
 ### Areas for Improvement ⚠️
+
 - Missing API endpoint integration tests
 - No rate limiting or security hardening
 - No monitoring/observability infrastructure
@@ -31,6 +33,7 @@ The Block Friends avatar system is in **good overall health** with strong founda
 ## 1. Documentation Completeness
 
 ### ✅ What Exists
+
 - Comprehensive README.md with examples
 - CLAUDE.md for AI assistant context
 - docs/universal-svg.md with detailed universal SVG docs
@@ -39,6 +42,7 @@ The Block Friends avatar system is in **good overall health** with strong founda
 - API auto-documentation via FastAPI /docs
 
 ### ⚠️ Gaps Identified
+
 - **No API usage examples** for multi-language clients (JS, Python, curl)
 - **No migration guide** from v1.x to v2.0 for existing users
 - **No performance/scaling documentation** (caching strategy, CDN setup)
@@ -49,6 +53,7 @@ The Block Friends avatar system is in **good overall health** with strong founda
 - **Missing OpenAPI spec** export for client code generation
 
 ### Recommended Actions
+
 1. Create CONTRIBUTING.md with development workflow
 2. Create CHANGELOG.md following Keep a Changelog format
 3. Add docs/api-examples.md with client library examples
@@ -64,6 +69,7 @@ The Block Friends avatar system is in **good overall health** with strong founda
 ## 2. Feature Implementation Gaps
 
 ### ✅ Completed Features
+
 - Universal SVG generation with 20 states
 - 10 idle animation frames
 - 5 emote expressions (single-frame)
@@ -77,7 +83,9 @@ The Block Friends avatar system is in **good overall health** with strong founda
 ### ⚠️ Missing/Incomplete Features
 
 #### 2.1 Multi-Frame Emote Animations
+
 **Status:** Planned (Issues #3-#9 created)
+
 - Infrastructure for multi-frame emotes (#9)
 - Animated happy, sad, surprised, angry, bored emotes (#4-#8)
 - 3-4 frames per emote for dynamic expressions
@@ -86,7 +94,9 @@ The Block Friends avatar system is in **good overall health** with strong founda
 **Effort:** High (8-16 hours)
 
 #### 2.2 Avatar Customization API
+
 **Status:** Not implemented
+
 - No user preference storage
 - No custom color palette selection
 - No hair style/body shape preferences
@@ -96,11 +106,14 @@ The Block Friends avatar system is in **good overall health** with strong founda
 **Effort:** Medium (4-8 hours)
 
 #### 2.3 Batch Generation API
+
 **Status:** Not implemented
+
 - No bulk generation endpoint (e.g., generate 100 avatars)
 - Could be useful for game dev, testing, or pre-generation
 
 Example:
+
 ```
 POST /avatar/batch
 {
@@ -113,7 +126,9 @@ POST /avatar/batch
 **Effort:** Low (2-4 hours)
 
 #### 2.4 WebSocket Live Preview
+
 **Status:** Not implemented
+
 - Real-time avatar preview as user types input
 - Could enhance user experience on landing page
 
@@ -121,7 +136,9 @@ POST /avatar/batch
 **Effort:** Medium (4-6 hours)
 
 #### 2.5 Avatar Metadata API
+
 **Status:** Partial (only /info endpoint)
+
 - Missing color palette extraction
 - Missing asset attribution/credits
 - Missing collision probability calculator
@@ -134,6 +151,7 @@ POST /avatar/batch
 ## 3. Testing Coverage
 
 ### ✅ Existing Tests (12 test files)
+
 - test_avatar_id.py - Avatar ID generation
 - test_body_generation.py - Body rendering
 - test_css_generation.py - CSS rule generation
@@ -151,7 +169,9 @@ POST /avatar/batch
 ### ⚠️ Missing Tests
 
 #### 3.1 API/Integration Tests
+
 **Status:** Not implemented
+
 - No tests for FastAPI endpoints (/avatar, /bundle, /frames, /info)
 - No tests for HTTP caching headers
 - No tests for error responses (404, 500)
@@ -161,7 +181,9 @@ POST /avatar/batch
 **Effort:** Medium (4-6 hours)
 
 #### 3.2 Performance/Load Tests
+
 **Status:** Not implemented
+
 - No load testing (concurrent requests)
 - No memory profiling
 - No cache hit/miss rate testing
@@ -171,7 +193,9 @@ POST /avatar/batch
 **Effort:** Medium (4-6 hours)
 
 #### 3.3 E2E Tests
+
 **Status:** Manual only (test-grid.html, visual_test.html)
+
 - No automated browser tests (Playwright/Selenium)
 - No CI/CD testing of deployed service
 - No smoke tests for production
@@ -180,7 +204,9 @@ POST /avatar/batch
 **Effort:** Medium (6-8 hours)
 
 #### 3.4 Security Tests
+
 **Status:** Not implemented
+
 - No input validation fuzzing
 - No SQL injection tests (not applicable, but good practice)
 - No path traversal tests
@@ -190,6 +216,7 @@ POST /avatar/batch
 **Effort:** Low (2-4 hours)
 
 ### Recommended Actions
+
 1. Add API integration tests using pytest + httpx
 2. Add load tests using locust or k6
 3. Add security tests for input validation
@@ -197,6 +224,7 @@ POST /avatar/batch
 5. Add CI test reporting to GitHub Actions
 
 **Example API Test:**
+
 ```python
 # tests/test_api_endpoints.py
 import pytest
@@ -218,6 +246,7 @@ def test_get_avatar_svg():
 ## 4. Deployment Readiness
 
 ### ✅ Existing Infrastructure
+
 - Dockerfile with multi-stage build
 - fly.toml configuration
 - GitHub Actions CI/CD (.github/workflows/fly-deploy.yml)
@@ -228,12 +257,15 @@ def test_get_avatar_svg():
 ### ⚠️ Missing Production Features
 
 #### 4.1 Rate Limiting
+
 **Status:** Not implemented
+
 - No rate limiting on API endpoints
 - Vulnerable to abuse/DoS
 - Could rack up compute costs
 
 **Recommendation:** Add slowapi or fastapi-limiter
+
 ```python
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -251,7 +283,9 @@ async def get_avatar(...):
 **Effort:** Low (1-2 hours)
 
 #### 4.2 Monitoring & Observability
+
 **Status:** Basic logging only
+
 - Has Python logging (logger.info, logger.error)
 - No structured logging (JSON format)
 - No metrics collection (Prometheus, StatsD)
@@ -260,6 +294,7 @@ async def get_avatar(...):
 - No uptime monitoring (Better Uptime, Pingdom)
 
 **Recommendations:**
+
 1. Add structured JSON logging
 2. Add Sentry for error tracking
 3. Add Prometheus metrics endpoint
@@ -269,13 +304,16 @@ async def get_avatar(...):
 **Effort:** Medium (4-6 hours)
 
 #### 4.3 CDN & Caching
+
 **Status:** File-based cache only
+
 - No CDN configuration (Cloudflare, Fastly)
 - No Redis/Memcached for distributed caching
 - No cache warming strategy
 - No cache size limits (could grow indefinitely)
 
 **Recommendations:**
+
 1. Add Cloudflare in front of Fly.io
 2. Add cache size monitoring and cleanup
 3. Document CDN setup in deployment guide
@@ -285,7 +323,9 @@ async def get_avatar(...):
 **Effort:** Medium (4-6 hours)
 
 #### 4.4 Security Hardening
+
 **Status:** Basic security only
+
 - HTTPS enforced via fly.toml
 - CORS enabled (too permissive - allows all origins)
 - No input sanitization beyond FastAPI defaults
@@ -294,6 +334,7 @@ async def get_avatar(...):
 - No API authentication (public service, but could add optional auth)
 
 **Recommendations:**
+
 1. Tighten CORS to specific domains
 2. Add security headers middleware
 3. Add input validation for frame parameters
@@ -301,13 +342,14 @@ async def get_avatar(...):
 5. Run security audit (Bandit, Safety)
 
 **Example:**
+
 ```python
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 
 app.add_middleware(HTTPSRedirectMiddleware)
 app.add_middleware(
-    TrustedHostMiddleware, 
+    TrustedHostMiddleware,
     allowed_hosts=["avatar.2389.dev", "*.2389.dev"]
 )
 
@@ -325,7 +367,9 @@ async def add_security_headers(request, call_next):
 **Effort:** Low (2-4 hours)
 
 #### 4.5 Database Integration (Optional)
+
 **Status:** Stateless (no database)
+
 - Could add database for:
   - User preferences
   - Avatar favorites
@@ -336,7 +380,9 @@ async def add_security_headers(request, call_next):
 **Effort:** High (8-12 hours)
 
 #### 4.6 Backup & Disaster Recovery
+
 **Status:** Not documented
+
 - Cache directory not backed up
 - No disaster recovery plan
 - No runbook for incidents
@@ -349,6 +395,7 @@ async def add_security_headers(request, call_next):
 ## 5. Code Quality
 
 ### ✅ Strengths
+
 - No TODO/FIXME comments in code (clean codebase)
 - Consistent code style
 - Good function decomposition
@@ -359,11 +406,14 @@ async def add_security_headers(request, call_next):
 ### ⚠️ Areas for Improvement
 
 #### 5.1 Type Checking
+
 **Status:** Not configured
+
 - No mypy or pyright configuration
 - Type hints exist but not validated
 
 **Recommendation:** Add mypy to CI
+
 ```toml
 # pyproject.toml
 [tool.mypy]
@@ -377,12 +427,15 @@ disallow_untyped_defs = true
 **Effort:** Low (1-2 hours)
 
 #### 5.2 Code Linting
+
 **Status:** Not configured
+
 - No ruff, black, or isort in pyproject.toml
 - No pre-commit hooks
 - Code style not enforced
 
 **Recommendation:** Add ruff for linting and formatting
+
 ```toml
 # pyproject.toml
 [tool.ruff]
@@ -394,7 +447,9 @@ select = ["E", "F", "I", "N", "W"]
 **Effort:** Low (1 hour)
 
 #### 5.3 Dependency Management
+
 **Status:** Good
+
 - Using uv for fast dependency resolution
 - Lock file (uv.lock) committed
 - Python 3.12+ required
@@ -409,6 +464,7 @@ select = ["E", "F", "I", "N", "W"]
 ## 6. Performance Optimization
 
 ### Current Performance
+
 - Cold generation: ~50-100ms per avatar
 - Cached serving: ~1-5ms per avatar
 - File-based cache in out/avatar/
@@ -416,7 +472,9 @@ select = ["E", "F", "I", "N", "W"]
 ### ⚠️ Optimization Opportunities
 
 #### 6.1 SVG Minification
+
 **Status:** Not implemented
+
 - Generated SVGs not minified
 - Could reduce file size by 20-30%
 
@@ -426,7 +484,9 @@ select = ["E", "F", "I", "N", "W"]
 **Effort:** Low (2 hours)
 
 #### 6.2 Compression
+
 **Status:** Basic (fly.io handles gzip)
+
 - Could add brotli compression for better ratios
 - Could pre-compress static files
 
@@ -434,16 +494,19 @@ select = ["E", "F", "I", "N", "W"]
 **Effort:** Low (1-2 hours)
 
 #### 6.3 Parallel Generation
+
 **Status:** Sequential
+
 - Bundle generation processes frames sequentially
 - Could parallelize with asyncio.gather()
 
 **Example:**
+
 ```python
 # Instead of sequential:
 for frame in frames:
     svg = await generate(frame)
-    
+
 # Use parallel:
 svgs = await asyncio.gather(*[
     generate(frame) for frame in frames
@@ -454,7 +517,9 @@ svgs = await asyncio.gather(*[
 **Effort:** Low (1-2 hours)
 
 #### 6.4 Cache Eviction Policy
+
 **Status:** None
+
 - Cache grows indefinitely
 - No LRU or TTL eviction
 - Could fill disk
@@ -469,6 +534,7 @@ svgs = await asyncio.gather(*[
 ## 7. User Experience
 
 ### ✅ Existing
+
 - Clean landing page (index.html)
 - Animations demo page (animations.html)
 - Test grid for visual testing
@@ -478,7 +544,9 @@ svgs = await asyncio.gather(*[
 ### ⚠️ Potential Improvements
 
 #### 7.1 Interactive Playground
+
 **Status:** Basic demo exists
+
 - Could add more interactive features:
   - Color palette picker
   - Hair style selector
@@ -490,7 +558,9 @@ svgs = await asyncio.gather(*[
 **Effort:** Medium (4-6 hours)
 
 #### 7.2 Client Libraries
+
 **Status:** None
+
 - No official JavaScript SDK
 - No Python SDK
 - No TypeScript types
@@ -501,7 +571,9 @@ svgs = await asyncio.gather(*[
 **Effort:** Medium (4-8 hours)
 
 #### 7.3 Embed Widget
+
 **Status:** None
+
 - No easy way to embed avatar generator on other sites
 - Could create iframe widget or Web Component
 
@@ -515,7 +587,9 @@ svgs = await asyncio.gather(*[
 ### ⚠️ Missing Features
 
 #### 8.1 Analytics
+
 **Status:** None
+
 - No usage tracking
 - No popular input tracking
 - No performance metrics dashboard
@@ -526,7 +600,9 @@ svgs = await asyncio.gather(*[
 **Effort:** Low (2-3 hours)
 
 #### 8.2 Cost Monitoring
+
 **Status:** None
+
 - No cost tracking for Fly.io usage
 - No alerts for unexpected cost spikes
 - No budget limits
@@ -537,7 +613,9 @@ svgs = await asyncio.gather(*[
 **Effort:** Low (1 hour)
 
 #### 8.3 Terms of Service / Privacy Policy
+
 **Status:** None
+
 - No TOS for API usage
 - No privacy policy for input data
 - No attribution requirements
@@ -552,17 +630,20 @@ svgs = await asyncio.gather(*[
 ## Priority Matrix
 
 ### Critical (Do First)
+
 1. **Rate limiting** - Prevent abuse (1-2 hours)
 2. **Security headers** - Basic security hardening (2-4 hours)
 3. **API integration tests** - Ensure endpoints work (4-6 hours)
 
 ### High Priority (Do Soon)
+
 1. **Error tracking (Sentry)** - Production monitoring (2-3 hours)
 2. **Multi-frame emote infrastructure** - Enable new features (8-16 hours)
 3. **Input validation & security tests** - Harden inputs (2-4 hours)
 4. **CORS tightening** - Improve security (30 minutes)
 
 ### Medium Priority (Nice to Have)
+
 1. **CDN setup documentation** - Performance & scaling (4-6 hours)
 2. **Contributing guidelines** - Community building (2 hours)
 3. **Cache eviction policy** - Prevent disk issues (2-3 hours)
@@ -570,6 +651,7 @@ svgs = await asyncio.gather(*[
 5. **Analytics** - Usage tracking (2-3 hours)
 
 ### Low Priority (Future)
+
 1. **Client SDKs** - Better DX (4-8 hours)
 2. **Type checking (mypy)** - Code quality (1-2 hours)
 3. **Code linting (ruff)** - Code quality (1 hour)
@@ -581,8 +663,11 @@ svgs = await asyncio.gather(*[
 ## Estimated Total Effort
 
 ### Critical Items: 7-12 hours
+
 ### High Priority: 14-27 hours
+
 ### Medium Priority: 14-25 hours
+
 ### Low Priority: 11-21 hours
 
 **Total: 46-85 hours** (roughly 1-2 weeks of full-time work)
@@ -594,11 +679,13 @@ svgs = await asyncio.gather(*[
 The Block Friends avatar system is **production-ready for low-traffic use** but needs security hardening, monitoring, and testing improvements before scaling to high traffic.
 
 **Top 3 Recommendations:**
+
 1. **Add rate limiting immediately** - Critical for cost control
 2. **Set up error tracking (Sentry)** - Know when things break
 3. **Write API integration tests** - Ensure correctness
 
 **Next Steps:**
+
 1. Review this audit with the team
 2. Create GitHub issues for priority items
 3. Allocate time for critical security fixes

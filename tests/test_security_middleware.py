@@ -2,8 +2,8 @@
 # ABOUTME: Tests for security headers and CORS middleware
 # ABOUTME: Validates that all HTTP responses include proper security headers
 
-import pytest
 from fastapi.testclient import TestClient
+
 from app import app
 
 client = TestClient(app)
@@ -11,10 +11,7 @@ client = TestClient(app)
 
 def test_cors_headers_present():
     """Test that CORS headers are present in responses when Origin header is provided."""
-    response = client.get(
-        "/avatar/test@example.com.svg",
-        headers={"Origin": "https://example.com"}
-    )
+    response = client.get("/avatar/test@example.com.svg", headers={"Origin": "https://example.com"})
 
     assert response.status_code == 200
     assert "access-control-allow-origin" in response.headers
@@ -74,21 +71,17 @@ def test_cors_headers_on_all_endpoints():
     ]
 
     for endpoint in endpoints:
-        response = client.get(
-            endpoint,
-            headers={"Origin": "https://example.com"}
-        )
+        response = client.get(endpoint, headers={"Origin": "https://example.com"})
 
         # All responses should have CORS headers when Origin is present
-        assert "access-control-allow-origin" in response.headers, f"Missing CORS header on {endpoint}"
+        assert (
+            "access-control-allow-origin" in response.headers
+        ), f"Missing CORS header on {endpoint}"
 
 
 def test_cors_allows_all_origins():
     """Test that CORS allows requests from any origin."""
-    response = client.get(
-        "/avatar/test@example.com.svg",
-        headers={"Origin": "https://example.com"}
-    )
+    response = client.get("/avatar/test@example.com.svg", headers={"Origin": "https://example.com"})
 
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "*"

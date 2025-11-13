@@ -2,11 +2,9 @@
 # ABOUTME: Generates emote-specific variants of eye and mouth SVGs through pupil repositioning
 # ABOUTME: Positions pupils relative to eye whites bounding box for happy/sad/surprised/angry/bored emotes
 
+import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
-import re
-
 
 # Base directories
 ASSETS_DIR = Path(__file__).parent.parent / "assets"
@@ -16,7 +14,7 @@ MOUTHS_OPEN_DIR = ASSETS_DIR / "mouths" / "open"
 MOUTHS_CLOSED_DIR = ASSETS_DIR / "mouths" / "closed"
 
 
-def parse_path_bbox(path_data: str) -> Tuple[float, float, float, float]:
+def parse_path_bbox(path_data: str) -> tuple[float, float, float, float]:
     """
     Extract bounding box (min_x, min_y, max_x, max_y) from SVG path data.
 
@@ -25,18 +23,18 @@ def parse_path_bbox(path_data: str) -> Tuple[float, float, float, float]:
     """
     # Parse path commands and extract coordinates
     # Match command letter followed by numbers (including negative and decimal)
-    tokens = re.findall(r'[MLCZ]|[-+]?[0-9]*\.?[0-9]+', path_data)
+    tokens = re.findall(r"[MLCZ]|[-+]?[0-9]*\.?[0-9]+", path_data)
 
-    min_x = float('inf')
-    max_x = float('-inf')
-    min_y = float('inf')
-    max_y = float('-inf')
+    min_x = float("inf")
+    max_x = float("-inf")
+    min_y = float("inf")
+    max_y = float("-inf")
 
     i = 0
     while i < len(tokens):
         token = tokens[i]
 
-        if token in ['M', 'L']:  # Moveto or Lineto - next 2 values are x, y
+        if token in ["M", "L"]:  # Moveto or Lineto - next 2 values are x, y
             if i + 2 < len(tokens):
                 x = float(tokens[i + 1])
                 y = float(tokens[i + 2])
@@ -48,7 +46,7 @@ def parse_path_bbox(path_data: str) -> Tuple[float, float, float, float]:
             else:
                 i += 1
 
-        elif token == 'C':  # Cubic bezier - next 6 values are control points and end point
+        elif token == "C":  # Cubic bezier - next 6 values are control points and end point
             if i + 6 < len(tokens):
                 # Include all control points in bbox estimation
                 for j in range(1, 7, 2):
@@ -62,7 +60,7 @@ def parse_path_bbox(path_data: str) -> Tuple[float, float, float, float]:
             else:
                 i += 1
 
-        elif token == 'Z':  # Closepath - no coordinates
+        elif token == "Z":  # Closepath - no coordinates
             i += 1
         else:
             # Numeric value without command - skip
@@ -71,7 +69,7 @@ def parse_path_bbox(path_data: str) -> Tuple[float, float, float, float]:
     return (min_x, min_y, max_x, max_y)
 
 
-def get_path_center(path_data: str) -> Tuple[float, float]:
+def get_path_center(path_data: str) -> tuple[float, float]:
     """Calculate center point of a path from its bounding box."""
     min_x, min_y, max_x, max_y = parse_path_bbox(path_data)
     cx = (min_x + max_x) / 2
@@ -85,14 +83,14 @@ def translate_path(path_data: str, dx: float, dy: float) -> str:
 
     Handles M (moveto), L (lineto), C (cubic bezier), Z (closepath) commands.
     """
-    tokens = re.findall(r'[MLCZ]|[-+]?[0-9]*\.?[0-9]+', path_data)
+    tokens = re.findall(r"[MLCZ]|[-+]?[0-9]*\.?[0-9]+", path_data)
     result = []
 
     i = 0
     while i < len(tokens):
         token = tokens[i]
 
-        if token in ['M', 'L']:
+        if token in ["M", "L"]:
             result.append(token)
             if i + 2 < len(tokens):
                 x = float(tokens[i + 1]) + dx
@@ -103,7 +101,7 @@ def translate_path(path_data: str, dx: float, dy: float) -> str:
             else:
                 i += 1
 
-        elif token == 'C':
+        elif token == "C":
             result.append(token)
             if i + 6 < len(tokens):
                 for j in range(1, 7, 2):
@@ -115,17 +113,17 @@ def translate_path(path_data: str, dx: float, dy: float) -> str:
             else:
                 i += 1
 
-        elif token == 'Z':
+        elif token == "Z":
             result.append(token)
             i += 1
         else:
             result.append(token)
             i += 1
 
-    return ' '.join(result)
+    return " ".join(result)
 
 
-def find_eye_elements(root: ET.Element) -> Tuple[List[ET.Element], List[ET.Element]]:
+def find_eye_elements(root: ET.Element) -> tuple[list[ET.Element], list[ET.Element]]:
     """
     Find whites (light fills) and pupils (dark fills) in SVG.
 
@@ -136,30 +134,30 @@ def find_eye_elements(root: ET.Element) -> Tuple[List[ET.Element], List[ET.Eleme
     pupils = []
 
     for elem in root.iter():
-        if elem.tag.endswith('path'):
-            fill = elem.get('fill', '').upper()
+        if elem.tag.endswith("path"):
+            fill = elem.get("fill", "").upper()
             # Whites are light colors like #F9F9F6
-            if fill in ['#F9F9F6', '#FFFFFF', '#F9F9F5']:
+            if fill in ["#F9F9F6", "#FFFFFF", "#F9F9F5"]:
                 whites.append(elem)
             # Pupils are dark colors like #2B2727 or #231F20
-            elif fill in ['#2B2727', '#231F20']:
+            elif fill in ["#2B2727", "#231F20"]:
                 pupils.append(elem)
 
     return whites, pupils
 
 
-def get_combined_bbox(paths: List[ET.Element]) -> Tuple[float, float, float, float]:
+def get_combined_bbox(paths: list[ET.Element]) -> tuple[float, float, float, float]:
     """Get bounding box that encompasses all provided path elements."""
     if not paths:
         return (0, 0, 0, 0)
 
-    min_x = float('inf')
-    max_x = float('-inf')
-    min_y = float('inf')
-    max_y = float('-inf')
+    min_x = float("inf")
+    max_x = float("-inf")
+    min_y = float("inf")
+    max_y = float("-inf")
 
     for path in paths:
-        path_data = path.get('d', '')
+        path_data = path.get("d", "")
         if path_data:
             bbox = parse_path_bbox(path_data)
             min_x = min(min_x, bbox[0])
@@ -170,10 +168,7 @@ def get_combined_bbox(paths: List[ET.Element]) -> Tuple[float, float, float, flo
     return (min_x, min_y, max_x, max_y)
 
 
-def reposition_pupils(
-    root: ET.Element,
-    pupil_position: str
-) -> ET.Element:
+def reposition_pupils(root: ET.Element, pupil_position: str) -> ET.Element:
     """
     Reposition pupils within eye whites bounding box.
 
@@ -216,7 +211,7 @@ def reposition_pupils(
 
     # Reposition each pupil
     for pupil in pupils:
-        path_data = pupil.get('d', '')
+        path_data = pupil.get("d", "")
         if path_data:
             # Get current pupil center
             current_cx, current_cy = get_path_center(path_data)
@@ -226,7 +221,7 @@ def reposition_pupils(
 
             # Translate pupil path
             new_path_data = translate_path(path_data, 0, dy)
-            pupil.set('d', new_path_data)
+            pupil.set("d", new_path_data)
 
     return root
 
@@ -236,7 +231,7 @@ def scale_eyes(root: ET.Element, scale_factor: float) -> ET.Element:
     Scales entire eye SVG from its center point.
     """
     # Parse viewBox to find center
-    viewbox = root.get('viewBox', '0 0 100 100')
+    viewbox = root.get("viewBox", "0 0 100 100")
     parts = viewbox.split()
     if len(parts) == 4:
         x, y, w, h = map(float, parts)
@@ -245,12 +240,12 @@ def scale_eyes(root: ET.Element, scale_factor: float) -> ET.Element:
 
         # Apply scale transform to all direct children
         for child in list(root):
-            existing = child.get('transform', '')
+            existing = child.get("transform", "")
             transform = f"translate({cx}, {cy}) scale({scale_factor}) translate({-cx}, {-cy})"
             if existing:
-                child.set('transform', f"{transform} {existing}")
+                child.set("transform", f"{transform} {existing}")
             else:
-                child.set('transform', transform)
+                child.set("transform", transform)
 
     return root
 
@@ -263,14 +258,14 @@ def scale_path_around_center(path_data: str, scale: float, center_x: float, cent
     new_x = center_x + (x - center_x) * scale
     new_y = center_y + (y - center_y) * scale
     """
-    tokens = re.findall(r'[MLCZ]|[-+]?[0-9]*\.?[0-9]+', path_data)
+    tokens = re.findall(r"[MLCZ]|[-+]?[0-9]*\.?[0-9]+", path_data)
     result = []
 
     i = 0
     while i < len(tokens):
         token = tokens[i]
 
-        if token in ['M', 'L']:
+        if token in ["M", "L"]:
             result.append(token)
             if i + 2 < len(tokens):
                 x = float(tokens[i + 1])
@@ -284,7 +279,7 @@ def scale_path_around_center(path_data: str, scale: float, center_x: float, cent
             else:
                 i += 1
 
-        elif token == 'C':
+        elif token == "C":
             result.append(token)
             if i + 6 < len(tokens):
                 for j in range(1, 7, 2):
@@ -299,14 +294,14 @@ def scale_path_around_center(path_data: str, scale: float, center_x: float, cent
             else:
                 i += 1
 
-        elif token == 'Z':
+        elif token == "Z":
             result.append(token)
             i += 1
         else:
             result.append(token)
             i += 1
 
-    return ' '.join(result)
+    return " ".join(result)
 
 
 def scale_pupils_only(root: ET.Element, scale_factor: float) -> ET.Element:
@@ -321,13 +316,13 @@ def scale_pupils_only(root: ET.Element, scale_factor: float) -> ET.Element:
 
     # Scale each pupil around its own center
     for pupil in pupils:
-        path_data = pupil.get('d', '')
+        path_data = pupil.get("d", "")
         if path_data:
             # Get pupil center
             center_x, center_y = get_path_center(path_data)
             # Scale path around its center
             new_path_data = scale_path_around_center(path_data, scale_factor, center_x, center_y)
-            pupil.set('d', new_path_data)
+            pupil.set("d", new_path_data)
 
     return root
 
@@ -354,7 +349,7 @@ def clip_top_half_of_eyes(root: ET.Element) -> ET.Element:
     right_pupils = []
 
     for white in whites:
-        path_data = white.get('d', '')
+        path_data = white.get("d", "")
         if path_data:
             cx, cy = get_path_center(path_data)
             if cx < center_x:
@@ -363,7 +358,7 @@ def clip_top_half_of_eyes(root: ET.Element) -> ET.Element:
                 right_whites.append(white)
 
     for pupil in pupils:
-        path_data = pupil.get('d', '')
+        path_data = pupil.get("d", "")
         if path_data:
             cx, cy = get_path_center(path_data)
             if cx < center_x:
@@ -379,32 +374,38 @@ def clip_top_half_of_eyes(root: ET.Element) -> ET.Element:
         l_mid_y = l_min_y + (l_height / 2)
 
         clip_id_left = "bored-clip-left"
-        clipPath_left = ET.Element('clipPath', {'id': clip_id_left})
-        rect_left = ET.Element('rect', {
-            'x': str(l_min_x),
-            'y': str(l_mid_y),
-            'width': str(l_max_x - l_min_x),
-            'height': str(l_height / 2)
-        })
+        clipPath_left = ET.Element("clipPath", {"id": clip_id_left})
+        rect_left = ET.Element(
+            "rect",
+            {
+                "x": str(l_min_x),
+                "y": str(l_mid_y),
+                "width": str(l_max_x - l_min_x),
+                "height": str(l_height / 2),
+            },
+        )
         clipPath_left.append(rect_left)
         root.insert(0, clipPath_left)
 
         # Wrap left eye elements in group with clip
-        g_left = ET.Element('g', {'clip-path': f'url(#{clip_id_left})'})
+        g_left = ET.Element("g", {"clip-path": f"url(#{clip_id_left})"})
         for elem in left_whites + left_pupils:
             root.remove(elem)
             g_left.append(elem)
         root.append(g_left)
 
         # Add horizontal line for left eye
-        line_left = ET.Element('line', {
-            'x1': str(l_min_x),
-            'y1': str(l_mid_y),
-            'x2': str(l_max_x),
-            'y2': str(l_mid_y),
-            'stroke': '#231F20',
-            'stroke-width': '0.75'
-        })
+        line_left = ET.Element(
+            "line",
+            {
+                "x1": str(l_min_x),
+                "y1": str(l_mid_y),
+                "x2": str(l_max_x),
+                "y2": str(l_mid_y),
+                "stroke": "#231F20",
+                "stroke-width": "0.75",
+            },
+        )
         root.append(line_left)
 
     # Create clipPath for right eye
@@ -415,32 +416,38 @@ def clip_top_half_of_eyes(root: ET.Element) -> ET.Element:
         r_mid_y = r_min_y + (r_height / 2)
 
         clip_id_right = "bored-clip-right"
-        clipPath_right = ET.Element('clipPath', {'id': clip_id_right})
-        rect_right = ET.Element('rect', {
-            'x': str(r_min_x),
-            'y': str(r_mid_y),
-            'width': str(r_max_x - r_min_x),
-            'height': str(r_height / 2)
-        })
+        clipPath_right = ET.Element("clipPath", {"id": clip_id_right})
+        rect_right = ET.Element(
+            "rect",
+            {
+                "x": str(r_min_x),
+                "y": str(r_mid_y),
+                "width": str(r_max_x - r_min_x),
+                "height": str(r_height / 2),
+            },
+        )
         clipPath_right.append(rect_right)
         root.insert(0, clipPath_right)
 
         # Wrap right eye elements in group with clip
-        g_right = ET.Element('g', {'clip-path': f'url(#{clip_id_right})'})
+        g_right = ET.Element("g", {"clip-path": f"url(#{clip_id_right})"})
         for elem in right_whites + right_pupils:
             root.remove(elem)
             g_right.append(elem)
         root.append(g_right)
 
         # Add horizontal line for right eye
-        line_right = ET.Element('line', {
-            'x1': str(r_min_x),
-            'y1': str(r_mid_y),
-            'x2': str(r_max_x),
-            'y2': str(r_mid_y),
-            'stroke': '#231F20',
-            'stroke-width': '0.75'
-        })
+        line_right = ET.Element(
+            "line",
+            {
+                "x1": str(r_min_x),
+                "y1": str(r_mid_y),
+                "x2": str(r_max_x),
+                "y2": str(r_mid_y),
+                "stroke": "#231F20",
+                "stroke-width": "0.75",
+            },
+        )
         root.append(line_right)
 
     return root
@@ -470,7 +477,7 @@ def clip_eyes_angled(root: ET.Element) -> ET.Element:
     right_pupils = []
 
     for white in whites:
-        path_data = white.get('d', '')
+        path_data = white.get("d", "")
         if path_data:
             cx, cy = get_path_center(path_data)
             if cx < center_x:
@@ -479,7 +486,7 @@ def clip_eyes_angled(root: ET.Element) -> ET.Element:
                 right_whites.append(white)
 
     for pupil in pupils:
-        path_data = pupil.get('d', '')
+        path_data = pupil.get("d", "")
         if path_data:
             cx, cy = get_path_center(path_data)
             if cx < center_x:
@@ -497,21 +504,21 @@ def clip_eyes_angled(root: ET.Element) -> ET.Element:
 
         # Angled clip: top outer corner (top-left) to bottom third of inner edge (right)
         clip_id_left = "angry-clip-left"
-        clipPath_left = ET.Element('clipPath', {'id': clip_id_left})
+        clipPath_left = ET.Element("clipPath", {"id": clip_id_left})
 
         # Polygon: top-left corner → 2/3 down right edge (1/3 up from bottom) → bottom corners
         points = (
-            f"{l_min_x - 1},{l_min_y - 1} "      # Top-left corner (outer)
-            f"{l_max_x + 1},{l_target_y} "       # 2/3 down right edge (inner)
-            f"{l_max_x + 1},{l_max_y + 1} "      # Bottom-right corner
-            f"{l_min_x - 1},{l_max_y + 1}"       # Bottom-left corner
+            f"{l_min_x - 1},{l_min_y - 1} "  # Top-left corner (outer)
+            f"{l_max_x + 1},{l_target_y} "  # 2/3 down right edge (inner)
+            f"{l_max_x + 1},{l_max_y + 1} "  # Bottom-right corner
+            f"{l_min_x - 1},{l_max_y + 1}"  # Bottom-left corner
         )
-        polygon_left = ET.Element('polygon', {'points': points})
+        polygon_left = ET.Element("polygon", {"points": points})
         clipPath_left.append(polygon_left)
         root.insert(0, clipPath_left)
 
         # Wrap left eye elements in group with clip
-        g_left = ET.Element('g', {'clip-path': f'url(#{clip_id_left})'})
+        g_left = ET.Element("g", {"clip-path": f"url(#{clip_id_left})"})
         for elem in left_whites + left_pupils:
             root.remove(elem)
             g_left.append(elem)
@@ -527,47 +534,53 @@ def clip_eyes_angled(root: ET.Element) -> ET.Element:
 
         # Angled clip: top outer corner (top-right) to bottom third of inner edge (left)
         clip_id_right = "angry-clip-right"
-        clipPath_right = ET.Element('clipPath', {'id': clip_id_right})
+        clipPath_right = ET.Element("clipPath", {"id": clip_id_right})
 
         # Polygon: top-right corner → 2/3 down left edge (1/3 up from bottom) → bottom corners
         points = (
-            f"{r_max_x + 1},{r_min_y - 1} "      # Top-right corner (outer)
-            f"{r_min_x - 1},{r_target_y} "       # 2/3 down left edge (inner)
-            f"{r_min_x - 1},{r_max_y + 1} "      # Bottom-left corner
-            f"{r_max_x + 1},{r_max_y + 1}"       # Bottom-right corner
+            f"{r_max_x + 1},{r_min_y - 1} "  # Top-right corner (outer)
+            f"{r_min_x - 1},{r_target_y} "  # 2/3 down left edge (inner)
+            f"{r_min_x - 1},{r_max_y + 1} "  # Bottom-left corner
+            f"{r_max_x + 1},{r_max_y + 1}"  # Bottom-right corner
         )
-        polygon_right = ET.Element('polygon', {'points': points})
+        polygon_right = ET.Element("polygon", {"points": points})
         clipPath_right.append(polygon_right)
         root.insert(0, clipPath_right)
 
         # Wrap right eye elements in group with clip
-        g_right = ET.Element('g', {'clip-path': f'url(#{clip_id_right})'})
+        g_right = ET.Element("g", {"clip-path": f"url(#{clip_id_right})"})
         for elem in right_whites + right_pupils:
             root.remove(elem)
             g_right.append(elem)
         root.append(g_right)
 
         # Add angled line stroke for right eye (/ angle)
-        line_right = ET.Element('line', {
-            'x1': str(r_max_x),
-            'y1': str(r_min_y),
-            'x2': str(r_min_x),
-            'y2': str(r_target_y),
-            'stroke': '#231F20',
-            'stroke-width': '0.75'
-        })
+        line_right = ET.Element(
+            "line",
+            {
+                "x1": str(r_max_x),
+                "y1": str(r_min_y),
+                "x2": str(r_min_x),
+                "y2": str(r_target_y),
+                "stroke": "#231F20",
+                "stroke-width": "0.75",
+            },
+        )
         root.append(line_right)
 
     # Add angled line stroke for left eye (\ angle) - only if left eye was processed
     if left_whites:
-        line_left = ET.Element('line', {
-            'x1': str(l_min_x),
-            'y1': str(l_min_y),
-            'x2': str(l_max_x),
-            'y2': str(l_target_y),
-            'stroke': '#231F20',
-            'stroke-width': '0.75'
-        })
+        line_left = ET.Element(
+            "line",
+            {
+                "x1": str(l_min_x),
+                "y1": str(l_min_y),
+                "x2": str(l_max_x),
+                "y2": str(l_target_y),
+                "stroke": "#231F20",
+                "stroke-width": "0.75",
+            },
+        )
         root.append(line_left)
 
     return root
@@ -585,7 +598,7 @@ def rotate_mouth(root: ET.Element, rotation_degrees: float) -> ET.Element:
         Modified root element
     """
     # Parse viewBox to find center
-    viewbox = root.get('viewBox', '0 0 100 100')
+    viewbox = root.get("viewBox", "0 0 100 100")
     parts = viewbox.split()
     if len(parts) == 4:
         x, y, w, h = map(float, parts)
@@ -594,13 +607,13 @@ def rotate_mouth(root: ET.Element, rotation_degrees: float) -> ET.Element:
 
         # Apply rotation transform to all path elements
         for elem in root.iter():
-            if elem.tag.endswith('path'):
-                existing = elem.get('transform', '')
+            if elem.tag.endswith("path"):
+                existing = elem.get("transform", "")
                 transform = f"rotate({rotation_degrees} {cx} {cy})"
                 if existing:
-                    elem.set('transform', f"{transform} {existing}")
+                    elem.set("transform", f"{transform} {existing}")
                 else:
-                    elem.set('transform', transform)
+                    elem.set("transform", transform)
 
     return root
 
@@ -618,7 +631,7 @@ def scale_mouth(root: ET.Element, scale_x: float = 1.0, scale_y: float = 1.0) ->
         Modified root element
     """
     # Parse viewBox to find center
-    viewbox = root.get('viewBox', '0 0 100 100')
+    viewbox = root.get("viewBox", "0 0 100 100")
     parts = viewbox.split()
     if len(parts) == 4:
         x, y, w, h = map(float, parts)
@@ -627,13 +640,15 @@ def scale_mouth(root: ET.Element, scale_x: float = 1.0, scale_y: float = 1.0) ->
 
         # Apply scale transform to all path elements
         for elem in root.iter():
-            if elem.tag.endswith('path'):
-                existing = elem.get('transform', '')
-                transform = f"translate({cx}, {cy}) scale({scale_x}, {scale_y}) translate({-cx}, {-cy})"
+            if elem.tag.endswith("path"):
+                existing = elem.get("transform", "")
+                transform = (
+                    f"translate({cx}, {cy}) scale({scale_x}, {scale_y}) translate({-cx}, {-cy})"
+                )
                 if existing:
-                    elem.set('transform', f"{transform} {existing}")
+                    elem.set("transform", f"{transform} {existing}")
                 else:
-                    elem.set('transform', transform)
+                    elem.set("transform", transform)
 
         # Expand viewBox to accommodate scaled content
         # Calculate how much larger the content will be
@@ -644,7 +659,7 @@ def scale_mouth(root: ET.Element, scale_x: float = 1.0, scale_y: float = 1.0) ->
             new_h = h * max_scale
             new_x = cx - (new_w / 2)
             new_y = cy - (new_h / 2)
-            root.set('viewBox', f"{new_x} {new_y} {new_w} {new_h}")
+            root.set("viewBox", f"{new_x} {new_y} {new_w} {new_h}")
 
     return root
 
@@ -660,7 +675,7 @@ def flip_mouth_vertically(root: ET.Element) -> ET.Element:
         Modified root element
     """
     # Parse viewBox to find center
-    viewbox = root.get('viewBox', '0 0 100 100')
+    viewbox = root.get("viewBox", "0 0 100 100")
     parts = viewbox.split()
     if len(parts) == 4:
         x, y, w, h = map(float, parts)
@@ -668,14 +683,14 @@ def flip_mouth_vertically(root: ET.Element) -> ET.Element:
 
         # Apply vertical flip transform to all path elements
         for elem in root.iter():
-            if elem.tag.endswith('path'):
-                existing = elem.get('transform', '')
+            if elem.tag.endswith("path"):
+                existing = elem.get("transform", "")
                 # Flip around horizontal center line
                 transform = f"translate(0, {cy}) scale(1, -1) translate(0, {-cy})"
                 if existing:
-                    elem.set('transform', f"{transform} {existing}")
+                    elem.set("transform", f"{transform} {existing}")
                 else:
-                    elem.set('transform', transform)
+                    elem.set("transform", transform)
 
     return root
 
@@ -693,26 +708,26 @@ def flatten_mouth(root: ET.Element, flatten_amount: float = 0.5) -> ET.Element:
     """
     # Find all path elements
     for elem in root.iter():
-        if elem.tag.endswith('path'):
-            path_data = elem.get('d', '')
+        if elem.tag.endswith("path"):
+            path_data = elem.get("d", "")
             if not path_data:
                 continue
 
             # Parse the path to find the average Y coordinate
-            tokens = re.findall(r'[MLCZ]|[-+]?[0-9]*\.?[0-9]+', path_data)
+            tokens = re.findall(r"[MLCZ]|[-+]?[0-9]*\.?[0-9]+", path_data)
 
             # Collect all Y coordinates
             y_coords = []
             i = 0
             while i < len(tokens):
                 token = tokens[i]
-                if token in ['M', 'L']:
+                if token in ["M", "L"]:
                     if i + 2 < len(tokens):
                         y_coords.append(float(tokens[i + 2]))
                         i += 3
                     else:
                         i += 1
-                elif token == 'C':
+                elif token == "C":
                     if i + 6 < len(tokens):
                         # Bezier control points
                         y_coords.append(float(tokens[i + 2]))
@@ -736,7 +751,7 @@ def flatten_mouth(root: ET.Element, flatten_amount: float = 0.5) -> ET.Element:
             while i < len(tokens):
                 token = tokens[i]
 
-                if token in ['M', 'L']:
+                if token in ["M", "L"]:
                     result.append(token)
                     if i + 2 < len(tokens):
                         x = tokens[i + 1]
@@ -749,7 +764,7 @@ def flatten_mouth(root: ET.Element, flatten_amount: float = 0.5) -> ET.Element:
                     else:
                         i += 1
 
-                elif token == 'C':
+                elif token == "C":
                     result.append(token)
                     if i + 6 < len(tokens):
                         for j in range(1, 7, 2):
@@ -763,14 +778,14 @@ def flatten_mouth(root: ET.Element, flatten_amount: float = 0.5) -> ET.Element:
                     else:
                         i += 1
 
-                elif token == 'Z':
+                elif token == "Z":
                     result.append(token)
                     i += 1
                 else:
                     result.append(token)
                     i += 1
 
-            elem.set('d', ' '.join(result))
+            elem.set("d", " ".join(result))
 
     return root
 
@@ -787,14 +802,14 @@ def mirror_mouth_to_round(root: ET.Element) -> ET.Element:
         Modified root element with mirrored mouth
     """
     # Find all path elements
-    paths = [elem for elem in root.iter() if elem.tag.endswith('path')]
+    paths = [elem for elem in root.iter() if elem.tag.endswith("path")]
 
     if not paths:
         return root
 
     # For each path, create a mirrored copy
     for path in paths:
-        path_data = path.get('d', '')
+        path_data = path.get("d", "")
         if not path_data:
             continue
 
@@ -807,24 +822,24 @@ def mirror_mouth_to_round(root: ET.Element) -> ET.Element:
         flip_y = min_y
 
         # Create a mirrored group containing both original and flipped path
-        g = ET.Element('g')
+        g = ET.Element("g")
 
         # Original path (bottom half of the O)
-        original = ET.Element('path')
-        original.set('d', path_data)
-        for attr in ['fill', 'stroke', 'stroke-width', 'stroke-miterlimit']:
+        original = ET.Element("path")
+        original.set("d", path_data)
+        for attr in ["fill", "stroke", "stroke-width", "stroke-miterlimit"]:
             if path.get(attr):
                 original.set(attr, path.get(attr))
         g.append(original)
 
         # Mirrored path (top half of the O) - flip vertically around the top edge
-        mirrored = ET.Element('path')
-        mirrored.set('d', path_data)
-        for attr in ['fill', 'stroke', 'stroke-width', 'stroke-miterlimit']:
+        mirrored = ET.Element("path")
+        mirrored.set("d", path_data)
+        for attr in ["fill", "stroke", "stroke-width", "stroke-miterlimit"]:
             if path.get(attr):
                 mirrored.set(attr, path.get(attr))
         # Flip around the top edge: translate to origin, scale -1 in Y, translate back
-        mirrored.set('transform', f'translate(0, {flip_y}) scale(1, -1) translate(0, {-flip_y})')
+        mirrored.set("transform", f"translate(0, {flip_y}) scale(1, -1) translate(0, {-flip_y})")
         g.append(mirrored)
 
         # Replace the original path with the group
@@ -849,11 +864,13 @@ def blend_paths(path1_data: str, path2_data: str, blend_factor: float = 0.5) -> 
 
     Note: Paths must have the same structure (same commands in same order)
     """
-    tokens1 = re.findall(r'[MLCZ]|[-+]?[0-9]*\.?[0-9]+', path1_data)
-    tokens2 = re.findall(r'[MLCZ]|[-+]?[0-9]*\.?[0-9]+', path2_data)
+    tokens1 = re.findall(r"[MLCZ]|[-+]?[0-9]*\.?[0-9]+", path1_data)
+    tokens2 = re.findall(r"[MLCZ]|[-+]?[0-9]*\.?[0-9]+", path2_data)
 
     if len(tokens1) != len(tokens2):
-        print(f"Warning: Paths have different lengths ({len(tokens1)} vs {len(tokens2)}), using first path")
+        print(
+            f"Warning: Paths have different lengths ({len(tokens1)} vs {len(tokens2)}), using first path"
+        )
         return path1_data
 
     result = []
@@ -863,9 +880,11 @@ def blend_paths(path1_data: str, path2_data: str, blend_factor: float = 0.5) -> 
         token2 = tokens2[i]
 
         # Commands should match
-        if token1 in ['M', 'L', 'C', 'Z']:
+        if token1 in ["M", "L", "C", "Z"]:
             if token1 != token2:
-                print(f"Warning: Command mismatch at position {i} ({token1} vs {token2}), using first path")
+                print(
+                    f"Warning: Command mismatch at position {i} ({token1} vs {token2}), using first path"
+                )
                 return path1_data
             result.append(token1)
             i += 1
@@ -881,10 +900,10 @@ def blend_paths(path1_data: str, path2_data: str, blend_factor: float = 0.5) -> 
                 result.append(token1)
                 i += 1
 
-    return ' '.join(result)
+    return " ".join(result)
 
 
-def create_u_smile_path(bbox: Tuple[float, float, float, float]) -> str:
+def create_u_smile_path(bbox: tuple[float, float, float, float]) -> str:
     """
     Create a U-shaped smile path within given bounding box.
 
@@ -918,7 +937,7 @@ def create_u_smile_path(bbox: Tuple[float, float, float, float]) -> str:
     return path
 
 
-def create_o_shape_path(bbox: Tuple[float, float, float, float]) -> str:
+def create_o_shape_path(bbox: tuple[float, float, float, float]) -> str:
     """
     Create an O-shaped (ellipse) path within given bounding box.
 
@@ -965,10 +984,10 @@ def morph_to_u_smile(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
     Returns:
         Modified root element
     """
-    paths = [elem for elem in root.iter() if elem.tag.endswith('path')]
+    paths = [elem for elem in root.iter() if elem.tag.endswith("path")]
 
     for path in paths:
-        path_data = path.get('d', '')
+        path_data = path.get("d", "")
         if not path_data:
             continue
 
@@ -979,14 +998,14 @@ def morph_to_u_smile(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
         cx = min_x + width / 2
 
         # Parse path tokens
-        tokens = re.findall(r'[MLCVHZ]|[-+]?[0-9]*\.?[0-9]+', path_data)
+        tokens = re.findall(r"[MLCVHZ]|[-+]?[0-9]*\.?[0-9]+", path_data)
         result = []
 
         i = 0
         while i < len(tokens):
             token = tokens[i]
 
-            if token in ['M', 'L']:
+            if token in ["M", "L"]:
                 result.append(token)
                 if i + 2 < len(tokens):
                     x = float(tokens[i + 1])
@@ -1008,7 +1027,7 @@ def morph_to_u_smile(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
                 else:
                     i += 1
 
-            elif token == 'C':
+            elif token == "C":
                 result.append(token)
                 if i + 6 < len(tokens):
                     # Process all 3 coordinate pairs in bezier
@@ -1027,13 +1046,13 @@ def morph_to_u_smile(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
                 else:
                     i += 1
 
-            elif token in ['V', 'H', 'Z']:
+            elif token in ["V", "H", "Z"]:
                 result.append(token)
-                if token == 'V' and i + 1 < len(tokens):
+                if token == "V" and i + 1 < len(tokens):
                     # Vertical line - just pass through for now
                     result.append(tokens[i + 1])
                     i += 2
-                elif token == 'H' and i + 1 < len(tokens):
+                elif token == "H" and i + 1 < len(tokens):
                     result.append(tokens[i + 1])
                     i += 2
                 else:
@@ -1042,7 +1061,7 @@ def morph_to_u_smile(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
                 result.append(token)
                 i += 1
 
-        path.set('d', ' '.join(result))
+        path.set("d", " ".join(result))
 
     return root
 
@@ -1059,10 +1078,10 @@ def morph_to_o_shape(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
     Returns:
         Modified root element
     """
-    paths = [elem for elem in root.iter() if elem.tag.endswith('path')]
+    paths = [elem for elem in root.iter() if elem.tag.endswith("path")]
 
     for path in paths:
-        path_data = path.get('d', '')
+        path_data = path.get("d", "")
         if not path_data:
             continue
 
@@ -1074,14 +1093,14 @@ def morph_to_o_shape(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
         cy = min_y + height / 2
 
         # Parse path tokens
-        tokens = re.findall(r'[MLCVHZ]|[-+]?[0-9]*\.?[0-9]+', path_data)
+        tokens = re.findall(r"[MLCVHZ]|[-+]?[0-9]*\.?[0-9]+", path_data)
         result = []
 
         i = 0
         while i < len(tokens):
             token = tokens[i]
 
-            if token in ['M', 'L']:
+            if token in ["M", "L"]:
                 result.append(token)
                 if i + 2 < len(tokens):
                     x = float(tokens[i + 1])
@@ -1093,6 +1112,7 @@ def morph_to_o_shape(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
                     angle = 0 if width == 0 else dx / (width / 2)  # Normalized -1 to 1
                     # Target position on ellipse
                     import math
+
                     theta = math.acos(max(-1, min(1, angle)))  # Clamp to [-1, 1]
                     if dy < 0:
                         theta = -theta
@@ -1112,7 +1132,7 @@ def morph_to_o_shape(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
                 else:
                     i += 1
 
-            elif token == 'C':
+            elif token == "C":
                 result.append(token)
                 if i + 6 < len(tokens):
                     # Process all 3 coordinate pairs in bezier
@@ -1124,6 +1144,7 @@ def morph_to_o_shape(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
                         dy = y - cy
                         angle = 0 if width == 0 else dx / (width / 2)
                         import math
+
                         theta = math.acos(max(-1, min(1, angle)))
                         if dy < 0:
                             theta = -theta
@@ -1142,12 +1163,9 @@ def morph_to_o_shape(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
                 else:
                     i += 1
 
-            elif token in ['V', 'H', 'Z']:
+            elif token in ["V", "H", "Z"]:
                 result.append(token)
-                if token == 'V' and i + 1 < len(tokens):
-                    result.append(tokens[i + 1])
-                    i += 2
-                elif token == 'H' and i + 1 < len(tokens):
+                if (token == "V" and i + 1 < len(tokens)) or (token == "H" and i + 1 < len(tokens)):
                     result.append(tokens[i + 1])
                     i += 2
                 else:
@@ -1156,7 +1174,7 @@ def morph_to_o_shape(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
                 result.append(token)
                 i += 1
 
-        path.set('d', ' '.join(result))
+        path.set("d", " ".join(result))
 
     return root
 
@@ -1166,10 +1184,10 @@ def morph_to_vowel_a(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
     Morph mouth into vowel 'A' shape - wide vertical oval.
     Stretches Y coordinates vertically while keeping horizontal spread.
     """
-    paths = [elem for elem in root.iter() if elem.tag.endswith('path')]
+    paths = [elem for elem in root.iter() if elem.tag.endswith("path")]
 
     for path in paths:
-        path_data = path.get('d', '')
+        path_data = path.get("d", "")
         if not path_data:
             continue
 
@@ -1179,14 +1197,14 @@ def morph_to_vowel_a(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
         height = max_y - min_y
         cy = min_y + height / 2
 
-        tokens = re.findall(r'[MLCVHZ]|[-+]?[0-9]*\.?[0-9]+', path_data)
+        tokens = re.findall(r"[MLCVHZ]|[-+]?[0-9]*\.?[0-9]+", path_data)
         result = []
 
         i = 0
         while i < len(tokens):
             token = tokens[i]
 
-            if token in ['M', 'L']:
+            if token in ["M", "L"]:
                 result.append(token)
                 if i + 2 < len(tokens):
                     x = float(tokens[i + 1])
@@ -1203,7 +1221,7 @@ def morph_to_vowel_a(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
                 else:
                     i += 1
 
-            elif token == 'C':
+            elif token == "C":
                 result.append(token)
                 if i + 6 < len(tokens):
                     for j in range(1, 7, 2):
@@ -1220,12 +1238,9 @@ def morph_to_vowel_a(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
                 else:
                     i += 1
 
-            elif token in ['V', 'H', 'Z']:
+            elif token in ["V", "H", "Z"]:
                 result.append(token)
-                if token == 'V' and i + 1 < len(tokens):
-                    result.append(tokens[i + 1])
-                    i += 2
-                elif token == 'H' and i + 1 < len(tokens):
+                if (token == "V" and i + 1 < len(tokens)) or (token == "H" and i + 1 < len(tokens)):
                     result.append(tokens[i + 1])
                     i += 2
                 else:
@@ -1234,7 +1249,7 @@ def morph_to_vowel_a(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
                 result.append(token)
                 i += 1
 
-        path.set('d', ' '.join(result))
+        path.set("d", " ".join(result))
 
     return root
 
@@ -1244,10 +1259,10 @@ def morph_to_vowel_e(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
     Morph mouth into vowel 'E' shape - wide horizontal shape.
     Flattens Y coordinates toward center while keeping horizontal spread.
     """
-    paths = [elem for elem in root.iter() if elem.tag.endswith('path')]
+    paths = [elem for elem in root.iter() if elem.tag.endswith("path")]
 
     for path in paths:
-        path_data = path.get('d', '')
+        path_data = path.get("d", "")
         if not path_data:
             continue
 
@@ -1256,14 +1271,14 @@ def morph_to_vowel_e(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
         height = max_y - min_y
         cy = min_y + height / 2
 
-        tokens = re.findall(r'[MLCVHZ]|[-+]?[0-9]*\.?[0-9]+', path_data)
+        tokens = re.findall(r"[MLCVHZ]|[-+]?[0-9]*\.?[0-9]+", path_data)
         result = []
 
         i = 0
         while i < len(tokens):
             token = tokens[i]
 
-            if token in ['M', 'L']:
+            if token in ["M", "L"]:
                 result.append(token)
                 if i + 2 < len(tokens):
                     x = float(tokens[i + 1])
@@ -1279,7 +1294,7 @@ def morph_to_vowel_e(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
                 else:
                     i += 1
 
-            elif token == 'C':
+            elif token == "C":
                 result.append(token)
                 if i + 6 < len(tokens):
                     for j in range(1, 7, 2):
@@ -1295,12 +1310,9 @@ def morph_to_vowel_e(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
                 else:
                     i += 1
 
-            elif token in ['V', 'H', 'Z']:
+            elif token in ["V", "H", "Z"]:
                 result.append(token)
-                if token == 'V' and i + 1 < len(tokens):
-                    result.append(tokens[i + 1])
-                    i += 2
-                elif token == 'H' and i + 1 < len(tokens):
+                if (token == "V" and i + 1 < len(tokens)) or (token == "H" and i + 1 < len(tokens)):
                     result.append(tokens[i + 1])
                     i += 2
                 else:
@@ -1309,7 +1321,7 @@ def morph_to_vowel_e(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
                 result.append(token)
                 i += 1
 
-        path.set('d', ' '.join(result))
+        path.set("d", " ".join(result))
 
     return root
 
@@ -1319,10 +1331,10 @@ def morph_to_vowel_i(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
     Morph mouth into vowel 'I' shape - narrow horizontal slit.
     Strongly flattens Y coordinates and narrows X.
     """
-    paths = [elem for elem in root.iter() if elem.tag.endswith('path')]
+    paths = [elem for elem in root.iter() if elem.tag.endswith("path")]
 
     for path in paths:
-        path_data = path.get('d', '')
+        path_data = path.get("d", "")
         if not path_data:
             continue
 
@@ -1333,14 +1345,14 @@ def morph_to_vowel_i(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
         cx = min_x + width / 2
         cy = min_y + height / 2
 
-        tokens = re.findall(r'[MLCVHZ]|[-+]?[0-9]*\.?[0-9]+', path_data)
+        tokens = re.findall(r"[MLCVHZ]|[-+]?[0-9]*\.?[0-9]+", path_data)
         result = []
 
         i = 0
         while i < len(tokens):
             token = tokens[i]
 
-            if token in ['M', 'L']:
+            if token in ["M", "L"]:
                 result.append(token)
                 if i + 2 < len(tokens):
                     x = float(tokens[i + 1])
@@ -1358,7 +1370,7 @@ def morph_to_vowel_i(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
                 else:
                     i += 1
 
-            elif token == 'C':
+            elif token == "C":
                 result.append(token)
                 if i + 6 < len(tokens):
                     for j in range(1, 7, 2):
@@ -1376,12 +1388,9 @@ def morph_to_vowel_i(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
                 else:
                     i += 1
 
-            elif token in ['V', 'H', 'Z']:
+            elif token in ["V", "H", "Z"]:
                 result.append(token)
-                if token == 'V' and i + 1 < len(tokens):
-                    result.append(tokens[i + 1])
-                    i += 2
-                elif token == 'H' and i + 1 < len(tokens):
+                if (token == "V" and i + 1 < len(tokens)) or (token == "H" and i + 1 < len(tokens)):
                     result.append(tokens[i + 1])
                     i += 2
                 else:
@@ -1390,7 +1399,7 @@ def morph_to_vowel_i(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
                 result.append(token)
                 i += 1
 
-        path.set('d', ' '.join(result))
+        path.set("d", " ".join(result))
 
     return root
 
@@ -1400,10 +1409,10 @@ def morph_to_vowel_u(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
     Morph mouth into vowel 'U' shape - small round pout.
     Similar to O but smaller and more centered.
     """
-    paths = [elem for elem in root.iter() if elem.tag.endswith('path')]
+    paths = [elem for elem in root.iter() if elem.tag.endswith("path")]
 
     for path in paths:
-        path_data = path.get('d', '')
+        path_data = path.get("d", "")
         if not path_data:
             continue
 
@@ -1414,14 +1423,14 @@ def morph_to_vowel_u(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
         cx = min_x + width / 2
         cy = min_y + height / 2
 
-        tokens = re.findall(r'[MLCVHZ]|[-+]?[0-9]*\.?[0-9]+', path_data)
+        tokens = re.findall(r"[MLCVHZ]|[-+]?[0-9]*\.?[0-9]+", path_data)
         result = []
 
         i = 0
         while i < len(tokens):
             token = tokens[i]
 
-            if token in ['M', 'L']:
+            if token in ["M", "L"]:
                 result.append(token)
                 if i + 2 < len(tokens):
                     x = float(tokens[i + 1])
@@ -1432,6 +1441,7 @@ def morph_to_vowel_u(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
                     dy = y - cy
                     angle = 0 if width == 0 else dx / (width / 2)
                     import math
+
                     theta = math.acos(max(-1, min(1, angle)))
                     if dy < 0:
                         theta = -theta
@@ -1451,7 +1461,7 @@ def morph_to_vowel_u(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
                 else:
                     i += 1
 
-            elif token == 'C':
+            elif token == "C":
                 result.append(token)
                 if i + 6 < len(tokens):
                     for j in range(1, 7, 2):
@@ -1462,6 +1472,7 @@ def morph_to_vowel_u(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
                         dy = y - cy
                         angle = 0 if width == 0 else dx / (width / 2)
                         import math
+
                         theta = math.acos(max(-1, min(1, angle)))
                         if dy < 0:
                             theta = -theta
@@ -1480,12 +1491,9 @@ def morph_to_vowel_u(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
                 else:
                     i += 1
 
-            elif token in ['V', 'H', 'Z']:
+            elif token in ["V", "H", "Z"]:
                 result.append(token)
-                if token == 'V' and i + 1 < len(tokens):
-                    result.append(tokens[i + 1])
-                    i += 2
-                elif token == 'H' and i + 1 < len(tokens):
+                if (token == "V" and i + 1 < len(tokens)) or (token == "H" and i + 1 < len(tokens)):
                     result.append(tokens[i + 1])
                     i += 2
                 else:
@@ -1494,12 +1502,14 @@ def morph_to_vowel_u(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
                 result.append(token)
                 i += 1
 
-        path.set('d', ' '.join(result))
+        path.set("d", " ".join(result))
 
     return root
 
 
-def blend_mouth_with_shape(root: ET.Element, shape_type: str, blend_factor: float = 0.5) -> ET.Element:
+def blend_mouth_with_shape(
+    root: ET.Element, shape_type: str, blend_factor: float = 0.5
+) -> ET.Element:
     """
     Morph mouth path into a reference shape.
     Uses path morphing to preserve original structure.
@@ -1514,28 +1524,23 @@ def blend_mouth_with_shape(root: ET.Element, shape_type: str, blend_factor: floa
     """
     if shape_type == "u_smile":
         return morph_to_u_smile(root, blend_factor)
-    elif shape_type == "o_shape":
+    if shape_type == "o_shape":
         return morph_to_o_shape(root, blend_factor)
-    elif shape_type == "vowel_a":
+    if shape_type == "vowel_a":
         return morph_to_vowel_a(root, blend_factor)
-    elif shape_type == "vowel_e":
+    if shape_type == "vowel_e":
         return morph_to_vowel_e(root, blend_factor)
-    elif shape_type == "vowel_i":
+    if shape_type == "vowel_i":
         return morph_to_vowel_i(root, blend_factor)
-    elif shape_type == "vowel_o":
+    if shape_type == "vowel_o":
         return morph_to_o_shape(root, blend_factor)  # O-shape is same as vowel O
-    elif shape_type == "vowel_u":
+    if shape_type == "vowel_u":
         return morph_to_vowel_u(root, blend_factor)
-    else:
-        print(f"Warning: Unknown shape type '{shape_type}'")
-        return root
+    print(f"Warning: Unknown shape type '{shape_type}'")
+    return root
 
 
-def process_emote_variant(
-    base_svg_path: Path,
-    output_path: Path,
-    transform_config: Dict
-) -> bool:
+def process_emote_variant(base_svg_path: Path, output_path: Path, transform_config: dict) -> bool:
     """
     Processes a single SVG file to create an emote variant.
 
@@ -1562,55 +1567,56 @@ def process_emote_variant(
         root = tree.getroot()
 
         # Apply transformations based on config
-        if 'pupil_position' in transform_config:
-            reposition_pupils(root, transform_config['pupil_position'])
+        if "pupil_position" in transform_config:
+            reposition_pupils(root, transform_config["pupil_position"])
 
-        if 'scale' in transform_config:
-            scale_eyes(root, transform_config['scale'])
+        if "scale" in transform_config:
+            scale_eyes(root, transform_config["scale"])
 
-        if 'scale_pupils' in transform_config:
-            scale_pupils_only(root, transform_config['scale_pupils'])
+        if "scale_pupils" in transform_config:
+            scale_pupils_only(root, transform_config["scale_pupils"])
 
-        if 'clip_top_half' in transform_config and transform_config['clip_top_half']:
+        if transform_config.get("clip_top_half"):
             clip_top_half_of_eyes(root)
 
-        if 'clip_angled' in transform_config and transform_config['clip_angled']:
+        if transform_config.get("clip_angled"):
             clip_eyes_angled(root)
 
         # Apply mouth transformations
-        if 'blend_mouth' in transform_config:
-            shape_type, blend_factor = transform_config['blend_mouth']
+        if "blend_mouth" in transform_config:
+            shape_type, blend_factor = transform_config["blend_mouth"]
             blend_mouth_with_shape(root, shape_type, blend_factor)
 
-        if 'flip_mouth' in transform_config and transform_config['flip_mouth']:
+        if transform_config.get("flip_mouth"):
             flip_mouth_vertically(root)
 
-        if 'flatten_mouth' in transform_config:
-            flatten_mouth(root, transform_config['flatten_mouth'])
+        if "flatten_mouth" in transform_config:
+            flatten_mouth(root, transform_config["flatten_mouth"])
 
-        if 'mirror_mouth' in transform_config and transform_config['mirror_mouth']:
+        if transform_config.get("mirror_mouth"):
             mirror_mouth_to_round(root)
 
-        if 'rotate_mouth' in transform_config:
-            rotate_mouth(root, transform_config['rotate_mouth'])
+        if "rotate_mouth" in transform_config:
+            rotate_mouth(root, transform_config["rotate_mouth"])
 
-        if 'scale_mouth' in transform_config:
-            scale_x, scale_y = transform_config['scale_mouth']
+        if "scale_mouth" in transform_config:
+            scale_x, scale_y = transform_config["scale_mouth"]
             scale_mouth(root, scale_x, scale_y)
 
         # Write output
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        tree.write(output_path, encoding='unicode', xml_declaration=False)
+        tree.write(output_path, encoding="unicode", xml_declaration=False)
 
         # Clean up the output (ElementTree adds namespace)
         content = output_path.read_text()
-        content = content.replace('ns0:', '').replace(':ns0', '').replace('xmlns:ns0=', 'xmlns=')
+        content = content.replace("ns0:", "").replace(":ns0", "").replace("xmlns:ns0=", "xmlns=")
         output_path.write_text(content)
 
         return True
     except Exception as e:
         print(f"Error processing {base_svg_path}: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -1618,24 +1624,42 @@ def process_emote_variant(
 # Emote transformation definitions
 EMOTE_TRANSFORMS = {
     "happy": {
-        "eyes_open": {"pupil_position": "upper_third"},  # 1/3 down = 33% (pupils at top, looking up, joyful)
-        "mouths_open": {"blend_mouth": ("u_smile", 0.3)},  # Blend base mouth with U-shaped smile (30% morph)
+        "eyes_open": {
+            "pupil_position": "upper_third"
+        },  # 1/3 down = 33% (pupils at top, looking up, joyful)
+        "mouths_open": {
+            "blend_mouth": ("u_smile", 0.3)
+        },  # Blend base mouth with U-shaped smile (30% morph)
     },
     "sad": {
-        "eyes_open": {"pupil_position": "lower_third"},  # 2/3 down = 67% (pupils at bottom, looking down, sad)
-        "mouths_closed": {"flip_mouth": True}  # Flip vertically for frown
+        "eyes_open": {
+            "pupil_position": "lower_third"
+        },  # 2/3 down = 67% (pupils at bottom, looking down, sad)
+        "mouths_closed": {"flip_mouth": True},  # Flip vertically for frown
     },
     "surprised": {
-        "eyes_open": {"scale_pupils": 1.5},  # Bigger pupils (size scaling happens at render time in door_agents.py)
-        "mouths_open": {"blend_mouth": ("o_shape", 0.7), "scale_mouth": (1.3, 1.3)},  # Blend with O-shape (70%) + 30% bigger
+        "eyes_open": {
+            "scale_pupils": 1.5
+        },  # Bigger pupils (size scaling happens at render time in door_agents.py)
+        "mouths_open": {
+            "blend_mouth": ("o_shape", 0.7),
+            "scale_mouth": (1.3, 1.3),
+        },  # Blend with O-shape (70%) + 30% bigger
     },
     "angry": {
-        "eyes_open": {"clip_angled": True, "pupil_position": "center", "scale_pupils": 1.3},  # V-shape + centered + 30% bigger pupils
-        "mouths_closed": {"flip_mouth": True, "scale_mouth": (0.75, 0.75)}  # Flipped vertically + smaller (25% smaller)
+        "eyes_open": {
+            "clip_angled": True,
+            "pupil_position": "center",
+            "scale_pupils": 1.3,
+        },  # V-shape + centered + 30% bigger pupils
+        "mouths_closed": {
+            "flip_mouth": True,
+            "scale_mouth": (0.75, 0.75),
+        },  # Flipped vertically + smaller (25% smaller)
     },
     "bored": {
         "eyes_open": {"clip_top_half": True},  # Clip top half for half-lidded look
-        "mouths_closed": {"flatten_mouth": 0.5}  # Flatten halfway toward horizontal line
+        "mouths_closed": {"flatten_mouth": 0.5},  # Flatten halfway toward horizontal line
     },
     "vowel_a": {
         "mouths_open": {"blend_mouth": ("vowel_a", 0.6)}  # Wide vertical oval
@@ -1651,11 +1675,11 @@ EMOTE_TRANSFORMS = {
     },
     "vowel_u": {
         "mouths_open": {"blend_mouth": ("vowel_u", 0.7)}  # Small pout
-    }
+    },
 }
 
 
-def generate_all_emote_variants(emotes: Optional[List[str]] = None):
+def generate_all_emote_variants(emotes: list[str] | None = None):
     """
     Generates all emote variants for eyes and mouths.
 
@@ -1665,11 +1689,7 @@ def generate_all_emote_variants(emotes: Optional[List[str]] = None):
     if emotes is None:
         emotes = list(EMOTE_TRANSFORMS.keys())
 
-    stats = {
-        "total": 0,
-        "success": 0,
-        "failed": 0
-    }
+    stats = {"total": 0, "success": 0, "failed": 0}
 
     for emote_name in emotes:
         if emote_name not in EMOTE_TRANSFORMS:
@@ -1745,7 +1765,7 @@ def generate_all_emote_variants(emotes: Optional[List[str]] = None):
                     stats["failed"] += 1
 
     print(f"\n{'='*60}")
-    print(f"Emote variant generation complete!")
+    print("Emote variant generation complete!")
     print(f"Total variants: {stats['total']}")
     print(f"Successful: {stats['success']}")
     print(f"Failed: {stats['failed']}")

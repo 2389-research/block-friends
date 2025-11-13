@@ -9,11 +9,13 @@ Generates emote-specific variants of eye and mouth SVGs through SVG transformati
 ### Usage
 
 Generate all emote variants:
+
 ```bash
 uv run python scripts/generate_emote_variants.py
 ```
 
 Generate specific emotes:
+
 ```bash
 uv run python scripts/generate_emote_variants.py happy sad
 ```
@@ -23,26 +25,31 @@ uv run python scripts/generate_emote_variants.py happy sad
 The script applies the following transformations for each emote:
 
 #### Happy
+
 - **Eyes (open)**: Pupils translated up by 0.5px (cheerful upward gaze)
 - **Eyes (closed)**: No transformation
 - **Mouths**: No transformation (already smiling)
 
 #### Sad
+
 - **Eyes (open)**: Pupils translated down by 0.8px (downward gaze)
 - **Eyes (closed)**: No transformation
 - **Mouths**: No transformation
 
 #### Surprised
+
 - **Eyes (open)**: Scaled up 15% from center (wider eyes)
 - **Eyes (closed)**: No transformation
 - **Mouths**: No transformation (already O-shaped)
 
 #### Angry
+
 - **Eyes (open)**: Pupils centered (no transformation)
 - **Eyes (closed)**: No transformation
 - **Mouths**: No transformation (tight/small mouths)
 
 #### Bored
+
 - **Eyes**: No transformation (uses closed eyes as-is)
 - **Mouths**: No transformation
 
@@ -91,6 +98,7 @@ To add a new emote type:
 4. Run script with new emote name
 
 Example:
+
 ```python
 EMOTE_TRANSFORMS["excited"] = {
     "eyes_open": {

@@ -279,6 +279,7 @@ function showFrame(frame) {
 ```
 
 **Problems:**
+
 - 20 HTTP requests (even if cached, still header overhead)
 - 92.3 KB total uncompressed (4.6 KB gzipped with repeated requests)
 - Frame switching replaces entire DOM subtree
@@ -300,6 +301,7 @@ function showFrame(frame) {
 ```
 
 **Benefits:**
+
 - 1 HTTP request
 - 19.7 KB uncompressed (3.8 KB gzipped)
 - Frame switching only changes CSS class (fast DOM operation)
@@ -329,11 +331,13 @@ fetch('/avatar/user@example.com.svg?legacy=true&frame=happy')
 Assumptions: 50ms RTT (round-trip time), 10 Mbps connection
 
 **Legacy Mode (20 requests):**
+
 - Request overhead: 20 × 50ms = 1,000ms
 - Transfer time: 4,559 bytes ÷ (10 Mbps ÷ 8) = ~4ms
 - **Total: ~1,004ms**
 
 **Universal Mode (1 request):**
+
 - Request overhead: 1 × 50ms = 50ms
 - Transfer time: 3,797 bytes ÷ (10 Mbps ÷ 8) = ~3ms
 - **Total: ~53ms**
@@ -355,6 +359,7 @@ Assumptions: 50ms RTT (round-trip time), 10 Mbps connection
 The universal SVG system is built on composable generation functions:
 
 **Core Generators:**
+
 - `_generate_body()` - Body rectangle and vertical line
 - `_generate_nodes()` - Side circles (always same position)
 - `_generate_feet()` - Foot rectangles (color matches body or nodes)
@@ -365,6 +370,7 @@ The universal SVG system is built on composable generation functions:
 - `_generate_avatar_id()` - Deterministic ID generation from email/input
 
 **Legacy Support:**
+
 - `_generate_legacy_eyes()` - Single eye state based on frame
 - `_generate_legacy_mouths()` - Single mouth state based on frame
 
@@ -434,6 +440,7 @@ uv run pytest tests/test_visual_regression.py -v -s
 ```
 
 Tests verify:
+
 - Universal SVGs contain all 20 states in CSS
 - Legacy SVGs contain only requested frame
 - Both modes produce same avatar ID for same input
@@ -479,6 +486,7 @@ open test_universal.svg test_legacy_happy.svg
 **Symptom:** Changing class doesn't change avatar appearance
 
 **Solution:** Ensure you're setting class on the correct element:
+
 ```javascript
 // Wrong: Setting on container div
 document.getElementById('container').className = 'agent happy';
@@ -492,6 +500,7 @@ document.querySelector('svg').className.baseVal = 'agent happy';
 **Symptom:** Changing one avatar's state changes others
 
 **Solution:** Each avatar has a unique ID. CSS is scoped per ID, so this shouldn't happen. Check that:
+
 1. SVGs have different IDs (based on different input strings)
 2. You're not accidentally reusing the same SVG element
 
@@ -500,6 +509,7 @@ document.querySelector('svg').className.baseVal = 'agent happy';
 **Symptom:** Blank space where avatar should be
 
 **Solution:** Check that:
+
 1. SVG was inserted as HTML, not plain text: `innerHTML = svgContent` (not `textContent`)
 2. Container has sufficient height/width
 3. Browser console for any errors
@@ -507,11 +517,13 @@ document.querySelector('svg').className.baseVal = 'agent happy';
 ### Issue: Legacy mode preferred for performance
 
 **Reason:** In rare cases, legacy mode may be preferred:
+
 - Very slow clients (CPU-constrained) where parsing large SVG is slow
 - Extremely memory-constrained environments
 - When only 1-2 states are ever used (no benefit to universal)
 
 **Solution:** Use `?legacy=true` parameter:
+
 ```javascript
 fetch('/avatar/user@example.com.svg?legacy=true&frame=happy')
 ```

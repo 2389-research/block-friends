@@ -2,11 +2,11 @@
 # ABOUTME: API tests for transition endpoints
 # ABOUTME: Tests single-frame transition endpoint with caching
 
-import pytest
 import hashlib
-from pathlib import Path
+
 from fastapi.testclient import TestClient
-from app import app, CACHE_DIR
+
+from app import CACHE_DIR, app
 
 client = TestClient(app)
 
@@ -17,9 +17,9 @@ def test_transition_endpoint_basic():
 
     assert response.status_code == 200
     assert response.headers["content-type"] == "image/svg+xml"
-    assert b'<svg' in response.content
-    assert b'base-layer' in response.content
-    assert b'emote-layer' in response.content
+    assert b"<svg" in response.content
+    assert b"base-layer" in response.content
+    assert b"emote-layer" in response.content
 
 
 def test_transition_endpoint_all_emotes():
@@ -72,7 +72,7 @@ def test_transition_endpoint_invalid_weight():
 def test_transition_endpoint_caching():
     """Test that transitions are cached to filesystem."""
     input_str = "cache-test@example.com"
-    hash_hex = hashlib.sha256(input_str.encode('utf-8')).hexdigest()[:16]
+    hash_hex = hashlib.sha256(input_str.encode("utf-8")).hexdigest()[:16]
     cache_path = CACHE_DIR / f"{hash_hex}_transition_happy_50.svg"
 
     # Remove cache if exists
