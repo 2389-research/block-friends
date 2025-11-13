@@ -319,7 +319,7 @@ class DoorAgentGenerator:
 
         # Calculate body position
         bx0 = pad + (box - body_w) // 2
-        by0 = pad + box - foot_h - body_h
+        _by0 = pad + box - foot_h - body_h  # Not used but kept for reference
         bx1 = bx0 + body_w
         cx = (bx0 + bx1) / 2
 
@@ -381,11 +381,11 @@ class DoorAgentGenerator:
         cx = (bx0 + bx1) / 2
 
         # Calculate eye position for hair positioning
-        eyes_w = body_w * self.config.EYES_W_FRAC
+        _eyes_w = body_w * self.config.EYES_W_FRAC  # Not used but kept for reference
         # Calculate eyes position (simplified from generate_agent_svg)
         # We need eye_y for "between-body-eyes" positioning
         target_eye_center_y = by0 + body_h * self.config.EYE_Y_FRAC
-        by1 = by0 + body_h
+        _by1 = by0 + body_h  # Not used but kept for reference
         # Use target eye position directly for hair calculations
         eyes_y_approx = target_eye_center_y
 
@@ -1076,7 +1076,7 @@ class DoorAgentGenerator:
         min_y = float('inf')
         max_y = float('-inf')
 
-        feet_fill = body_color if feet_match_body else node_color
+        _feet_fill = body_color if feet_match_body else node_color  # Not used but kept for reference
 
         # Generate avatar ID (needed for clipPath namespacing in universal mode)
         avatar_id = self._generate_avatar_id(email) if email else "avatar-default"

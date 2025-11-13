@@ -18,6 +18,7 @@ Install deps:
   uv sync
 """
 import csv
+import json
 from pathlib import Path
 from door_agents import DoorAgentConfig, DoorAgentGenerator
 
@@ -25,7 +26,8 @@ from door_agents import DoorAgentConfig, DoorAgentGenerator
 config = DoorAgentConfig()
 generator = DoorAgentGenerator(config)
 
-OUT = Path("out"); OUT.mkdir(exist_ok=True)
+OUT = Path("out")
+OUT.mkdir(exist_ok=True)
 
 # ────────────────────── AGENT GENERATOR ─────────────────────
 # (Now handled by DoorAgentGenerator class in door_agents.py)
@@ -54,7 +56,6 @@ sheet_svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" 
              + "".join(cells) + '</svg>')
 
 # Load output config from JSON
-import json
 with open(config.assets_path/"config.json") as f:
     output_config = json.load(f)
     

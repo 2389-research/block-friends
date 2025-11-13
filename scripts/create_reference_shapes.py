@@ -25,12 +25,12 @@ def create_u_smile_from_structure(base_path: str, bbox: Tuple[float, float, floa
     min_x, min_y, max_x, max_y = bbox
     width = max_x - min_x
     height = max_y - min_y
-    cx = min_x + width / 2
+    _cx = min_x + width / 2  # Not used but kept for reference
 
     # Create a U-shape that curves down (smile)
     # Top corners should be at min_y, bottom of U at about min_y + height * 0.7
     depth = height * 0.7
-    bottom_y = min_y + depth
+    _bottom_y = min_y + depth  # Not used but kept for reference
 
     tokens = parse_path_tokens(base_path)
     result = []
@@ -51,7 +51,7 @@ def create_u_smile_from_structure(base_path: str, bbox: Tuple[float, float, floa
             # It's a number - check if it's X or Y based on context
             # This is a simplified approach
             try:
-                val = float(token)
+                _val = float(token)  # Not used but kept for validation
                 result.append(token)  # Keep original for now
                 i += 1
             except ValueError:

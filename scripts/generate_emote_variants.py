@@ -491,7 +491,7 @@ def clip_eyes_angled(root: ET.Element) -> ET.Element:
     if left_whites:
         left_bbox = get_combined_bbox(left_whites)
         l_min_x, l_min_y, l_max_x, l_max_y = left_bbox
-        l_width = l_max_x - l_min_x
+        _l_width = l_max_x - l_min_x  # Not used but kept for reference
         l_height = l_max_y - l_min_y
         l_target_y = l_min_y + (l_height * 2 / 3)  # 2/3 down = 1/3 up from bottom
 
@@ -521,7 +521,7 @@ def clip_eyes_angled(root: ET.Element) -> ET.Element:
     if right_whites:
         right_bbox = get_combined_bbox(right_whites)
         r_min_x, r_min_y, r_max_x, r_max_y = right_bbox
-        r_width = r_max_x - r_min_x
+        _r_width = r_max_x - r_min_x  # Not used but kept for reference
         r_height = r_max_y - r_min_y
         r_target_y = r_min_y + (r_height * 2 / 3)  # 2/3 down = 1/3 up from bottom
 
@@ -1175,7 +1175,7 @@ def morph_to_vowel_a(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
 
         bbox = parse_path_bbox(path_data)
         min_x, min_y, max_x, max_y = bbox
-        width = max_x - min_x
+        _width = max_x - min_x  # Not used but kept for reference
         height = max_y - min_y
         cy = min_y + height / 2
 
@@ -1207,7 +1207,7 @@ def morph_to_vowel_a(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
                 result.append(token)
                 if i + 6 < len(tokens):
                     for j in range(1, 7, 2):
-                        x = float(tokens[i + j])
+                        _x = float(tokens[i + j])  # Not used but kept for validation
                         y = float(tokens[i + j + 1])
 
                         dy = y - cy
@@ -1283,7 +1283,7 @@ def morph_to_vowel_e(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
                 result.append(token)
                 if i + 6 < len(tokens):
                     for j in range(1, 7, 2):
-                        x = float(tokens[i + j])
+                        _x = float(tokens[i + j])  # Not used but kept for validation
                         y = float(tokens[i + j + 1])
 
                         target_y = cy + (y - cy) * 0.3
