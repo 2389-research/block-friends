@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  lint-and-test:
+    name: Lint and Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run ruff (linting and formatting)
+        run: uv run ruff check --exit-non-zero-on-fix .
+
+      - name: Run vulture (dead code detection)
+        run: uv run vulture src .vulture --min-confidence 80 --exclude tests/
+
+      - name: Install actionlint
+        run: |
+          bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          echo "${PWD}" >> $GITHUB_PATH
+
+      - name: Run actionlint (workflow linting)
+        run: ./actionlint
+
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Run shellcheck (shell script linting)
+        run: |
+          if compgen -G "*.sh" > /dev/null; then
+            shellcheck *.sh
+          else
+            echo "No shell scripts found to lint"
+          fi
+
+      - name: Install prettier
+        run: npm install -g prettier
+
+      - name: Run prettier (TOML formatting check)
+        run: prettier --check "**/*.toml"
+
+      - name: Run pytest (tests)
+        run: uv run pytest
