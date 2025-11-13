@@ -1189,7 +1189,7 @@ def morph_to_vowel_a(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
             if token in ['M', 'L']:
                 result.append(token)
                 if i + 2 < len(tokens):
-                    x = float(tokens[i + 1])
+                    _x = float(tokens[i + 1])  # Not used but kept for validation
                     y = float(tokens[i + 2])
 
                     # Stretch Y away from center
@@ -1266,7 +1266,7 @@ def morph_to_vowel_e(root: ET.Element, blend_factor: float = 0.5) -> ET.Element:
             if token in ['M', 'L']:
                 result.append(token)
                 if i + 2 < len(tokens):
-                    x = float(tokens[i + 1])
+                    _x = float(tokens[i + 1])  # Not used but kept for validation
                     y = float(tokens[i + 2])
 
                     # Flatten toward center (reduce Y variation)
