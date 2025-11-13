@@ -11,12 +11,13 @@ repos:
       hooks:
           - id: vulture
             args:
-                - src
-                - .vulture
+                - "."
                 - --min-confidence
                 - "80"
                 - --exclude
                 - tests/
+                - --exclude
+                - .ruff_cache/
 
     - repo: https://github.com/rhysd/actionlint
       rev: v1.6.26
