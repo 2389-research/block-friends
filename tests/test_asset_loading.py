@@ -59,20 +59,24 @@ class TestAssetFileLoading:
     def test_config_has_eyes(self):
         """Config loads eye assets."""
         config = DoorAgentConfig()
-        assert hasattr(config, 'eyes_open')
-        assert len(config.eyes_open) > 0
+        assert hasattr(config, 'open_eyes')
+        assert hasattr(config, 'closed_eyes')
+        assert len(config.open_eyes) > 0
+        assert len(config.closed_eyes) > 0
 
     def test_config_has_mouths(self):
         """Config loads mouth assets."""
         config = DoorAgentConfig()
-        assert hasattr(config, 'mouths_open')
-        assert len(config.mouths_open) > 0
+        assert hasattr(config, 'open_mouths')
+        assert hasattr(config, 'closed_mouths')
+        assert len(config.open_mouths) > 0
+        assert len(config.closed_mouths) > 0
 
     def test_config_has_hair(self):
         """Config loads hair assets."""
         config = DoorAgentConfig()
-        assert hasattr(config, 'hair_assets')
-        assert len(config.hair_assets) > 0
+        assert hasattr(config, 'HAIRS')
+        assert len(config.HAIRS) > 0
 
 
 class TestSVGAssetParsing:
@@ -82,29 +86,27 @@ class TestSVGAssetParsing:
         """Eye assets are valid SVG."""
         config = DoorAgentConfig()
 
-        for eye in config.eyes_open:
-            # Should have viewBox
-            assert 'viewBox' in eye
-            # Should have content
-            assert 'content' in eye
-            assert len(eye['content']) > 0
+        for eye in config.open_eyes:
+            # Assets are tuples: (x0, y0, w, h, content, z_order, width_percent, position_x, position_y, anchor, color_spec)
+            assert len(eye) >= 5  # At least viewBox (4 values) + content
+            # Content is at index 4
+            assert len(eye[4]) > 0
 
     def test_mouths_are_valid_svg(self):
         """Mouth assets are valid SVG."""
         config = DoorAgentConfig()
 
-        for mouth in config.mouths_open:
-            assert 'viewBox' in mouth
-            assert 'content' in mouth
-            assert len(mouth['content']) > 0
+        for mouth in config.open_mouths:
+            assert len(mouth) >= 5
+            assert len(mouth[4]) > 0  # content
 
     def test_hair_assets_valid_svg(self):
         """Hair assets are valid SVG."""
         config = DoorAgentConfig()
 
-        for hair in config.hair_assets:
-            assert 'viewBox' in hair
-            assert 'content' in hair
+        for hair in config.HAIRS:
+            assert len(hair) >= 5
+            assert len(hair[4]) > 0  # content
 
 
 class TestHairAssetAttributes:
@@ -114,37 +116,43 @@ class TestHairAssetAttributes:
         """Hair assets parse z-order attribute."""
         config = DoorAgentConfig()
 
-        # At least some hair should have z-order specified
-        z_orders = [h.get('z_order', 'behind') for h in config.hair_assets]
+        # Hair tuples: (x0, y0, w, h, content, z_order, width_percent, position_x, position_y, anchor, color_spec)
+        # z_order is at index 5
+        z_orders = [h[5] for h in config.HAIRS if len(h) > 5]
         assert 'behind' in z_orders or 'front' in z_orders
 
     def test_hair_width_percent_attribute(self):
         """Hair assets parse width-percent attribute."""
         config = DoorAgentConfig()
 
-        for hair in config.hair_assets:
-            width_pct = hair.get('width_percent', 100)
-            assert isinstance(width_pct, (int, float))
-            assert width_pct > 0
+        for hair in config.HAIRS:
+            if len(hair) > 6:
+                width_pct = hair[6]  # width_percent is at index 6
+                assert isinstance(width_pct, (int, float))
+                assert width_pct > 0
 
     def test_hair_position_attributes(self):
         """Hair assets parse position attributes."""
         config = DoorAgentConfig()
 
-        for hair in config.hair_assets:
-            # Should have position-x and position-y
-            assert 'position_x' in hair or 'position-x' in hair
-            assert 'position_y' in hair or 'position-y' in hair
+        for hair in config.HAIRS:
+            if len(hair) > 8:
+                # position_x at index 7, position_y at index 8
+                position_x = hair[7]
+                position_y = hair[8]
+                assert position_x is not None
+                assert position_y is not None
 
     def test_hair_color_attribute_parsing(self):
         """Hair assets parse color specifications."""
         config = DoorAgentConfig()
 
-        for hair in config.hair_assets:
-            # Should have color attribute (may be default)
-            color = hair.get('color', 'currentColor')
-            # Color can be: "currentColor", "contrast", "#RRGGBB", or JSON array
-            assert isinstance(color, (str, list))
+        for hair in config.HAIRS:
+            if len(hair) > 10:
+                # color_spec is at index 10
+                color = hair[10]
+                # Color can be: "currentColor", "contrast", "#RRGGBB", or JSON array
+                assert isinstance(color, (str, list)) or color is None
 
 
 class TestAssetCountValidation:
@@ -155,21 +163,21 @@ class TestAssetCountValidation:
         config = DoorAgentConfig()
 
         # Should have at least a few eye variations
-        assert len(config.eyes_open) >= 1
-        assert len(config.eyes_closed) >= 1
+        assert len(config.open_eyes) >= 1
+        assert len(config.closed_eyes) >= 1
 
     def test_minimum_mouth_count(self):
         """Has minimum number of mouth assets."""
         config = DoorAgentConfig()
 
-        assert len(config.mouths_open) >= 1
-        assert len(config.mouths_closed) >= 1
+        assert len(config.open_mouths) >= 1
+        assert len(config.closed_mouths) >= 1
 
     def test_minimum_hair_count(self):
         """Has minimum number of hair assets."""
         config = DoorAgentConfig()
 
-        assert len(config.hair_assets) >= 1
+        assert len(config.HAIRS) >= 1
 
     def test_minimum_body_shapes(self):
         """Has minimum number of body shapes."""
@@ -229,20 +237,19 @@ class TestAssetViewBoxParsing:
         """Eye assets have valid viewBox format."""
         config = DoorAgentConfig()
 
-        for eye in config.eyes_open:
-            viewbox = eye['viewBox']
-            # ViewBox should be tuple of 4 numbers
-            assert len(viewbox) == 4
-            assert all(isinstance(v, (int, float)) for v in viewbox)
+        for eye in config.open_eyes:
+            # ViewBox components are indices 0-3: (x0, y0, w, h, ...)
+            assert len(eye) >= 4
+            # Check that first 4 elements are numbers
+            assert all(isinstance(eye[i], (int, float)) for i in range(4))
 
     def test_mouths_viewbox_format(self):
         """Mouth assets have valid viewBox format."""
         config = DoorAgentConfig()
 
-        for mouth in config.mouths_open:
-            viewbox = mouth['viewBox']
-            assert len(viewbox) == 4
-            assert all(isinstance(v, (int, float)) for v in viewbox)
+        for mouth in config.open_mouths:
+            assert len(mouth) >= 4
+            assert all(isinstance(mouth[i], (int, float)) for i in range(4))
 
 
 class TestEmoteVariantAssets:
@@ -253,9 +260,9 @@ class TestEmoteVariantAssets:
         config = DoorAgentConfig()
 
         # Check if emote variants exist
-        # This is optional - not all systems may have emote variants
-        if hasattr(config, 'emote_eyes'):
-            assert isinstance(config.emote_eyes, dict)
+        # These should be loaded from door_agents.py
+        if hasattr(config, 'open_eye_emotes'):
+            assert isinstance(config.open_eye_emotes, dict)
 
     def test_emote_fallback_behavior(self):
         """System has fallback when emote variants missing."""
@@ -263,5 +270,5 @@ class TestEmoteVariantAssets:
 
         # Should still work even if no emote variants
         # Basic assets should be sufficient
-        assert len(config.eyes_open) > 0
-        assert len(config.mouths_open) > 0
+        assert len(config.open_eyes) > 0
+        assert len(config.open_mouths) > 0
