@@ -36,18 +36,10 @@ jobs:
       - name: Run actionlint (workflow linting)
         uses: rhysd/actionlint@v1.6.26
 
-      - name: Install shellcheck
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y shellcheck
-
       - name: Run shellcheck (shell script linting)
-        run: |
-          if compgen -G "*.sh" > /dev/null; then
-            shellcheck *.sh
-          else
-            echo "No shell scripts found to lint"
-          fi
+        uses: ludeeus/action-shellcheck@2.0.0
+        with:
+          severity: warning
 
       - name: Run taplo (TOML formatting check)
         uses: uncenter/setup-taplo@v1
