@@ -1745,7 +1745,7 @@ def generate_all_emote_variants(emotes: Optional[List[str]] = None):
                     stats["failed"] += 1
 
     print(f"\n{'='*60}")
-    print(f"Emote variant generation complete!")
+    print("Emote variant generation complete!")
     print(f"Total variants: {stats['total']}")
     print(f"Successful: {stats['success']}")
     print(f"Failed: {stats['failed']}")

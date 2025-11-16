@@ -48,9 +48,13 @@ existing avatar appearances, continue using v1.x. For new deployments, v2.0
 provides significantly better animation capabilities.
 """
 
-import os, random, re, xml.etree.ElementTree as ET, json, hashlib
+import random
+import re
+import xml.etree.ElementTree as ET
+import json
+import hashlib
 from pathlib import Path
-from typing import Optional, Dict, List, Tuple, Union
+from typing import Optional, Dict, List, Tuple
 
 AVATAR_SYSTEM_VERSION = "2.0"
 
@@ -479,9 +483,6 @@ class DoorAgentGenerator:
         Returns:
             Tuple of (clipPath defs SVG string, eye groups SVG string) for 7 states (open, closed, happy, sad, surprised, angry, bored)
         """
-        import xml.etree.ElementTree as ET
-        import re
-
         w_tiles, h_tiles = shape
         box = cell_size - 2 * pad
         foot_h_frac = self.config.FOOT_H_FRAC
@@ -1609,8 +1610,6 @@ class DoorAgentGenerator:
 
         # Extract inner content from both SVGs (remove <svg> wrapper)
         # We need to extract everything between <svg...> and </svg>
-        import re
-
         def extract_svg_inner(svg_str):
             """Extract content between <svg...> and </svg> tags."""
             # Find opening tag end
