@@ -28,7 +28,7 @@ jobs:
         run: uv sync
 
       - name: Run ruff (linting and formatting)
-        run: uv run ruff check --exit-non-zero-on-fix .
+        run: uvx ruff check --exit-non-zero-on-fix .
 
       - name: Run vulture (dead code detection)
         run: uv run vulture src .vulture --min-confidence 80 --exclude tests/
