@@ -11,6 +11,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Python build/packaging artifacts
+*.egg-info/
+build/
+dist/
+
 # Virtual environments
 .venv/
 venv/
@@ -19,9 +24,22 @@ env/
 # IDE files
 .vscode/
 
-# Test coverage
+# Test coverage and tool caches
 .coverage
 htmlcov/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Logs
+*.log
 
 # Prototype files (historical reference only)
 prototype_*.py
