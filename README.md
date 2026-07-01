@@ -572,18 +572,21 @@ curl http://localhost:8000/avatar/test.svg/info
 
 ## 📄 License
 
-MIT License - Feel free to use in your projects!
+Licensed under the [MIT License](./LICENSE). Feel free to use in your projects.
+
+## 🔒 Security
+
+Found a vulnerability? Please see [SECURITY.md](./SECURITY.md) for how to
+report it privately.
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Add your improvements (assets, features, optimizations)
-4. Submit a pull request
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full contribution guide
+(development setup, coding standards, PR workflow, and asset guidelines).
 
 **Areas for Contribution:**
 - New hair/eye/mouth assets
-- Performance optimizations  
+- Performance optimizations
 - Additional output formats
 - Mobile-optimized variants
 - Integration examples
