@@ -570,6 +570,27 @@ curl http://localhost:8000/avatar/test.svg/info
 - Pillow 11.3+ (future raster rendering)
 - Gunicorn (production deployment)
 
+## ⚠️ Limitations
+
+Honest caveats to know before adopting this in production:
+
+- **Native `libcairo2` dependency.** PNG rendering uses CairoSVG, which
+  requires the Cairo graphics library on the host. The provided `Dockerfile`
+  installs it; bare-metal deployments need to install it via their OS package
+  manager (`brew install cairo`, `apt install libcairo2`, etc.).
+- **File-based cache is single-instance.** The `out/avatar/` cache lives on
+  local disk. Running multiple replicas without shared storage means each
+  replica maintains its own cache. Add a shared volume or CDN in front for
+  multi-instance deployments.
+- **Not published to PyPI.** This project runs from source (`uv sync`). The
+  `pyproject.toml` is present for local dependency management, not for
+  distribution.
+- **Hash collision ceiling.** ~1.27B unique variants; birthday-paradox 50%
+  collision probability at ~34,600 users. Fine up to ~1M users; add more
+  assets or an alternative identity system beyond that.
+- **No v1 → v2 migration path.** Same input strings render as different
+  avatars in v2 due to hash byte reallocation. See the CHANGELOG for details.
+
 ## 📄 License
 
 Licensed under the [MIT License](./LICENSE). Feel free to use in your projects.
