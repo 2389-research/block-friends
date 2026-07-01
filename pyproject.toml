@@ -1,8 +1,9 @@
 [project]
-name = "sprite-maker"
-version = "0.1.0"
-description = "Add your description here"
+name = "block-friends"
+version = "2.0.0"
+description = "Deterministic 'door agent' avatar generator with animated emotes, sprite sheets, and a FastAPI service."
 readme = "README.md"
+license = { text = "MIT" }
 requires-python = ">=3.12"
 dependencies = [
     "pillow>=11.3.0",
