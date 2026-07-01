@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
 
 # Install build tools and Cairo graphics library
 # Build tools needed for compiling httptools and other C extensions
@@ -14,8 +14,8 @@ WORKDIR /app
 # Copy dependency files
 COPY pyproject.toml uv.lock ./
 
-# Install dependencies using Python 3.12 explicitly
-ENV UV_PYTHON=python3.12
+# Install dependencies using Python 3.13 explicitly
+ENV UV_PYTHON=python3.13
 RUN uv sync --frozen --no-dev
 
 # Copy application code and assets

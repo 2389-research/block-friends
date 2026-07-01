@@ -20,7 +20,7 @@ We expect all contributors to be respectful and professional. This is an open-so
 
 ### Prerequisites
 
-- Python 3.12 or higher
+- Python 3.13 or higher
 - [uv](https://docs.astral.sh/uv/) for dependency management
 - Git for version control
 

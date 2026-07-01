@@ -4,7 +4,22 @@ version = "2.0.0"
 description = "Deterministic 'door agent' avatar generator with animated emotes, sprite sheets, and a FastAPI service."
 readme = "README.md"
 license = { text = "MIT" }
-requires-python = ">=3.12"
+requires-python = ">=3.13"
+authors = [
+    { name = "2389 Research, Inc." },
+]
+keywords = ["avatar", "svg", "sprite", "deterministic", "fastapi", "identicon", "gravatar"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    "Framework :: FastAPI",
+]
 dependencies = [
     "pillow>=11.3.0",
     "fastapi>=0.115.0",
@@ -13,6 +28,12 @@ dependencies = [
     "pypdf2>=3.0.1",
     "slowapi>=0.1.9",
 ]
+
+[project.urls]
+Homepage = "https://github.com/2389-research/block-friends"
+Repository = "https://github.com/2389-research/block-friends"
+Issues = "https://github.com/2389-research/block-friends/issues"
+Changelog = "https://github.com/2389-research/block-friends/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 dev = [
