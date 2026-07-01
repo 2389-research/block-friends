@@ -2,7 +2,10 @@
 # ABOUTME: Deterministic door agent avatar generator from email or input string  
 # ABOUTME: Creates single SVG agent using SHA-256 hash for consistent avatar generation
 
-import argparse, sys, json, hashlib
+import argparse
+import sys
+import json
+import hashlib
 from pathlib import Path
 from door_agents import DoorAgentConfig, DoorAgentGenerator
 
@@ -87,7 +90,7 @@ Examples:
                 if agent_config['hair_index']:
                     print(f"   Hair: #{agent_config['hair_index']}", file=sys.stderr)
                 else:
-                    print(f"   Hair: None", file=sys.stderr)
+                    print("   Hair: None", file=sys.stderr)
                 print(f"   Body Color: {agent_config['body_color']}", file=sys.stderr)
                 print(f"   Node Color: {agent_config['node_color']}", file=sys.stderr)
                 print(f"   Feet: {'Match body' if agent_config['feet_match_body'] else 'Match nodes'} ({agent_config['feet_color']})", file=sys.stderr)

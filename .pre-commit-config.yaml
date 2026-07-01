@@ -11,12 +11,15 @@ repos:
       hooks:
           - id: vulture
             args:
-                - src
-                - .vulture
+                - app.py
+                - avatar.py
+                - door_agents.py
+                - generate.py
+                - build_universal_svg.py
                 - --min-confidence
                 - "80"
                 - --exclude
-                - tests/
+                - tests/,scripts/
 
     - repo: https://github.com/rhysd/actionlint
       rev: v1.6.26

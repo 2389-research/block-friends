@@ -1,5 +1,4 @@
 # tests/test_universal_parameter.py
-import pytest
 from door_agents import DoorAgentGenerator, DoorAgentConfig
 
 def test_universal_mode_includes_style_block():

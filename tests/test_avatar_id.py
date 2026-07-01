@@ -1,7 +1,6 @@
 # ABOUTME: Tests for avatar ID generation and SVG root element attributes
 # ABOUTME: Validates deterministic ID generation and agent class application
 
-import pytest
 from door_agents import DoorAgentGenerator, DoorAgentConfig
 
 def test_avatar_id_is_deterministic():

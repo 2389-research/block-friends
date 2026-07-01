@@ -1,5 +1,4 @@
 # tests/test_nodes_generation.py
-import pytest
 from door_agents import DoorAgentGenerator, DoorAgentConfig
 
 def test_nodes_generation_includes_circles():

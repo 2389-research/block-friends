@@ -1,7 +1,6 @@
 # ABOUTME: Tests for feet generation extraction
 # ABOUTME: Validates _generate_feet method produces correct SVG output
 
-import pytest
 from door_agents import DoorAgentGenerator, DoorAgentConfig
 
 def test_feet_generation_includes_rectangles():

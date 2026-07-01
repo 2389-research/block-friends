@@ -1,7 +1,6 @@
 # ABOUTME: Tests for universal mouths generation functionality
 # ABOUTME: Verifies that _generate_universal_mouths creates nested SVG groups for all 12 mouth states
 
-import pytest
 from door_agents import DoorAgentGenerator, DoorAgentConfig
 
 def test_universal_mouths_has_nested_groups():

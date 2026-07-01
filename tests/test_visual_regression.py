@@ -2,7 +2,6 @@
 # ABOUTME: Tests verify structure and consistency of generated avatars across all states.
 import pytest
 from door_agents import DoorAgentGenerator, DoorAgentConfig
-from pathlib import Path
 
 
 @pytest.fixture

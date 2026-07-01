@@ -48,9 +48,13 @@ existing avatar appearances, continue using v1.x. For new deployments, v2.0
 provides significantly better animation capabilities.
 """
 
-import os, random, re, xml.etree.ElementTree as ET, json, hashlib
+import random
+import re
+import xml.etree.ElementTree as ET
+import json
+import hashlib
 from pathlib import Path
-from typing import Optional, Dict, List, Tuple, Union
+from typing import Optional, Dict, List, Tuple
 
 AVATAR_SYSTEM_VERSION = "2.0"
 
@@ -307,19 +311,17 @@ class DoorAgentGenerator:
         Returns:
             SVG string for feet rectangles
         """
-        w_tiles, h_tiles = shape
+        w_tiles, _h_tiles = shape
         box = cell_size - 2 * pad
         foot_h_frac = self.config.FOOT_H_FRAC
 
         # Calculate body dimensions (same as in _generate_body)
         scale = (box - box * foot_h_frac) / 7
         body_w = int(w_tiles * scale)
-        body_h = int(h_tiles * scale)
         foot_h = int(box * foot_h_frac)
 
         # Calculate body position
         bx0 = pad + (box - body_w) // 2
-        by0 = pad + box - foot_h - body_h
         bx1 = bx0 + body_w
         cx = (bx0 + bx1) / 2
 
@@ -380,12 +382,9 @@ class DoorAgentGenerator:
         bx1 = bx0 + body_w
         cx = (bx0 + bx1) / 2
 
-        # Calculate eye position for hair positioning
-        eyes_w = body_w * self.config.EYES_W_FRAC
         # Calculate eyes position (simplified from generate_agent_svg)
         # We need eye_y for "between-body-eyes" positioning
         target_eye_center_y = by0 + body_h * self.config.EYE_Y_FRAC
-        by1 = by0 + body_h
         # Use target eye position directly for hair calculations
         eyes_y_approx = target_eye_center_y
 
@@ -480,7 +479,6 @@ class DoorAgentGenerator:
             Tuple of (clipPath defs SVG string, eye groups SVG string) for 7 states (open, closed, happy, sad, surprised, angry, bored)
         """
         import xml.etree.ElementTree as ET
-        import re
 
         w_tiles, h_tiles = shape
         box = cell_size - 2 * pad
@@ -1076,8 +1074,6 @@ class DoorAgentGenerator:
         min_y = float('inf')
         max_y = float('-inf')
 
-        feet_fill = body_color if feet_match_body else node_color
-
         # Generate avatar ID (needed for clipPath namespacing in universal mode)
         avatar_id = self._generate_avatar_id(email) if email else "avatar-default"
 
@@ -1609,7 +1605,6 @@ class DoorAgentGenerator:
 
         # Extract inner content from both SVGs (remove <svg> wrapper)
         # We need to extract everything between <svg...> and </svg>
-        import re
 
         def extract_svg_inner(svg_str):
             """Extract content between <svg...> and </svg> tags."""

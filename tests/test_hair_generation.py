@@ -1,7 +1,6 @@
 # ABOUTME: Tests for hair generation extraction
 # ABOUTME: Verifies _generate_hair method produces correct SVG with positioning and z-order
 
-import pytest
 from door_agents import DoorAgentGenerator, DoorAgentConfig
 
 

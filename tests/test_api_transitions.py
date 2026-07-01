@@ -2,9 +2,7 @@
 # ABOUTME: API tests for transition endpoints
 # ABOUTME: Tests single-frame transition endpoint with caching
 
-import pytest
 import hashlib
-from pathlib import Path
 from fastapi.testclient import TestClient
 from app import app, CACHE_DIR
 

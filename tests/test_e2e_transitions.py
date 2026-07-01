@@ -2,15 +2,12 @@
 # ABOUTME: End-to-end tests for transition system
 # ABOUTME: Tests full workflow from generation to API to caching
 
-import pytest
 import hashlib
 import io
 import zipfile
-from pathlib import Path
 from PyPDF2 import PdfReader
 from fastapi.testclient import TestClient
 from app import app, CACHE_DIR
-from door_agents import DoorAgentConfig, DoorAgentGenerator
 
 client = TestClient(app)
 

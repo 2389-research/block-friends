@@ -2,7 +2,6 @@
 # ABOUTME: Tests for PDF bundle with transition frames
 # ABOUTME: Validates multi-page PDF emote and vowel animations
 
-import pytest
 import zipfile
 import io
 import json

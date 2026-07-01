@@ -169,7 +169,7 @@ if __name__ == '__main__':
     size = len(universal_svg)
 
     print(f"\n✓ Generated: {output_path}")
-    print(f"\nUniversal SVG Stats:")
+    print("\nUniversal SVG Stats:")
     print(f"  Size: {size:,} bytes ({size/1024:.2f} KB)")
 
     # Compare to current approach
@@ -195,7 +195,7 @@ if __name__ == '__main__':
     universal_gzipped = gzip.compress(universal_svg.encode('utf-8'))
     universal_gzip_size = len(universal_gzipped)
 
-    print(f"\nWith gzip compression:")
+    print("\nWith gzip compression:")
     print(f"Universal gzipped:  {universal_gzip_size:>8,} bytes ({universal_gzip_size/1024:>6.2f} KB)")
     print(f"Compression ratio:  {100*(1 - universal_gzip_size/size):>7.1f}%")
     print(f"vs Current total:   {100*(1 - universal_gzip_size/current_total):>7.1f}% smaller")

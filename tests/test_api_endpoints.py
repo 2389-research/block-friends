@@ -4,7 +4,6 @@ API integration tests for avatar service endpoints.
 Tests all HTTP endpoints to ensure correct responses, headers, and error handling.
 """
 
-import pytest
 from fastapi.testclient import TestClient
 from app import app
 

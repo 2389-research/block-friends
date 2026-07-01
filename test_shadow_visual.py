@@ -25,7 +25,7 @@ def generate_test_avatars():
         # Quick validation
         assert '<ellipse' in svg, f"Missing shadow in {email}"
         assert 'shadow-blur' in svg, f"Missing filter in {email}"
-        print(f"  Shadow present and filtered")
+        print("  Shadow present and filtered")
 
 if __name__ == '__main__':
     generate_test_avatars()

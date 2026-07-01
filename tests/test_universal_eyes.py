@@ -1,7 +1,6 @@
 # ABOUTME: Tests for universal eyes generation with nested groups
 # ABOUTME: Verifies all 7 eye states are included and properly structured
 
-import pytest
 from door_agents import DoorAgentGenerator, DoorAgentConfig
 
 

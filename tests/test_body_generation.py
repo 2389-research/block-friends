@@ -1,7 +1,6 @@
 # ABOUTME: Tests for body generation extraction
 # ABOUTME: Validates _generate_body method produces correct SVG elements
 
-import pytest
 from door_agents import DoorAgentGenerator, DoorAgentConfig
 
 

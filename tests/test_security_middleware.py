@@ -2,7 +2,6 @@
 # ABOUTME: Tests for security headers and CORS middleware
 # ABOUTME: Validates that all HTTP responses include proper security headers
 
-import pytest
 from fastapi.testclient import TestClient
 from app import app
 

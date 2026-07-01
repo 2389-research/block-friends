@@ -1,7 +1,6 @@
 # ABOUTME: Tests for CSS rules generation in universal SVG mode
 # ABOUTME: Validates scoped CSS for state visibility control across all animation frames
 
-import pytest
 from door_agents import DoorAgentGenerator, DoorAgentConfig
 
 def test_css_rules_hide_all_by_default():
