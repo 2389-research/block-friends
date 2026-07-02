@@ -32,5 +32,22 @@ jobs:
       - name: Lint (ruff)
         run: uv run ruff check .
 
+      - name: Dead code detection (vulture)
+        run: |
+          uv run --with vulture==2.7 vulture \
+            app.py avatar.py door_agents.py generate.py build_universal_svg.py \
+            --min-confidence 80 --exclude tests/,scripts/
+
+      - name: Lint GitHub Actions workflows (actionlint)
+        uses: rhysd/actionlint@v1.6.26
+
+      - name: Check TOML formatting (taplo)
+        uses: uncenter/setup-taplo@v1
+        with:
+          version: '0.9.3'
+
+      - name: Run taplo format check
+        run: taplo format --check
+
       - name: Run tests
         run: uv run pytest tests/ -v
