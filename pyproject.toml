@@ -45,6 +45,9 @@ Changelog = "https://github.com/2389-research/block-friends/blob/main/CHANGELOG.
 # Helper/one-shot scripts: allow unused locals for readability and
 # scratch-computed intermediate values.
 "scripts/*" = ["F841"]
+# Tests may capture response bodies for exploration or future assertions
+# without triggering unused-variable lints.
+"tests/*" = ["F841"]
 
 [project.optional-dependencies]
 dev = ["httpx>=0.28.1", "pytest>=8.4.2", "pytest-cov>=4.1.0", "ruff>=0.11.8"]
