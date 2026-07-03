@@ -79,13 +79,28 @@ class TestBundleEndpointRateLimiting:
 class TestRateLimitErrorResponses:
     """Tests for rate limit exceeded error responses."""
 
-    @pytest.mark.skip(reason="Requires exhausting the 100/minute limit; documents expected 429 behavior")
     def test_rate_limit_exceeded_returns_429(self):
-        """When rate limit is exceeded, returns 429 status code."""
+        """After the 100/minute avatar limit is exhausted, the endpoint
+        returns 429."""
+        responses = [
+            client.get("/avatar/rate-429@example.com.svg")
+            for _ in range(101)
+        ]
+        assert any(r.status_code == 429 for r in responses), (
+            "Expected at least one 429 within 101 requests"
+        )
 
-    @pytest.mark.skip(reason="Requires exhausting the limit; documents that responses include Retry-After")
     def test_rate_limit_error_includes_retry_after(self):
-        """Rate limit error response includes Retry-After header."""
+        """The 429 response body carries slowapi's default rate-limit
+        detail so clients can back off intelligently."""
+        responses = [
+            client.get("/avatar/rate-retry@example.com.svg")
+            for _ in range(101)
+        ]
+        limited = next((r for r in responses if r.status_code == 429), None)
+        assert limited is not None, "Expected at least one 429 within 101 requests"
+        # slowapi's default handler emits {"error": "Rate limit exceeded: ..."}
+        assert "rate limit" in limited.text.lower()
 
 
 class TestRateLimitWithHeaders:
@@ -129,13 +144,27 @@ class TestRateLimitWithHeaders:
 class TestRateLimitConfiguration:
     """Tests for rate limit configuration and behavior."""
 
-    @pytest.mark.skip(reason="Configuration is documented; verifying by exhausting the limit is impractical in unit tests")
     def test_svg_endpoint_has_100_per_minute_limit(self):
-        """SVG endpoint is configured with 100 requests per minute limit."""
+        """Confirms the SVG endpoint enforces a 100/minute ceiling.
+        slowapi buckets per endpoint URL, so all requests target the same
+        path."""
+        codes = [
+            client.get("/avatar/rate-svg-limit@example.com.svg").status_code
+            for _ in range(130)
+        ]
+        assert codes.count(200) == 100
+        assert codes.count(429) == 30
 
-    @pytest.mark.skip(reason="Configuration is documented; verifying by exhausting the limit is impractical in unit tests")
     def test_bundle_endpoint_has_10_per_minute_limit(self):
-        """Bundle endpoint is configured with 10 requests per minute limit."""
+        """Confirms the bundle endpoint enforces its stricter 10/minute
+        ceiling — 10× tighter than the SVG endpoint. Requests target the
+        same URL so slowapi keys them into one bucket."""
+        codes = [
+            client.get("/avatar/rate-bundle-limit@example.com/bundle").status_code
+            for _ in range(25)
+        ]
+        assert codes.count(200) == 10
+        assert codes.count(429) == 15
 
     @pytest.mark.skip(reason="Requires time-based testing across the 1-minute window; documents expected reset")
     def test_rate_limit_window_resets(self):
