@@ -290,6 +290,9 @@ class TestBundleEndpointInjection:
 
         # Should either reject or handle safely
         assert response.status_code in [200, 400, 422]
+        # If accepted, the payload must not appear reflected in the response body
+        if response.status_code == 200:
+            assert b"<script>" not in response.content
 
     def test_bundle_post_with_malicious_json(self):
         """POST bundle with malicious JSON is validated."""

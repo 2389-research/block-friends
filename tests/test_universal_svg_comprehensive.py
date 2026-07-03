@@ -144,19 +144,21 @@ class TestUniversalSVGSize:
         assert size < 50000, f"SVG size {size} bytes exceeds 50KB"
 
     def test_universal_svg_larger_than_legacy(self):
-        """Universal SVG may contain additional state information."""
-        response_universal = client.get("/avatar/test@example.com.svg?universal=true")
-        response_legacy = client.get("/avatar/test@example.com.svg?universal=false")
+        """Universal SVG carries all state variants inline, so it must be
+        larger than a single-state legacy SVG for the same input."""
+        response_universal = client.get("/avatar/test@example.com.svg")
+        response_legacy = client.get("/avatar/test@example.com.svg?legacy=true")
 
-        # Both should succeed
         assert response_universal.status_code == 200
-        if response_legacy.status_code == 200:
-            # Sizes may be similar if universal mode not fully implemented yet
-            # This test documents expected behavior
-            size_universal = len(response_universal.content)
-            size_legacy = len(response_legacy.content)
-            # At minimum, both should generate valid SVG
-            assert size_universal > 0 and size_legacy > 0
+        assert response_legacy.status_code == 200
+
+        size_universal = len(response_universal.content)
+        size_legacy = len(response_legacy.content)
+
+        assert size_universal > size_legacy, (
+            f"universal ({size_universal} bytes) should be larger than "
+            f"legacy ({size_legacy} bytes) — universal embeds all state variants"
+        )
 
 
 class TestUniversalSVGWithFrame:
@@ -207,17 +209,18 @@ class TestLegacyModeComparison:
     """Tests comparing universal mode with legacy mode."""
 
     def test_legacy_mode_parameter(self):
-        """Legacy mode can be requested via parameter."""
-        response = client.get("/avatar/test@example.com.svg?universal=false")
+        """Legacy mode via ?legacy=true returns a single-state SVG with no
+        CSS state-switching rules."""
+        response = client.get("/avatar/test@example.com.svg?legacy=true")
 
-        if response.status_code == 200:
-            content = response.content.decode('utf-8')
-            # Legacy mode should NOT have CSS rules (or much simpler ones)
-            # This is implementation-dependent
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        # Legacy SVG shouldn't carry the universal-mode CSS state block
+        assert "<style>" not in content
 
-    def test_universal_true_explicit(self):
-        """Universal mode can be explicitly requested."""
-        response = client.get("/avatar/test@example.com.svg?universal=true")
+    def test_universal_mode_is_default(self):
+        """Default request (no legacy flag) returns universal SVG with CSS."""
+        response = client.get("/avatar/test@example.com.svg")
 
         assert response.status_code == 200
         content = response.content.decode('utf-8')

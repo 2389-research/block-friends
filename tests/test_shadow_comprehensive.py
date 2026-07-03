@@ -2,6 +2,8 @@
 # ABOUTME: Comprehensive tests for avatar shadow feature
 # ABOUTME: Tests shadow generation, sizing, positioning, and visibility control
 
+import re
+
 from fastapi.testclient import TestClient
 from app import app
 
@@ -22,20 +24,20 @@ class TestShadowPresence:
         assert "shadow" in content.lower() or "ellipse" in content
 
     def test_shadow_in_universal_mode(self):
-        """Shadow is present in universal mode."""
-        response = client.get("/avatar/test@example.com.svg?universal=true")
+        """Shadow is present in universal mode (default)."""
+        response = client.get("/avatar/test@example.com.svg")
 
         assert response.status_code == 200
         content = response.content.decode('utf-8')
-        # Should have shadow elements
+        assert "shadow" in content.lower() or "ellipse" in content
 
     def test_shadow_in_legacy_mode(self):
         """Shadow is present in legacy mode."""
-        response = client.get("/avatar/test@example.com.svg?universal=false")
+        response = client.get("/avatar/test@example.com.svg?legacy=true")
 
-        if response.status_code == 200:
-            content = response.content.decode('utf-8')
-            # Should have shadow elements
+        assert response.status_code == 200
+        content = response.content.decode('utf-8')
+        assert "shadow" in content.lower() or "ellipse" in content
 
 
 class TestShadowSizing:
@@ -146,10 +148,18 @@ class TestShadowFilterNamespacing:
         response1 = client.get("/avatar/user1@example.com.svg")
         response2 = client.get("/avatar/user2@example.com.svg")
 
-        content1 = response1.content.decode('utf-8')
-        content2 = response2.content.decode('utf-8')
+        assert response1.status_code == 200
+        assert response2.status_code == 200
 
-        # Filter IDs should be namespaced differently
+        # Pull the shadow filter IDs (format: avatar-<hash>-shadow-blur) from each
+        # response and confirm they differ, proving the shadow filter is
+        # namespaced per avatar (needed to prevent SVG ID collisions when
+        # multiple avatars are inlined on one page).
+        match1 = re.search(r'(avatar-[0-9a-f]+-shadow-blur)', response1.text)
+        match2 = re.search(r'(avatar-[0-9a-f]+-shadow-blur)', response2.text)
+        assert match1 is not None, "user1 avatar missing namespaced shadow filter id"
+        assert match2 is not None, "user2 avatar missing namespaced shadow filter id"
+        assert match1.group(1) != match2.group(1)
 
 
 class TestShadowRenderOrder:

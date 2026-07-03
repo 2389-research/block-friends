@@ -2,6 +2,7 @@
 # ABOUTME: Tests for API rate limiting functionality
 # ABOUTME: Validates slowapi rate limits work correctly on all endpoints
 
+import pytest
 from fastapi.testclient import TestClient
 from app import app
 
@@ -78,23 +79,13 @@ class TestBundleEndpointRateLimiting:
 class TestRateLimitErrorResponses:
     """Tests for rate limit exceeded error responses."""
 
+    @pytest.mark.skip(reason="Requires exhausting the 100/minute limit; documents expected 429 behavior")
     def test_rate_limit_exceeded_returns_429(self):
         """When rate limit is exceeded, returns 429 status code."""
-        # Note: This test is difficult without actually exhausting the rate limit
-        # In a real scenario, you'd need to make 100+ requests to trigger 429
-        # This is a placeholder to document expected behavior
 
-        # Expected behavior documented:
-        # - 429 status code when limit exceeded
-        # - Appropriate error message
-        # - Retry-After header
-        pass  # Placeholder - requires rate limit exhaustion
-
+    @pytest.mark.skip(reason="Requires exhausting the limit; documents that responses include Retry-After")
     def test_rate_limit_error_includes_retry_after(self):
         """Rate limit error response includes Retry-After header."""
-        # Placeholder test documenting expected behavior
-        # When implemented, should verify Retry-After header is present
-        pass
 
 
 class TestRateLimitWithHeaders:
@@ -138,23 +129,17 @@ class TestRateLimitWithHeaders:
 class TestRateLimitConfiguration:
     """Tests for rate limit configuration and behavior."""
 
+    @pytest.mark.skip(reason="Configuration is documented; verifying by exhausting the limit is impractical in unit tests")
     def test_svg_endpoint_has_100_per_minute_limit(self):
         """SVG endpoint is configured with 100 requests per minute limit."""
-        # This documents the expected rate limit
-        # Actual testing would require making 101 requests
-        # which is impractical in unit tests
-        pass  # Documented behavior
 
+    @pytest.mark.skip(reason="Configuration is documented; verifying by exhausting the limit is impractical in unit tests")
     def test_bundle_endpoint_has_10_per_minute_limit(self):
         """Bundle endpoint is configured with 10 requests per minute limit."""
-        # This documents the expected rate limit
-        pass  # Documented behavior
 
+    @pytest.mark.skip(reason="Requires time-based testing across the 1-minute window; documents expected reset")
     def test_rate_limit_window_resets(self):
         """Rate limit counters reset after time window expires."""
-        # This would require time-based testing
-        # Placeholder documenting expected behavior
-        pass  # Documented behavior
 
 
 class TestRateLimitWithConcurrentRequests:

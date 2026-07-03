@@ -21,7 +21,9 @@ import pytest
 def _reset_rate_limiter():
     # slowapi's in-memory limiter is a module-level singleton; without this
     # reset, requests accumulate across tests and later tests spuriously
-    # hit 429s.
-    from app import limiter
-    limiter.reset()
+    # hit 429s. Skip when a shared backend (e.g. Redis) is configured — the
+    # counters there may be observed by other clients we shouldn't clobber.
+    if not os.environ.get("REDIS_URL"):
+        from app import limiter
+        limiter.reset()
     yield

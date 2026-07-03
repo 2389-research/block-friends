@@ -2,6 +2,7 @@
 # ABOUTME: Tests for frame parameter validation
 # ABOUTME: Tests all valid and invalid frame parameter values
 
+import pytest
 from fastapi.testclient import TestClient
 from app import app
 
@@ -110,12 +111,20 @@ class TestFrameParameterSpecialCharacters:
         response = client.get("/avatar/test@example.com.svg?frame=happy\"test")
         assert response.status_code in [200, 400]
 
+    @pytest.mark.xfail(
+        strict=True,
+        reason="Frame is used in the cache path without validation; a "
+               "traversal attempt like '../../etc/passwd' reaches a 500 "
+               "instead of being rejected. Tracked in issue #26. Once "
+               "app.py validates the frame parameter, this test will pass.",
+    )
     def test_frame_with_slashes(self):
-        """Frame parameter with slashes is handled."""
+        """Frame parameter with slashes should be rejected safely — not
+        reach a 500. This documents the desired behavior; the test will
+        pass once the frame parameter is validated before any filesystem
+        operations."""
         response = client.get("/avatar/test@example.com.svg?frame=../../etc/passwd")
-        # May return 500 (cache write error), 400 (validation), or 200 (sanitized)
-        assert response.status_code in [200, 400, 500]
-        # Note: 500 indicates a security issue - frame param should be validated before file operations
+        assert response.status_code in [200, 400]
 
 
 class TestFrameParameterBoundaryValues:
@@ -213,14 +222,14 @@ class TestFrameParameterDeterminism:
         assert response1.content == response2.content
 
     def test_different_frames_different_results(self):
-        """Different frames produce different results (in legacy mode)."""
-        response1 = client.get("/avatar/test@example.com.svg?frame=happy&universal=false")
-        response2 = client.get("/avatar/test@example.com.svg?frame=sad&universal=false")
+        """Different frames produce different results in legacy mode."""
+        response1 = client.get("/avatar/test@example.com.svg?frame=happy&legacy=true")
+        response2 = client.get("/avatar/test@example.com.svg?frame=sad&legacy=true")
 
-        if response1.status_code == 200 and response2.status_code == 200:
-            # In legacy mode, different frames should produce different SVGs
-            # In universal mode, they might be the same (just different initial class)
-            pass
+        assert response1.status_code == 200
+        assert response2.status_code == 200
+        # Legacy mode renders a single frame, so different frames must diverge
+        assert response1.content != response2.content
 
 
 class TestLegacyVsUniversalFrameHandling:
