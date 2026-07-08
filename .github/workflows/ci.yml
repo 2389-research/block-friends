@@ -39,7 +39,7 @@ jobs:
             --min-confidence 80 --exclude tests/,scripts/
 
       - name: Lint GitHub Actions workflows (actionlint)
-        uses: rhysd/actionlint@v1.6.26
+        uses: rhysd/actionlint@v1.7.12
 
       - name: Check TOML formatting (taplo)
         uses: uncenter/setup-taplo@v1
