@@ -42,7 +42,7 @@ jobs:
         uses: rhysd/actionlint@v1.6.26
 
       - name: Check TOML formatting (taplo)
-        uses: uncenter/setup-taplo@v1
+        uses: uncenter/setup-taplo@v2
         with:
           version: '0.9.3'
 
